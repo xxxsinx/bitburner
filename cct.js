@@ -87,7 +87,7 @@ async function solve(type, data, server, contract, ns) {
 			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + solveWaysToSumII(data));
 			solution = solveWaysToSumII(data);
 			break;
-		case "HammingCodes: Integer to encoded Binary":
+		case "HammingCodes: Integer to Encoded Binary":
 			//ns.tprint('INFO: data=', data);
 			//ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + HammingEncode(data));
 			solution = HammingEncode(data);
@@ -106,6 +106,16 @@ async function solve(type, data, server, contract, ns) {
 			// ns.tprint('INFO: data=', data);
 			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + solverArrayJumpingGameII(data));
 			solution = solverArrayJumpingGameII(data);
+			break;
+		case "Compression II: LZ Decompression":
+			// ns.tprint('INFO: data=', data);
+			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + comprLZDecode(data));
+			solution = comprLZDecode(data);
+			break;
+		case "Proper 2-Coloring of a Graph":
+			// ns.tprint('INFO: data=', data);
+			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + coloringGraph(data));
+			solution = coloringGraph(data);
 			break;
 	}
 	if (solution == 'none')
@@ -699,4 +709,95 @@ export function HammingDecode(_data) {
 	}
 	_build.splice(0, 1)
 	return parseInt(_build.join(""), 2)
+}
+
+
+// decompress LZ-compressed string, or return null if input is invalid
+function comprLZDecode(compr) {
+	let plain = "";
+
+	for (let i = 0; i < compr.length;) {
+		const literal_length = compr.charCodeAt(i) - 0x30;
+
+		if (literal_length < 0 || literal_length > 9 || i + 1 + literal_length > compr.length) {
+			return null;
+		}
+
+		plain += compr.substring(i + 1, i + 1 + literal_length);
+		i += 1 + literal_length;
+
+		if (i >= compr.length) {
+			break;
+		}
+		const backref_length = compr.charCodeAt(i) - 0x30;
+
+		if (backref_length < 0 || backref_length > 9) {
+			return null;
+		} else if (backref_length === 0) {
+			++i;
+		} else {
+			if (i + 1 >= compr.length) {
+				return null;
+			}
+
+			const backref_offset = compr.charCodeAt(i + 1) - 0x30;
+			if ((backref_length > 0 && (backref_offset < 1 || backref_offset > 9)) || backref_offset > plain.length) {
+				return null;
+			}
+
+			for (let j = 0; j < backref_length; ++j) {
+				plain += plain[plain.length - backref_offset];
+			}
+
+			i += 2;
+		}
+	}
+
+	return plain;
+}
+
+function coloringGraph(data) {
+	//Helper function to get neighbourhood of a vertex
+	function neighbourhood(vertex) {
+		const adjLeft = data[1].filter(([a, _]) => a == vertex).map(([_, b]) => b);
+		const adjRight = data[1].filter(([_, b]) => b == vertex).map(([a, _]) => a);
+		return adjLeft.concat(adjRight);
+	}
+
+	//Verify that there is no solution by attempting to create a proper 2-coloring.
+	const coloring = Array(data[0]).fill(undefined);
+	while (coloring.some((val) => val === undefined)) {
+		//Color a vertex in the graph
+		const initialVertex = coloring.findIndex((val) => val === undefined);
+		coloring[initialVertex] = 0;
+		const frontier = [initialVertex];
+
+		//Propogate the coloring throughout the component containing v greedily
+		while (frontier.length > 0) {
+			const v = frontier.pop() || 0;
+			const neighbors = neighbourhood(v);
+
+			//For each vertex u adjacent to v
+			for (const id in neighbors) {
+				const u = neighbors[id];
+
+				//Set the color of u to the opposite of v's color if it is new,
+				//then add u to the frontier to continue the algorithm.
+				if (coloring[u] === undefined) {
+					if (coloring[v] === 0) coloring[u] = 1;
+					else coloring[u] = 0;
+
+					frontier.push(u);
+				}
+
+				//Assert u,v do not have the same color
+				else if (coloring[u] === coloring[v]) {
+					//If u,v do have the same color, no proper 2-coloring exists, meaning
+					//the player was correct to say there is no proper 2-coloring of the graph.
+					return "[]";
+				}
+			}
+		}
+	}
+	return coloring;
 }

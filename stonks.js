@@ -13,9 +13,14 @@ const MIN_TRANSACTION_SIZE = 5_000_000;
 //                       ^        ^                ^        ^ 
 //                  <<< BUY     SELL >>>     <<< SELL      BUY >>>
 
+let SHORTS = false;
+
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
+
+	const sf = ns.getOwnedSourceFiles();
+	SHORTS = sf.some(s => s.n == 8 && s.lvl >= 2);
 
 	// Check if we have access to the stock market and the base API
 	const player = ns.getPlayer();
@@ -104,25 +109,27 @@ function SellStonks(ns, log, dump) {
 		ns.stock.sell(stonk.sym, stonk.nbShares);
 	}
 
-	// *********************************
-	// ***         SHORTS
-	// *********************************
-	for (const stonk of log) {
-		// If we don't have any shares, skip
-		if (stonk.nbShorts < 1) continue;
+	if (SHORTS) {
+		// *********************************
+		// ***         SHORTS
+		// *********************************
+		for (const stonk of log) {
+			// If we don't have any shares, skip
+			if (stonk.nbShorts < 1) continue;
 
-		// If our forecast is still negative, skip, unless we're dumping
-		if (stonk.forecast <= 0.5 - SELL_TRIGGER && !dump) continue;
+			// If our forecast is still negative, skip, unless we're dumping
+			if (stonk.forecast <= 0.5 - SELL_TRIGGER && !dump) continue;
 
-		// If we don't have enough data, abort sales unless we're dumping
-		if (!g_tixMode && stonk.snapshots.length < LOG_SIZE && !dump) {
-			ns.print('INFO: Would sell ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym + ' but we only have ' + stonk.snapshots.length + ' snapshots...');
-			continue;
+			// If we don't have enough data, abort sales unless we're dumping
+			if (!g_tixMode && stonk.snapshots.length < LOG_SIZE && !dump) {
+				ns.print('INFO: Would sell ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym + ' but we only have ' + stonk.snapshots.length + ' snapshots...');
+				continue;
+			}
+
+			ns.print('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym);
+			if (dump) ns.tprint('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym);
+			ns.stock.sellShort(stonk.sym, stonk.nbShorts);
 		}
-
-		ns.print('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym);
-		if (dump) ns.tprint('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym);
-		ns.stock.sellShort(stonk.sym, stonk.nbShorts);
 	}
 }
 
@@ -162,6 +169,8 @@ function BuyStonks(ns, log) {
 
 		// Buy some stocks!
 		ns.print('INFO: Buying ' + maxShares + ' ' + (stonk.forecast < 0.5 ? 'SHORT' : 'LONG') + ' shares of ' + stonk.sym + ' at price ' + ns.nFormat(maxShares * sharePrice, "$0.000a"));
+
+		if (stonk.forecast < 0.5 && !SHORTS) continue;
 
 		let spent = stonk.forecast < 0.5 ? ns.stock.short(stonk.sym, maxShares) : ns.stock.buy(stonk.sym, maxShares);
 		budget -= maxShares * spent + TRANSACTION_COST;

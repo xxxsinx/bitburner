@@ -16,7 +16,7 @@ export async function main(ns) {
 
 			let cost= ns.getScriptRam('charge.js');
 
-			let pids = await RunScript(ns, 'charge.js', fragment.x, Math.floor(ram.available * ramPct / cost), fragment.y, 0, 0, performance.now(), true, true);
+			let pids = await RunScript(ns, 'charge.js', fragment.x, Math.floor(ram.total * ramPct / cost), fragment.y, 0, 0, performance.now(), true, true);
 			await WaitPids(ns, pids);
 			ns.print('Done charging: ' + fragment.id);
 		}

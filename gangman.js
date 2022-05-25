@@ -28,16 +28,35 @@ const focusAscension = false;
 const focusMoney = true;
 const allowUpgrades = true;
 const allowAscension = true;
-const allowAugs = true;
+const allowAugs = false;
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	ns.disableLog('ALL');
+	//ns.disableLog('ALL');
 
 	if (!ns.gang.inGang()) {
-		ns.tprint('ERROR: Not in a gang, exiting (todo: create or join a gang?');
-		ns.print('ERROR: Not in a gang, exiting (todo: create or join a gang?');
-		return;
+		const karma = ns.heart.break();
+		if (karma > -54000) {
+			ns.tprint('ERROR: Not enough karma to create a gang yet');
+			ns.print('ERROR: Not enough karma to create a gang yet');
+			return;
+		}
+
+		if (ns.singularity.checkFactionInvitations().includes('Tetrads'))
+			ns.singularity.joinFaction('Tetrads');
+		else if (ns.singularity.checkFactionInvitations().includes('Slum Snakes'))
+			ns.singularity.joinFaction('Slum Snakes');
+
+		if (ns.getPlayer().factions.includes('Tetrads'))
+			ns.gang.createGang('Tetrads');
+		else if (ns.getPlayer().factions.includes('Slum Snakes'))
+			ns.gang.createGang('Slum Snakes');
+
+		if (!ns.gang.inGang()) {
+			ns.tprint('ERROR: Not in a gang, could not create gang, exiting');
+			ns.print('ERROR: Not in a gang, could not create gang, exiting');
+			return;
+		}
 	}
 
 	ns.tail();
@@ -223,7 +242,7 @@ function CalculateAscendTreshold(ns, member) {
 }
 
 function UpgradeEquipement(ns) {
-	let budget = ns.getPlayer().money;
+	let budget = ns.getPlayer().money - 5_000_000_000;
 	if (budget < 0) return;
 
 	let allGear = ns.gang.getEquipmentNames();

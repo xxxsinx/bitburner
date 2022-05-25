@@ -6,10 +6,20 @@ export async function main(ns) {
 
 	// Initial breach
 	ns.print('INFO: Breaching servers.');
-	await RunBreach(ns);
+	await WaitPids(ns, ns.exec('breach.js', 'home'));
 
 	// Set sleeves to do something other than nothing
-	let pid = ns.exec('sleeves.js', 'home');
+	// const karma= ns.heart.break();
+	// let job= 'homicide';
+	// let shock= ns.sleeve.getSleeveStats(0).shock;
+	
+	// if (shock > 95) {
+	// 	job= 'shock';
+	// }
+	// else if (karam > -54000) {
+	// 	job= 'homicide';
+	// }
+	let pid = ns.exec('sleeves.js', 'home', 1, 'shock');
 
 	// Get gangs going
 	pid = ns.exec('gangman.js', 'home');
@@ -35,7 +45,7 @@ export async function main(ns) {
 		}
 
 		// Buy TOR
-		if (!IsTorBought(ns)) {
+		if (!ns.getPlayer().tor) {
 			ns.print('WARN: TOR router not found.');
 			if (ns.getPlayer().money < 200000) {
 				ns.print('WARN: Not enough money to purchase TOR router, postponing purchase.');
@@ -49,9 +59,6 @@ export async function main(ns) {
 				}
 			}
 		}
-		//else {
-		//	ns.print('INFO: TOR router already bought.');
-		//}
 
 		// Buy BruteSSH.exe
 		if (!ns.fileExists('BruteSSH.exe')) {
@@ -84,8 +91,6 @@ export async function main(ns) {
 		}
 
 
-
-
 		// Leave 1m for travels
 		// Auto join Tian
 		// Auto join CSEC
@@ -100,27 +105,12 @@ export async function main(ns) {
 		// Reset at 365k for favor
 		// Farm the rest by donations
 
-
 		// Run share when ram allows
 
 		// Breach again
-		await RunBreach(ns);
+		await WaitPids(ns, ns.exec('breach.js', 'home'));
 
 		ns.print('');
 		await ns.sleep(10000);
 	}
-}
-
-export function IsTorBought(ns) {
-	const servers = ns.scan('home');
-	let res = servers.find(p => p == 'darkweb');
-
-	return res == 'darkweb';
-}
-
-export async function RunBreach(ns) {
-	let pid = ns.exec('breach.js', 'home');
-	let pids = new Array();
-	pids.push(pid);
-	await WaitPids(ns, pids);
 }

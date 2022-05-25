@@ -39,7 +39,7 @@ const FactionNames = {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	let masterlist = GetMasterList(ns);
+	let masterlist = GetMasterList(ns, ns.args.includes('rep'));
 	const ownedAugs = ns.singularity.getOwnedAugmentations(true);
 
 	const columns = [
@@ -70,7 +70,8 @@ export async function main(ns) {
 		masterlist = masterlist.filter(s => s.type != 'Charisma');
 		masterlist = masterlist.filter(s => s.type != 'Company');
 		masterlist = masterlist.filter(s => s.type != 'Shit');
-		//masterlist = masterlist.filter(s => !s.factions[0].startsWith('Netburn'));
+		masterlist = masterlist.filter(s => s.type != 'Hacknet');
+		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Netburn'));
 		if (!ns.getPlayer().factions.includes('Church of the Machine God'))
 			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Church'));
 		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Bladeburner'));
@@ -100,7 +101,7 @@ export async function main(ns) {
 	}
 }
 
-function GetMasterList(ns) {
+function GetMasterList(ns, sortByRep) {
 	const masterlist = [];
 	for (const faction of Object.values(FactionNames)) {
 		let augs = ns.getAugmentationsFromFaction(faction);
@@ -122,7 +123,10 @@ function GetMasterList(ns) {
 			}
 		}
 	}
-	masterlist.sort((a, b) => b.price - a.price);
+	if (sortByRep)
+		masterlist.sort((a, b) => b.rep - a.rep);
+	else
+		masterlist.sort((a, b) => b.price - a.price);
 	return masterlist;
 }
 

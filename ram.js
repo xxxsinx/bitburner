@@ -18,7 +18,7 @@ export async function main(ns) {
 	];
 
 	let data = [];
-	let servers = GetAllServers(ns).sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
+	let servers = GetAllServers(ns).filter(s => ns.hasRootAccess(s)).sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
 	let details = [];
 	for (const server of servers) {
 		if (ns.getServerMaxRam(server) < 1.6) continue;
@@ -60,8 +60,8 @@ export async function main(ns) {
 		{ color: pctColor(freePct / 100), text: ns.nFormat(free * 1e9, '0.00b').padStart(9) + (freePct.toFixed(0) + '%').padStart(5) }
 	];
 
-	for (let i =0; i < details[0].length; i++) {
-		let pct= details.reduce((a, s) => a += s[i].ram, 0) / total * 100;
+	for (let i = 0; i < details[0].length; i++) {
+		let pct = details.reduce((a, s) => a += s[i].ram, 0) / total * 100;
 		entry.push(
 			{ color: pctColor(1 - (pct / 100)), text: pct > 0 ? (pct.toFixed(1) + '%').padStart(7) : '' }
 		)
@@ -199,7 +199,7 @@ export class MemoryMap {
 			if (so.hostname.startsWith('hacknet')) continue;
 
 			let free = so.maxRam - (simulateFull ? 0 : so.ramUsed);
-			if (free < 1.7) free = 0;
+			if (free < 1.6) free = 0;
 
 			this.used += simulateFull ? so.maxRam : so.ramUsed;
 			this.available += free;
@@ -220,7 +220,7 @@ export class MemoryMap {
 				if (server == 'home') {
 					let minFree = 256;
 					if (minFree > so.maxRam * 0.25) {
-						minFree = so.maxRam * 0.25;
+						minFree = 35;//so.maxRam * 0.25;
 					}
 					if (free < minFree) {
 						minFree = free;

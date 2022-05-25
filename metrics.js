@@ -10,6 +10,10 @@ const W1 = 1;	// Index of first WEAKEN data
 const G = 2;	// Index of GROW data
 const W2 = 3;	// Index of second WEAKEN data
 
+const LEECH = [
+	0.01, 0.02, 0.03, 0.04, 0.05, 0.07, 0.10, 0.15, 0.25, 0.45, 0.55, 0.75, 0.85, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00
+];
+
 const EXTRA_THREAD_FACTOR = 1;		// Apply this factor to GROW and WEAKEN thread calculations, not used right now
 const MIN_EXTRA_THREADS = 0;		// Add this many extra threads to GROW and WEAKEN thread calculations
 
@@ -31,7 +35,7 @@ export async function main(ns) {
 	else {
 		let results = [];
 
-		for (let pct = 0.05; pct <= 1.05; pct += 0.05) {
+		for (const pct of LEECH) {
 			let metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, 1);
 			//metrics.Report(ns, ns.tprint);
 			results.push(metrics);
@@ -123,8 +127,8 @@ export async function GetBestPctForServer(ns, server, spacer = BatchSpacer(), mi
 	let bestPct = 0;
 	let bestCps = 0;
 
-	for (let pct = minPct; pct <= maxPct; pct += step) {
-		const metrics = new Metrics(ns, server, Math.min(pct, 0.99), spacer, 1, maxNetworkRamPct)
+	for (const pct of LEECH) { //= minPct; pct <= maxPct; pct += step) {
+		const metrics = new Metrics(ns, server, pct, spacer, 1, maxNetworkRamPct)
 		if (metrics.cashPerSecond > bestCps) {
 			bestPct = pct;
 			bestCps = metrics.cashPerSecond;
@@ -137,12 +141,13 @@ export async function GetBestPctForServer(ns, server, spacer = BatchSpacer(), mi
 
 async function AnalyzeAllServers(ns, maxNetworkRamPct) {
 	const data = new Array();
-	const servers = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxMoney(s) > 0);;
+	const servers = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxMoney(s) > 0);
+
 	ns.tprint('INFO: Getting metrics for ' + servers.length + ' servers');
 	for (let server of servers) {
 		let subData = new Array();
-		for (let pct = 0.05; pct <= 1; pct += 0.05) {
-			const metrics = new Metrics(ns, server, Math.min(pct, 0.99), BatchSpacer(), 1, maxNetworkRamPct)
+		for (const pct of LEECH) {
+			const metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, maxNetworkRamPct)
 			// Skip stuff we can't hack
 			if (metrics.hackChance >= 0.50 && metrics.cashPerSecond > 0)
 				subData.push(metrics);

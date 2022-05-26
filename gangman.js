@@ -24,11 +24,11 @@ const GANGSTER_NAMES = [
 ];
 
 let isHacking = false;
-const focusAscension = false;
-const focusMoney = true;
+const focusAscension = true;
+const focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
-const allowAugs = true;
+const allowAugs = false;
 
 /** @param {NS} ns **/
 export async function main(ns) {

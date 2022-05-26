@@ -33,8 +33,8 @@ const FactionNames = {
 	TheSyndicate: "The Syndicate",
 	Silhouette: "Silhouette",
 	Bladeburners: "Bladeburners",
-	ChurchOfTheMachineGod: "Church of the Machine God"//,
-	//ShadowsOfAnarchy: "Shadows of Anarchy"
+	ChurchOfTheMachineGod: "Church of the Machine God",
+	ShadowsOfAnarchy: "Shadows of Anarchy"
 };
 
 /** @param {NS} ns **/
@@ -46,7 +46,7 @@ export async function main(ns) {
 		{ header: ' Augmentation', width: 56 },
 		{ header: ' Factions', width: 30 },
 		{ header: ' Price', width: 8 },
-		{ header: ' Req.Rep', width: 9 },
+		{ header: ' Req.Rep', width: 19 },
 		{ header: ' Pre.Req', width: 40 },
 		{ header: ' Type', width: 13 }
 	];
@@ -57,7 +57,17 @@ export async function main(ns) {
 			let list = masterlist.filter(s => s.factions.includes(faction));
 			let data = ToColumnData(ns, list, ' No ' + faction + ' augmentations found!');
 
-			columns[0].header = ' ' + faction;
+			let extra = '';
+			if (faction == FactionNames.CyberSec)
+				extra = ns.getServerRequiredHackingLevel('CSEC').toString();
+			else if (faction == FactionNames.NiteSec)
+				extra = ns.getServerRequiredHackingLevel('avmnite-02h').toString();
+			else if (faction == FactionNames.TheBlackHand)
+				extra = ns.getServerRequiredHackingLevel('I.I.I.I').toString();
+			else if (faction == FactionNames.BitRunners)
+				extra = ns.getServerRequiredHackingLevel('run4theh111z').toString();
+
+			columns[0].header = ' ' + faction + ' ' + extra;
 
 			PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
 		}
@@ -71,6 +81,7 @@ export async function main(ns) {
 		masterlist = masterlist.filter(s => s.type != 'Company');
 		masterlist = masterlist.filter(s => s.type != 'Shit');
 		masterlist = masterlist.filter(s => s.type != 'Hacknet');
+		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Shadows'));
 		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Netburn'));
 		if (!ns.getPlayer().factions.includes('Church of the Machine God'))
 			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Church'));
@@ -132,12 +143,11 @@ function GetMasterList(ns, sortByRep) {
 
 function ToColumnData(ns, list, emptyDesc) {
 	const playerMoney = ns.getServerMoneyAvailable('home');
-
 	let ret = list.map(s => [
 		{ color: AugColor(ns, s), text: ' ' + s.name },
-		{ color: s.factions.length == 1 ? 'red' : 'white', text: s.factions.join(', ').slice(0, 30) },
+		{ color: s.factions.length == 1 ? 'Fuchsia' : 'white', text: (' ' + (s.factions.length == 1 ? 'Unique: ' : '') + s.factions.join(', ')).slice(0, 29) },
 		{ color: s.price > playerMoney ? 'red' : 'white', text: ' ' + ns.nFormat(s.price, '0.0a').padStart(6) },
-		{ color: MeetsRepRequirement(ns, s) ? 'white' : 'red', text: ' ' + ns.nFormat(s.rep, '0.00a').toString().padStart(7) },
+		{ color: ReqRepColor(ns, s), text: ' ' + ns.nFormat(BestRep(ns, s), '0.00a').padStart(7) + ' / ' + ns.nFormat(s.rep, '0.00a').toString().padStart(7) },
 		{ color: MeetsPreReq(ns, s) ? 'white' : 'red', text: ' ' + s.prereq.toString().slice(0, 38) },
 		{ color: TypeColor(s.type), text: ' ' + s.type }
 	]);
@@ -154,6 +164,12 @@ function ToColumnData(ns, list, emptyDesc) {
 	}
 
 	return ret;
+}
+
+function ReqRepColor(ns, s) {
+	if (MeetsRepRequirement(ns, s)) return 'lime';
+	if (BestRep(ns, s) == 0) return 'red'
+	return 'orange';
 }
 
 function FilterDesiredAugs(ns, s) {
@@ -201,6 +217,15 @@ function AugColor(ns, aug) {
 function intersect(a, b) {
 	var setB = new Set(b);
 	return [...new Set(a)].filter(x => setB.has(x));
+}
+
+function BestRep(ns, aug) {
+	let best = 0;
+	for (let faction of aug.factions) {
+		let rep = ns.singularity.getFactionRep(faction);
+		if (rep > best) best = rep;
+	}
+	return best;
 }
 
 function MeetsRepRequirement(ns, aug) {

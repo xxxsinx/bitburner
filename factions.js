@@ -89,27 +89,95 @@ export async function main(ns) {
 	}
 
 	let desired = masterlist.filter(s => FilterDesiredAugs(ns, s));
+	let suggested = SuggestedAugs(ns, desired);
 	let owned = masterlist.filter(s => ownedAugs.includes(s.name) && !s.name.startsWith('NeuroFlux'));
 	let balance = masterlist.filter(s => !desired.includes(s) && !owned.includes(s));
 
 	let desiredData = ToColumnData(ns, desired, ' No desirable augmentations found!');
+	let suggestedData = ToColumnData(ns, suggested, ' No suggested augmentations found!');
 	let balanceData = ToColumnData(ns, balance, ' No interesting augmentations found!');
 	let ownedData = ToColumnData(ns, owned, ' No augmentations installed yet!');
 
-	PrintTable(ns, [...desiredData, null, ...balanceData, null, ...ownedData], columns, DefaultStyle(), ColorPrint);
+	if (ns.args[0] != undefined && ns.args[0].startsWith('ins')) {
+		let hasNeufo = ns.getOwnedAugmentations(true).find(s => s.startsWith('NeuroFlux'));
+		columns[0].header = ' Installed Augmentations (' + (owned.length + (hasNeufo ? 1 : 0)) + ')';
+		PrintTable(ns, ownedData, columns, DefaultStyle(), ColorPrint);
+	}
+	else {
+		columns[0].header = ' Suggested Buy Order';
+		PrintTable(ns, suggestedData, columns, DefaultStyle(), ColorPrint);
+
+		columns[0].header = ' Buyable';
+		PrintTable(ns, desiredData, columns, DefaultStyle(), ColorPrint);
+
+		columns[0].header = ' Wanted but locked (by faction/prereq/$/rep)';
+		PrintTable(ns, balanceData, columns, DefaultStyle(), ColorPrint);
+	}
 
 	if (ns.args[0] == 'buy') {
-		if (desired.length < 1) {
+		if (suggested.length < 1) {
 			ns.tprint('FAIL: Cannot buy any augmentation right now');
 			return;
 		}
-		let aug = desired[0].name;
-		let faction = MeetsRepRequirement(ns, desired[0]);
-		if (ns.singularity.purchaseAugmentation(faction, aug))
-			ns.tprint('SUCCES: Bought ' + aug + ' from ' + faction);
-		else
-			ns.tprint('FAIL: Cannot buy ' + aug + ' from ' + faction);
+
+		for (let aug of suggested) {
+			let faction = MeetsRepRequirement(ns, aug);
+			if (ns.singularity.purchaseAugmentation(faction, aug.name))
+				ns.tprint('SUCCES: Bought ' + aug.name + ' from ' + faction);
+			else
+				ns.tprint('FAIL: Cannot buy ' + aug.name + ' from ' + faction + ' ?!' +
+					' estimated cost: ' + ns.nFormat(aug.price, '0.00a') +
+					' actual cost: ' + ns.nFormat(ns.singularity.getAugmentationPrice(aug.name), '0.00a') +
+					' money: ' + ns.nFormat(ns.getPlayer().money, '0.00a'));
+		}
 	}
+}
+
+function SuggestedAugs(ns, desired) {
+	let neuro = desired.find(s => s.name.startsWith('NeuroFlux'));
+	desired = desired.filter(s => !s.name.startsWith('NeuroFlux'));
+	let mult = 1.9 * [1, .96, .94, .93][ns.getOwnedSourceFiles().filter(obj => { return obj.n === 11 })[0].lvl];
+
+	for (let i = 0; i < desired.length; i++) {
+		let budget = ns.getPlayer().money;
+		let augs = desired.slice(i);
+
+		let price = 0;
+		let currentMult = 1;
+		for (let j = 0; j < augs.length; j++) {
+			price += augs[j].price * currentMult;
+			currentMult *= mult;
+		}
+		if (price <= budget) {
+			budget -= price;
+
+			// Fill with NeuroFlux
+			while (neuro != undefined && budget > neuro.price * currentMult) {
+				augs.push(neuro);
+				budget -= neuro.price * currentMult;
+				currentMult *= mult;
+			}
+
+			const ret = [];
+			currentMult = 1;
+			for (let j = 0; j < augs.length; j++) {
+				let price = augs[j].price * currentMult;
+				currentMult *= mult;
+				let entry = {
+					name: augs[j].name,
+					factions: augs[j].factions,
+					price: price,
+					rep: augs[j].rep,
+					prereq: augs[j].prereq,
+					type: augs[j].type
+				};
+				ret.push(entry);
+			}
+			return ret;
+		}
+	}
+
+	return [];
 }
 
 function GetMasterList(ns, sortByRep) {

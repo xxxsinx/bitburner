@@ -80,6 +80,8 @@ export async function main(ns) {
 			await WaitPids(ns, pids);
 		}
 
+		ApplyRep(ns);
+
 		// Buy TOR
 		if (!ns.getPlayer().tor) {
 			ns.print('WARN: TOR router not found.');
@@ -149,4 +151,11 @@ export async function main(ns) {
 		ns.print('');
 		await ns.sleep(10000);
 	}
+}
+
+function ApplyRep(ns) {
+	let player = ns.getPlayer();
+	if (player.workType != 'Working for Faction') return;
+	if (player.currentWorkFactionDescription != 'carrying out hacking contracts') return;
+	ns.singularity.workForFaction(player.currentWorkFactionName, 'Hacking Contracts', false);
 }

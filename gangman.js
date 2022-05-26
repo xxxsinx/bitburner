@@ -24,8 +24,8 @@ const GANGSTER_NAMES = [
 ];
 
 let isHacking = false;
-const focusAscension = true;
-const focusMoney = false;
+const focusAscension = false;
+const focusMoney = true;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = false;

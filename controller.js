@@ -4,10 +4,10 @@ import { IsPrepped, BatchSpacer, FormatMoney } from 'prep.js'
 import { MemoryMap } from 'ram.js'
 
 const QmConfig = new Object({
-	MaxPreppingServers: 2,		// how many servers can be in prep simultaneously
-	MaxBatchingServers: 1,		// how many servers can be batching at the same time
-	MaxServers: 3,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
-	ListMaxServers: 15,			// how many servers are analyzed. More trivial servers are dropped from the list.
+	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
+	MaxBatchingServers: 4,		// how many servers can be batching at the same time
+	MaxServers: 4,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
+	ListMaxServers: 20,			// how many servers are analyzed. More trivial servers are dropped from the list.
 	EvalDelay: 120 * 1000,		// frequency in ms that we re-evaluate the metrics on the server list
 	LoopDelay: 1000,			// delay in the main loop
 	MaxPrepingDepth: 20,		// This is how deep from the top of the server list we can allow prep
@@ -97,7 +97,7 @@ export class QuarterMaster {
 			//if (metrics.server.startsWith('joes')) continue;
 
 			// Check if we need to prep the target
-			if (!metrics.batching && metrics.prepping == false && !IsPrepped(this.ns, metrics.server) && nbPrepping < QmConfig.MaxPreppingServers && nbPrepping + nbBatching <= QmConfig.MaxServers && depth <= QmConfig.MaxPrepingDepth) {
+			if (!metrics.batching && metrics.prepping == false && !IsPrepped(this.ns, metrics.server) && nbPrepping < QmConfig.MaxPreppingServers && nbPrepping + nbBatching < QmConfig.MaxServers && depth <= QmConfig.MaxPrepingDepth) {
 				this.ns.print('WARN: Launched prep for ' + metrics.server);
 				this.ns.exec('prep.js', 'home', 1, metrics.server);
 				metrics.state = SERVER_STATES.PREPARING;
@@ -108,7 +108,7 @@ export class QuarterMaster {
 			if (depth > QmConfig.MaxBatchingDepth) break;
 
 			// Check if we can launch a batch cycle for this target
-			if (metrics.batching == false && IsPrepped(this.ns, metrics.server) && nbBatching < QmConfig.MaxBatchingServers && nbPrepping + nbBatching <= QmConfig.MaxServers) {
+			if (metrics.batching == false && IsPrepped(this.ns, metrics.server) && nbBatching < QmConfig.MaxBatchingServers && nbPrepping + nbBatching < QmConfig.MaxServers) {
 				this.ns.print('WARN: Launched manager for ' + metrics.server);
 
 				//const ram = new MemoryMap(this.ns);

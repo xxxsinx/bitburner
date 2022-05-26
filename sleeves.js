@@ -11,6 +11,8 @@ export async function main(ns) {
 		let cash = ns.getServerMoneyAvailable('home');
 		let city = ns.sleeve.getInformation(i).city;
 
+		//if (task == 'augs' && i > 3) continue;
+
 		if (getBest)
 			task = GetBestCrime(ns, ns.sleeve.getSleeveStats(i));
 
@@ -25,58 +27,58 @@ export async function main(ns) {
 		// 	continue;
 		// }
 
-		// if (task == 'augs') {
-		// 	if (ns.sleeve.getSleeveStats(i).shock > 0) continue;
-		// 	//if (i > 0) continue;
+		if (task == 'augs') {
+			if (ns.sleeve.getSleeveStats(i).shock > 0) continue;
+			//if (i > 0) continue;
 
-		// 	const owned = ns.sleeve.getSleeveAugmentations(i);
-		// 	const available = ns.sleeve.getSleevePurchasableAugs(i).sort((a, b) => a.cost - b.cost).filter(s => !owned.includes(s.name));
-		// 	let totalCost = 0;
-		// 	for (const aug of available) {
-		// 		let color = 'white';
+			const owned = ns.sleeve.getSleeveAugmentations(i);
+			const available = ns.sleeve.getSleevePurchasableAugs(i).sort((a, b) => a.cost - b.cost).filter(s => !owned.includes(s.name));
+			let totalCost = 0;
+			for (const aug of available) {
+				let color = 'white';
 
-		// 		ns.tprint(aug.name + ' => ' + ns.nFormat(aug.cost, "$0.000a"));
+				ns.tprint(aug.name + ' => ' + ns.nFormat(aug.cost, "$0.000a"));
 
-		// 		let stats = ns.getAugmentationStats(aug.name);
-		// 		if (Object.keys(stats).length == 0) {
-		// 			ColorPrint('red', '   No stats found for this augment');
-		// 		}
-		// 		else {
-		// 			for (let key of Object.keys(stats)) {
-		// 				// if (key.search('str') >= 0 ||
-		// 				// 	key.search('def') >= 0 ||
-		// 				// 	key.search('agi') >= 0 ||
-		// 				// 	key.search('dex') >= 0 ||
-		// 				// 	key.search('combat') >= 0 ||
-		// 				// 	key.search('skills') >= 0)
-		// 				// 	color = 'yellow';
-		// 				// if (key.search('faction') >= 0)
-		// 				// color = 'yellow';
-		// 				// if (key.search('hack') >= 0 && key.search('hacknet') == -1)
-		// 				// 	color = 'orange';
-		// 				// if (key.search('hacknet') >= 0)
-		// 				// 	color = 'purple';
+				let stats = ns.getAugmentationStats(aug.name);
+				if (Object.keys(stats).length == 0) {
+					ColorPrint('red', '   No stats found for this augment');
+				}
+				else {
+					for (let key of Object.keys(stats)) {
+						// if (key.search('str') >= 0 ||
+						// 	key.search('def') >= 0 ||
+						// 	key.search('agi') >= 0 ||
+						// 	key.search('dex') >= 0 ||
+						// 	key.search('combat') >= 0 ||
+						// 	key.search('skills') >= 0)
+						// 	color = 'yellow';
+						// if (key.search('faction') >= 0)
+						// color = 'yellow';
+						// if (key.search('hack') >= 0 && key.search('hacknet') == -1)
+						// 	color = 'orange';
+						// if (key.search('hacknet') >= 0)
+						// 	color = 'purple';
 
-		// 				// if (aug.cost > 15_000_000_000)
-		// 				// 	continue;
-		// 					//color = 'red';
+						// if (aug.cost > 15_000_000_000)
+						// 	continue;
+						//color = 'red';
 
-		// 				//if (color == 'yellow') {
-		// 				totalCost += aug.cost;
-		// 				ns.sleeve.purchaseSleeveAug(i, aug.name);
-		// 				await ns.sleep(5);
-		// 				//}
-		// 				ColorPrint(color, '    ' + key.padEnd(30) + '    ' + stats[key]);
-		// 			}
-		// 		}
-		// 	}
+						//if (color == 'yellow') {
+						totalCost += aug.cost;
+						ns.sleeve.purchaseSleeveAug(i, aug.name);
+						await ns.sleep(5);
+						//}
+						ColorPrint(color, '    ' + key.padEnd(30) + '    ' + stats[key]);
+					}
+				}
+			}
 
-		// 	ColorPrint('yellow', 'Total of matching augs: ' + ns.nFormat(totalCost * 8, "$0.000a"))
+			ColorPrint('yellow', 'Total of matching augs: ' + ns.nFormat(totalCost * 8, "$0.000a"))
 
-		// 	await ns.sleep(100);
-		// 	continue;
-		// 	//break;
-		// }
+			await ns.sleep(100);
+			continue;
+			//break;
+		}
 
 		if (task == 'study') {
 			// Travel if possible/needed

@@ -1,5 +1,41 @@
 import { WaitPids } from "prep.js";
 
+/*
+Brainstorm of what's needed for a "main brain" script
+
+- Get all the cracker programs ASAP and nuke everything we can as they become available
+- Increase hacking level ASAP (using personal and sleeve study free or paid, xp script and/or batching)
+- Increase home ram to a minimal level (for faster install recovery)
+- Buy a few personal servers
+- Run the casino script if we aren't banned
+- Decide what's the best use for sleeves at any given time
+	- Focus gang acquisition if gang isn't created yet
+	- Reduce shock if shock > 95
+	- Trail stats? Not sure? If money allows it might increase gang speed with easier homicides?
+	- In some cases setting them on money making tasks might be best?
+- Factions
+	- Chose what factions to try getting into
+	- Chose which one to focus (personal vs sleeves if they are free/makes sense)
+	- Mesh with augs script to see what's best
+	- Decide if/when we need to install/reset for favor depending on current faction focus
+- Decide when to install/soft reset and do it
+- Decide when to close the node and do it
+- Check for coding contracts + solve
+- Decide what servers to hack (using starter or manager as needed/allowed)
+- Hacknet servers
+	- Decide if/how much we want to invest (if at all)
+	- Spend hashes on whatever makes the most sense given current situation
+	- Install related augs if we are going to focus/invest in hacknet as a significant node strategy
+- Stocks
+	- Start stock market script if/when it makes sense
+	- Stop it or ask it to release shares if we need the money it's holding (some priorities might call for that)
+- Install backdoors when applicable/necessary
+- Save money for corporation
+	- We don't have a corp script yet so for now we're just focusing on amassing the 150b investment (if node strategy calls for it)
+- Go to Chongqing and receive the gift ASAP if it makes sense (based on node multipliers)
+*/
+
+
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
@@ -12,7 +48,7 @@ export async function main(ns) {
 	// const karma= ns.heart.break();
 	// let job= 'homicide';
 	// let shock= ns.sleeve.getSleeveStats(0).shock;
-	
+
 	// if (shock > 95) {
 	// 	job= 'shock';
 	// }

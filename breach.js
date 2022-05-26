@@ -34,9 +34,9 @@ async function Breach(ns, server) {
 	try { ns.sqlinject(server); ports++; } catch { }
 	if (ports < ns.getServerNumPortsRequired(server)) return false;
 	if (ns.hasRootAccess(server) == false) ns.nuke(server);
-	await ns.scp('weaken-once.js', server);
-	await ns.scp('grow-once.js', server);
-	await ns.scp('hack-once.js', server);
+	//ns.tprint('server: ' + server);
+	//debugger;
+	await ns.scp(['weaken-once.js', 'grow-once.js', 'hack-once.js'], 'home', server);
 	return ns.hasRootAccess(server);
 }
 

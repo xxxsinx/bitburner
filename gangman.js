@@ -28,7 +28,7 @@ const focusAscension = false;
 const focusMoney = true;
 const allowUpgrades = true;
 const allowAscension = true;
-const allowAugs = false;
+const allowAugs = true;
 
 /** @param {NS} ns **/
 export async function main(ns) {

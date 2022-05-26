@@ -12,8 +12,10 @@ export async function main(ns) {
 	let found = 0;
 	const servers = GetAllServers(ns);
 	for (let server of servers) {
-		let contracts = ns.ls(server, ".cct");
+		let contracts = ns.ls(server);
+		//let contracts = ns.ls(server, ".cct");
 		for (let contract of contracts) {
+			if (!contract.endsWith('.cct')) continue;
 			found++;
 			const type = ns.codingcontract.getContractType(contract, server);
 			const data = ns.codingcontract.getData(contract, server);
@@ -116,6 +118,16 @@ async function solve(type, data, server, contract, ns) {
 			// ns.tprint('INFO: data=', data);
 			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + coloringGraph(data));
 			solution = coloringGraph(data);
+			break;
+		case "Compression III: LZ Compression":
+			// ns.tprint('INFO: data=', data);
+			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + comprLZEncode(data));
+			solution = comprLZEncode(data);
+			break;
+		case "Compression I: RLE Compression":
+			ns.tprint('INFO: data=', data);
+			ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + RLEencode(data));
+			solution= RLEencode(data);
 			break;
 	}
 	if (solution == 'none')
@@ -800,4 +812,155 @@ function coloringGraph(data) {
 		}
 	}
 	return coloring;
+}
+
+// compress plaintest string
+export function comprLZEncode(plain) {
+	// for state[i][j]:
+	//      if i is 0, we're adding a literal of length j
+	//      else, we're adding a backreference of offset i and length j
+	let cur_state = Array.from(Array(10), () => Array(10).fill(null));
+	let new_state = Array.from(Array(10), () => Array(10));
+
+	function set(state, i, j, str) {
+		const current = state[i][j];
+		if (current == null || str.length < current.length) {
+			state[i][j] = str;
+		} else if (str.length === current.length && Math.random() < 0.5) {
+			// if two strings are the same length, pick randomly so that
+			// we generate more possible inputs to Compression II
+			state[i][j] = str;
+		}
+	}
+
+	// initial state is a literal of length 1
+	cur_state[0][1] = "";
+
+	for (let i = 1; i < plain.length; ++i) {
+		for (const row of new_state) {
+			row.fill(null);
+		}
+		const c = plain[i];
+
+		// handle literals
+		for (let length = 1; length <= 9; ++length) {
+			const string = cur_state[0][length];
+			if (string == null) {
+				continue;
+			}
+
+			if (length < 9) {
+				// extend current literal
+				set(new_state, 0, length + 1, string);
+			} else {
+				// start new literal
+				set(new_state, 0, 1, string + "9" + plain.substring(i - 9, i) + "0");
+			}
+
+			for (let offset = 1; offset <= Math.min(9, i); ++offset) {
+				if (plain[i - offset] === c) {
+					// start new backreference
+					set(new_state, offset, 1, string + String(length) + plain.substring(i - length, i));
+				}
+			}
+		}
+
+		// handle backreferences
+		for (let offset = 1; offset <= 9; ++offset) {
+			for (let length = 1; length <= 9; ++length) {
+				const string = cur_state[offset][length];
+				if (string == null) {
+					continue;
+				}
+
+				if (plain[i - offset] === c) {
+					if (length < 9) {
+						// extend current backreference
+						set(new_state, offset, length + 1, string);
+					} else {
+						// start new backreference
+						set(new_state, offset, 1, string + "9" + String(offset) + "0");
+					}
+				}
+
+				// start new literal
+				set(new_state, 0, 1, string + String(length) + String(offset));
+
+				// end current backreference and start new backreference
+				for (let new_offset = 1; new_offset <= Math.min(9, i); ++new_offset) {
+					if (plain[i - new_offset] === c) {
+						set(new_state, new_offset, 1, string + String(length) + String(offset) + "0");
+					}
+				}
+			}
+		}
+
+		const tmp_state = new_state;
+		new_state = cur_state;
+		cur_state = tmp_state;
+	}
+
+	let result = null;
+
+	for (let len = 1; len <= 9; ++len) {
+		let string = cur_state[0][len];
+		if (string == null) {
+			continue;
+		}
+
+		string += String(len) + plain.substring(plain.length - len, plain.length);
+		if (result == null || string.length < result.length) {
+			result = string;
+		} else if (string.length == result.length && Math.random() < 0.5) {
+			result = string;
+		}
+	}
+
+	for (let offset = 1; offset <= 9; ++offset) {
+		for (let len = 1; len <= 9; ++len) {
+			let string = cur_state[offset][len];
+			if (string == null) {
+				continue;
+			}
+
+			string += String(len) + "" + String(offset);
+			if (result == null || string.length < result.length) {
+				result = string;
+			} else if (string.length == result.length && Math.random() < 0.5) {
+				result = string;
+			}
+		}
+	}
+
+	return result ?? "";
+}
+
+function RLEencode(data) {
+	let chars= Array.from(data);
+	let answer= '';
+	let current= undefined;
+	let count= 0;
+	while (chars.length > 0) {
+		let char= chars.shift();
+		switch (current) {
+			case undefined:
+				current= char;
+				count= 1;
+				break;
+			case char:
+				if (count == 9) {
+					answer = `${answer}${count}${current}`;	
+					count= 0;
+				}
+				count++;				
+				break;
+			default:
+				answer = `${answer}${count}${current}`;
+				current= char;
+				count= 1;
+				break;				
+		}
+	}
+	answer = `${answer}${count}${current}`;
+	return answer;
 }

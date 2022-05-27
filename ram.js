@@ -219,9 +219,9 @@ export class MemoryMap {
 
 				if (server == 'home') {
 					let minFree = 256;
-					if (minFree > so.maxRam * 0.25) {
-						minFree = 35;//so.maxRam * 0.25;
-					}
+					//if (minFree > so.maxRam * 0.25) {
+						minFree = 45;//so.maxRam * 0.25;
+					//}
 					if (free < minFree) {
 						minFree = free;
 					}

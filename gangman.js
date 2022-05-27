@@ -1,4 +1,13 @@
 const GANGSTER_NAMES = [
+	'Jeromy Gride',
+	'Scott Dourque',
+	'Shown Furcotte',
+	'Dean Wesrey',
+	'Mike Truk',
+	'Dwigt Rortugal',
+	'Tim Sandaele',
+	'Karl Dandleton',
+	'Mike Sernandez',
 	'Sleve McDichael',
 	'Onson Sweemey',
 	'Darryl Archideld',
@@ -11,34 +20,33 @@ const GANGSTER_NAMES = [
 	'Tony Smehrik',
 	'Bobson Dugnutt',
 	'Willie Dustice',
-	'Jeromy Gride',
-	'Scott Dourque',
-	'Shown Furcotte',
-	'Dean Wesrey',
-	'Mike Truk',
-	'Dwigt Rortugal',
-	'Tim Sandaele',
-	'Karl Dandleton',
-	'Mike Sernandez',
 	'Todd Bonzalez'
 ];
 
 let isHacking = false;
-const focusAscension = false;
 const focusMoney = true;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = false;
+const MIN_ACCOUNT_BALANCE = 10_000_000_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	//ns.disableLog('ALL');
 
 	if (!ns.gang.inGang()) {
-		const karma = ns.heart.break();
-		if (karma > -54000) {
-			ns.tprint('ERROR: Not enough karma to create a gang yet');
-			ns.print('ERROR: Not enough karma to create a gang yet');
+		let karma = ns.heart.break();
+		const loop = ns.args[0] == 'loop';
+
+		while (karma > -54000) {
+			if (!loop) ns.tprint('ERROR: Not enough karma to create a gang yet' + karma);
+			ns.print('ERROR: Not enough karma to create a gang yet ' + karma);
+			if (loop) {
+				ns.tail();
+				await ns.sleep(5000);
+				karma = ns.heart.break();
+				continue;
+			}
 			return;
 		}
 
@@ -71,13 +79,13 @@ export async function main(ns) {
 	AssignTasks(ns, members, gangInfo);
 
 	while (true) {
+		// *** Recruitment ***
+		await RecruitMembers(ns);
+
 		// *** Get current gang member names and gangInfo ***
 		members = ns.gang.getMemberNames();
 		gangInfo = ns.gang.getGangInformation();
 		GangReport(ns, gangInfo);
-
-		// *** Recruitment ***
-		await RecruitMembers(ns);
 
 		// *** Automatic ascension ***
 		if (allowAscension) {
@@ -150,22 +158,16 @@ export async function main(ns) {
 
 function AssignTasks(ns, members, gangInfo) {
 	ns.print('WARN: Assigning best tasks');
-	let rendu = 0;
-	let half = Math.ceil(members.length / 2);
+	// let rendu = 0;
+	// let half = Math.ceil(members.length / 2);
 	for (let member of members) {
-		let forMoney = rendu++ < half;
-		if (focusAscension)
-			forMoney = false;
-		else if (focusMoney)
-			forMoney = true;
-
-		let newTask = FindBestTask(ns, gangInfo, member, forMoney);
+		let newTask = FindBestTask(ns, gangInfo, member, focusMoney);
 
 		if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000)
 			newTask = isHacking ? 'Ethical Hacking' : 'Vigilante Justice';
 
 		ns.gang.setMemberTask(member, newTask);
-		ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + forMoney);
+		ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
 	}
 }
 
@@ -242,7 +244,7 @@ function CalculateAscendTreshold(ns, member) {
 }
 
 function UpgradeEquipement(ns) {
-	let budget = ns.getPlayer().money - 5_000_000_000;
+	let budget = ns.getPlayer().money - MIN_ACCOUNT_BALANCE;
 	if (budget < 0) return;
 
 	let allGear = ns.gang.getEquipmentNames();

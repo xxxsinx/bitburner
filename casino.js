@@ -33,98 +33,99 @@ export async function main(ns) {
 	const tails = find(doc, "//button[contains(text(), 'Tail!')]");
 	const heads = find(doc, "//button[contains(text(), 'Head!')]");
 
-	await shash(ns)
+	//await shash(ns)
 
-	// // Click just so we can get the result textbox
-	// const log = [];
+	// Click just so we can get the result textbox
+	const log = [];
 
-	// // Step 4: Click one of the buttons
+	// Step 4: Click one of the buttons
+	for (let i = 0; i < 1024; i++) {
+		await click(tails);
+		const isTails = find(doc, "//p[text() = 'T']");
+		const isHeads = find(doc, "//p[text() = 'H']");
+
+		if (isTails) log.push('T');
+		else if (isHeads) log.push('H');
+		else {
+			ns.print('FAIL: Something went wrong, aborting sequence!');
+			return;
+		}
+		await ns.sleep(0);
+	}
+
+	ns.print('Sequence: ' + log.join(''));
+
+	// // Step 5: Validate sequence
 	// for (let i = 0; i < 1024; i++) {
-	// 	await click(tails);
-	// 	const isTails = find(doc, "//p[text() = 'T']");
-	// 	const isHeads = find(doc, "//p[text() = 'H']");
-
-	// 	if (isTails) log.push('T');
-	// 	else if (isHeads) log.push('H');
+	// 	if (log[i] == 'T') {
+	// 		await click(tails);
+	// 		const isTails = find(doc, "//p[text() = 'T']");
+	// 		if (!isTails) {
+	// 			ns.print('FAIL: Something went wrong, aborting sequence!');
+	// 			return;
+	// 		}
+	// 	}
+	// 	else if (log[i] == 'H') {
+	// 		await click(heads);
+	// 		const isHeads = find(doc, "//p[text() = 'H']");
+	// 		if (!isHeads) {
+	// 			ns.print('FAIL: Something went wrong, aborting sequence!');
+	// 			return;
+	// 		}
+	// 	}
 	// 	else {
 	// 		ns.print('FAIL: Something went wrong, aborting sequence!');
 	// 		return;
 	// 	}
+
 	// 	await ns.sleep(0);
 	// }
 
-	// ns.print('Sequence: ' + log.join(''));
+	const input = await find(doc, "//input[@type='number']");
+	if (!input) {
+		ns.print('FAIL: Could not get a hold of the bet amount input!');
+		return;
+	}
+	input.value = 10000;
 
-	// // // Step 5: Validate sequence
-	// // for (let i = 0; i < 1024; i++) {
-	// // 	if (log[i] == 'T') {
-	// // 		await click(tails);
-	// // 		const isTails = find(doc, "//p[text() = 'T']");
-	// // 		if (!isTails) {
-	// // 			ns.print('FAIL: Something went wrong, aborting sequence!');
-	// // 			return;
-	// // 		}
-	// // 	}
-	// // 	else if (log[i] == 'H') {
-	// // 		await click(heads);
-	// // 		const isHeads = find(doc, "//p[text() = 'H']");
-	// // 		if (!isHeads) {
-	// // 			ns.print('FAIL: Something went wrong, aborting sequence!');
-	// // 			return;
-	// // 		}
-	// // 	}
-	// // 	else {
-	// // 		ns.print('FAIL: Something went wrong, aborting sequence!');
-	// // 		return;
-	// // 	}
+	const iterations = 10_000_000_000 / 10_000;
+	let loops = 0;
 
-	// // 	await ns.sleep(0);
-	// // }
+	// Step 5: Execute sequence
+	while (true) {
+		try {
+			if (log[loops % 1024] == 'T') {
+				await click(tails);
+				// const isTails = find(doc, "//p[text() = 'T']");
+				// if (!isTails) {
+				// 	ns.print('FAIL: Something went wrong, aborting sequence!');
+				// 	return;
+				// }
+			}
+			else if (log[loops % 1024] == 'H') {
+				await click(heads);
+				// const isHeads = find(doc, "//p[text() = 'H']");
+				// if (!isHeads) {
+				// 	ns.print('FAIL: Something went wrong, aborting sequence!');
+				// 	return;
+				// }
+			}
+			// else {
+			// 	ns.print('FAIL: Something went wrong, aborting sequence!');
+			// 	return;
+			// }
 
-	// const input = await find(doc, "//input[@type='number']");
-	// if (!input) {
-	// 	ns.print('FAIL: Could not get a hold of the bet amount input!');
-	// 	return;
-	// }
-	// input.value = 10000;
+			if (loops % 500 == 0)
+				await ns.sleep(0);
 
-	// const iterations = 10_000_000_000 / 10_000;
-	// let loops = 0;
-
-	// // Step 5: Execute sequence
-	// for (let i = 0; i < iterations; i++) {
-	// 	try {
-	// 		loops++;
-	// 		if (log[i % 1024] == 'T') {
-	// 			await click(tails);
-	// 			// const isTails = find(doc, "//p[text() = 'T']");
-	// 			// if (!isTails) {
-	// 			// 	ns.print('FAIL: Something went wrong, aborting sequence!');
-	// 			// 	return;
-	// 			// }
-	// 		}
-	// 		else if (log[i % 1024] == 'H') {
-	// 			await click(heads);
-	// 			// const isHeads = find(doc, "//p[text() = 'H']");
-	// 			// if (!isHeads) {
-	// 			// 	ns.print('FAIL: Something went wrong, aborting sequence!');
-	// 			// 	return;
-	// 			// }
-	// 		}
-	// 		// else {
-	// 		// 	ns.print('FAIL: Something went wrong, aborting sequence!');
-	// 		// 	return;
-	// 		// }
-
-	// 		if (i % 250 == 0)
-	// 			await ns.sleep(0);
-	// 	}
-	// 	catch (e) {
-	// 		ns.tprint('FAIL: ' + e);
-	// 		return;
-	// 	}
-	// }
-	// ns.tprint('INFO: Made it to the end with ' + loops + ' loops!');
+			loops++;
+		}
+		catch (e) {
+			ns.tprint('FAIL: ' + e);
+			return;
+		}
+	}
+	ns.tprint('INFO: Made it to the end with ' + loops + ' loops!');
 }
 
 function find(doc, xpath) { return doc.evaluate(xpath, doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; }

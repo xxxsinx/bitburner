@@ -129,6 +129,7 @@ export async function main(ns) {
 					' estimated cost: ' + ns.nFormat(aug.price, '0.00a') +
 					' actual cost: ' + ns.nFormat(ns.singularity.getAugmentationPrice(aug.name), '0.00a') +
 					' money: ' + ns.nFormat(ns.getPlayer().money, '0.00a'));
+			break;
 		}
 	}
 }

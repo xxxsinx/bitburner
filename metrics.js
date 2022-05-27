@@ -28,6 +28,30 @@ export async function main(ns) {
 	// args[1] : server name to analyze (if empty, do a full server list report)
 	let [server, maxNetworkRamPct = 1] = ns.args;
 
+	if (server == 'grow') {
+		for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 && ns.hasRootAccess(s)).sort(s => ns.getServerMaxMoney(s))) {
+			//			try {
+			let so = ns.getServer(server);
+			if (so.minDifficulty > 99) continue;
+			let metrics = new Metrics(ns, server, 1, 30, 1);
+
+			let w= metrics.threads[G];
+			let b= metrics.debugThreadsG;
+
+			let pct= Math.round(b * 100 / w) - 100;
+
+			ns.tprint(server.padEnd(25) + ('formula: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+			//metrics.Report(ns, ns.tprint);
+			await ns.sleep(0);
+			// }
+			// catch (e) {
+			// 	ns.tprint('FAIL: Exception --- ' + e)
+
+			// } 
+		}
+		return;
+	}
+
 	if (server == undefined) {
 		await AnalyzeAllServers(ns, maxNetworkRamPct);
 		return;
@@ -339,13 +363,18 @@ export class Metrics {
 		// Figure first hack time and threads
 		const hackPctThread = ns.formulas.hacking.hackPercent(so, player);
 		this.threads[H] = Math.floor(this.pct / hackPctThread);
-		this.effectivePct = Math.min(hackPctThread * this.threads[H], 1 - Number.EPSILON);
+		this.effectivePct = Math.min(hackPctThread * this.threads[H], 1 - 0.000001);
 		this.batchMoney = Math.floor(so.moneyAvailable * hackPctThread) * this.threads[H];// * mults.ScriptHackMoney;//* mults.ScriptHackMoneyGain;
 		//this.batchMoney = Math.floor(so.moneyAvailable * hackPctThread * mults.ScriptHackMoney * mults.ScriptHackMoneyGain) * this.threads[H];
 
 		so.moneyAvailable -= this.batchMoney;
 		//if (so.moneyAvailable == 0) so.moneyAvailable = 1;
 		so.hackDifficulty += ns.hackAnalyzeSecurity(this.threads[H]);
+
+		if (this.pct == 1) {
+			this.effectivePct = 1 - 0.000001;
+			so.moneyAvailable = 0;
+		}
 
 		// Figure first weaken time and threads
 		this.threads[W1] = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, this.cores) /*/ mults.ServerWeakenRate*/);
@@ -366,9 +395,10 @@ export class Metrics {
 		//this.threads[G] = calculateGrowThreads(ns, so.hostname, player, this.cores, so.moneyAvailable);
 
 		// Figure grow time and threads
-		//const growFactor = 1 / (1 - this.effectivePct);
+		const growFactor = 1 / (1 - this.effectivePct);
 		//this.threads[G] = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
-		//this.debugThreadsG = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
+		this.debugThreadsG = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
+		this.debugThreads2 = calculateGrowThreads(ns, this.server, player, 1, so.moneyAvailable);
 
 		let opts = {
 			moneyAvailable: so.moneyAvailable,

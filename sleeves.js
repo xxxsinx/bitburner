@@ -29,7 +29,7 @@ export async function main(ns) {
 
 		if (task == 'augs') {
 			if (ns.sleeve.getSleeveStats(i).shock > 0) continue;
-			//if (i > 0) continue;
+			//if (i > 1) continue;
 
 			const owned = ns.sleeve.getSleeveAugmentations(i);
 			const available = ns.sleeve.getSleevePurchasableAugs(i).sort((a, b) => a.cost - b.cost).filter(s => !owned.includes(s.name));
@@ -59,8 +59,8 @@ export async function main(ns) {
 						// if (key.search('hacknet') >= 0)
 						// 	color = 'purple';
 
-						// if (aug.cost > 15_000_000_000)
-						// 	continue;
+						//  if (aug.cost > 15_000_000_000)
+						//  	continue;
 						//color = 'red';
 
 						//if (color == 'yellow') {

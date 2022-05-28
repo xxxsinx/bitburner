@@ -27,8 +27,8 @@ let isHacking = false;
 const focusMoney = true;
 const allowUpgrades = true;
 const allowAscension = true;
-const allowAugs = false;
-const MIN_ACCOUNT_BALANCE = 10_000_000_000;
+const allowAugs = true;
+const MIN_ACCOUNT_BALANCE = 100_000_000_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {

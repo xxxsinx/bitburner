@@ -59,8 +59,8 @@ export async function main(ns) {
 						// if (key.search('hacknet') >= 0)
 						// 	color = 'purple';
 
-						//  if (aug.cost > 15_000_000_000)
-						//  	continue;
+						  if (aug.cost > 15_000_000_000)
+						  	continue;
 						//color = 'red';
 
 						//if (color == 'yellow') {

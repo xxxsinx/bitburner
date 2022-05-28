@@ -20,7 +20,7 @@ export async function main(ns) {
 	ns.disableLog('ALL');
 
 	const sf = ns.getOwnedSourceFiles();
-	SHORTS = sf.some(s => s.n == 8 && s.lvl >= 2);
+	SHORTS = sf.some(s => s.n == 8 && s.lvl >= 2) || ns.getPlayer().bitNodeN == 8;
 
 	// Check if we have access to the stock market and the base API
 	const player = ns.getPlayer();
@@ -58,6 +58,7 @@ export async function main(ns) {
 	// Array that will contain all symbols, we build it once and update it every tick
 	let stonks = [];
 	while (true) {
+		ns.clearLog()
 		if (!g_tixMode && ns.getPlayer().has4SDataTixApi)
 			g_tixMode = true; // Switch to 4S data if we obtained it while running
 

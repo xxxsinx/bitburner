@@ -8,6 +8,7 @@ const CLOSER = 2;	// Index of the closer line character
 const FILLER = 3;	// Index of the filler line character
 const BAR = 4;		// Index of the straight vertical bar line character
 
+export let win = globalThis, doc = win["document"]
 let fmt = Intl.NumberFormat('en', { notation: 'compact' });
 
 /** @param {NS} ns */

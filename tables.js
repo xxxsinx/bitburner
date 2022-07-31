@@ -8,6 +8,9 @@ const CLOSER = 2;	// Index of the closer line character
 const FILLER = 3;	// Index of the filler line character
 const BAR = 4;		// Index of the straight vertical bar line character
 
+export let win = globalThis, doc = win["document"]
+let fmt = Intl.NumberFormat('en', { notation: 'compact' });
+
 /** @param {NS} ns */
 export async function main(ns) {
 	ns.disableLog('ALL');
@@ -171,4 +174,63 @@ export function ColorPrint() {
 		term.printRaw(out);
 	}
 	catch { }
+}
+
+
+/**
+ * @param {ns} 
+ * @param {Array} JSON DATA in form of [{id:1,name:"Lexicon"},{id:2,name:"Paradox"}]
+ * @param {Array} pass an array of columns 
+ * @returns {HTMLTableElement} Returns a HTMLTableElement that you can use DOM.appendChild(table);
+ */
+export function createHTMLTableFromJSON(ns, data, columns) {
+
+	var formattedData = JSON.parse(JSON.stringify(data, columns));
+	var col = [];
+	for (var i = 0; i < formattedData.length; i++) {
+		for (var key in formattedData[i]) {
+			if (col.indexOf(key) === -1) {
+				col.push(key);
+			}
+		}
+	}
+
+	var table = doc.createElement("table");
+	table.style.width = '100%'
+
+	var tr = table.insertRow(-1);                   // TABLE ROW.
+
+	for (var i = 0; i < col.length; i++) {
+		var th = doc.createElement("th");      // TABLE HEADER.
+		th.innerHTML = col[i];
+		tr.appendChild(th);
+	}
+
+	for (var i = 0; i < formattedData.length; i++) {
+
+		tr = table.insertRow(-1);
+
+		for (var j = 0; j < col.length; j++) {
+			var tabCell = tr.insertCell(-1);
+			if (typeof (formattedData[i][col[j]]) == 'number') {
+				var number = formattedData[i][col[j]]
+				if (number > 0)
+					tabCell.innerHTML = addHtmlWithColor("a", fmt.format(number), "green");
+				else if (number == 0)
+					tabCell.innerHTML = addHtmlWithColor("a", fmt.format(number), "white");
+				else if (number < 0)
+					tabCell.innerHTML = addHtmlWithColor("a", fmt.format(number), "red");
+
+
+			} else {
+				tabCell.innerHTML = formattedData[i][col[j]];
+
+			}
+
+		}
+	}
+	return table;
+}
+let addHtmlWithColor = (tag, data, color) => {
+	return "<" + tag + " style='color:" + color + "'>" + data + "</" + tag + ">";
 }

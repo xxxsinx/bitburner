@@ -25,6 +25,8 @@ export async function main(ns) {
 				ns.tprint(`INFO: ` + didSolve);
 			else
 				ns.tprint(`FAIL: ${server} - ${contract} - ${type} - ${didSolve || "FAILED!"}`);
+
+			await ns.sleep(100);
 		}
 	}
 

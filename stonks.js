@@ -24,7 +24,7 @@ export async function main(ns) {
 
 	// Check if we have access to the stock market and the base API
 	const player = ns.getPlayer();
-	if (!player.hasWseAccount && !hasTixApiAccess) {
+	if (!player.hasWseAccount || !player.hasTixApiAccess) {
 		ns.print('ERROR: You need a Wse account and Tix Api access to run this script.');
 		ns.tprint('ERROR: You need a Wse account and Tix Api access to run this script.');
 		return;

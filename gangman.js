@@ -24,7 +24,7 @@ const GANGSTER_NAMES = [
 ];
 
 let isHacking = false;
-const focusMoney = true;
+let focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = true;
@@ -144,8 +144,10 @@ export async function main(ns) {
 					ns.gang.setMemberTask(member, 'Territory Warfare');
 			}
 		}
-		else
+		else {
 			ns.print('INFO: Skipping territory warfare, we are at 100% territory!');
+			focusMoney = true;
+		}
 
 		ns.gang.setTerritoryWarfare(allowClash && gangInfo.territory < 1);
 

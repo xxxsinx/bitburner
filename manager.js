@@ -1,5 +1,5 @@
 import { BatchSpacer, RunScript, WaitPids, Prep, IsPrepped, ServerReport } from "prep.js";
-import { Metrics, GetBestPctForServer } from "metrics.js";
+import { Metrics, GetBestPctForServer, HGW_MODE } from "metrics.js";
 import { MemoryMap } from "ram.js";
 
 const H = 0;
@@ -158,12 +158,15 @@ async function StartBatch(ns, server, metrics, batchNumber) {
 	//ns.tprint(logColor);
 
 	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
-	const w1pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W1], 0, metrics.times[W1], batchNumber, logColor, true, false);
-	await ns.sleep(0);
-	if (w1pids.length == 0) {
-		ns.print('FAIL: W1 Aborting batch');
-		await ns.sleep(metrics.batchTime);
-		return [w1pids].flat(Infinity);
+	const w1pids= [];
+	if (!HGW_MODE) {
+		w1pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W1], 0, metrics.times[W1], batchNumber, logColor, true, false);
+		await ns.sleep(0);
+		if (w1pids.length == 0) {
+			ns.print('FAIL: W1 Aborting batch');
+			await ns.sleep(metrics.batchTime);
+			return [w1pids].flat(Infinity);
+		}
 	}
 	const w2pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W2], metrics.delays[W2], metrics.times[W2], batchNumber, logColor, true, false);
 	await ns.sleep(0);

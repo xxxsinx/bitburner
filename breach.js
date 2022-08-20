@@ -36,7 +36,7 @@ async function Breach(ns, server) {
 	if (ns.hasRootAccess(server) == false) ns.nuke(server);
 	//ns.tprint('server: ' + server);
 	//debugger;
-	await ns.scp(['weaken-once.js', 'grow-once.js', 'hack-once.js'], 'home', server);
+	await ns.scp(['weaken-once.js', 'grow-once.js', 'hack-once.js'], server, 'home');
 	return ns.hasRootAccess(server);
 }
 

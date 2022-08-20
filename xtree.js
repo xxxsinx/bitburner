@@ -79,7 +79,9 @@ export async function main(ns) {
 		cso.hackDifficulty = cso.minDifficulty;
 		let player = ns.getPlayer();
 		let prepped = so.hackDifficulty == so.minDifficulty && so.moneyAvailable == so.moneyMax && so.moneyMax > 0;
-		let chance = ns.formulas.hacking.hackChance(cso, player);
+		
+		let chance = ns.fileExists('Formulas.exe') ? ns.formulas.hacking.hackChance(cso, player) : ns.hackAnalyzeChance(cso.hostname);
+		let weakTime= ns.fileExists('Formulas.exe') ? ns.formulas.hacking.weakenTime(cso, player) : ns.getWeakenTime(cso.hostname); 
 
 		let hackReqColor = 'lime';
 		if (so.requiredHackingSkill <= player.hacking / 2)
@@ -101,7 +103,7 @@ export async function main(ns) {
 			{ color: hackReqColor, text: ' ' + so.requiredHackingSkill.toString().padStart(5) },
 			hackable ? { color: prepped ? 'lime' : '#555555', text: prepped ? '   Yes' : '    -' } : '',
 			hackable ? { color: pctColor(chance), text: ' ' + (Math.round(chance * 100) + '%').padStart(5) } : '',
-			hackable ? { color: 'white', text: ' ' + formatTime(ns.formulas.hacking.weakenTime(cso, player)).padStart(22) } : ''
+			hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : ''
 		]);
 	}
 

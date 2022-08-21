@@ -1,8 +1,5 @@
 import { GetAllServers } from "utils.js";
 
-//speaking of compact, my solution for Vignère Cipher: (credit: MageKing17)
-//return text.split("").map((c, i) => c === ' ' ? ' ' : String.fromCharCode((c.charCodeAt(0) - 65 + (cipher.charCodeAt(i % cipher.length) - 65)) % 26 + 65)).join("");
-
 let blacklist = [];
 
 export async function main(ns) {
@@ -135,10 +132,15 @@ async function solve(type, data, server, contract, ns) {
 			solution = RLEencode(data);
 			break;
 		case "Encryption I: Caesar Cipher":
-			ns.tprint('INFO: data=', data);
-			ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + caesarCipher(data));
-			solution= caesarCipher(data);
-			break;		
+			// ns.tprint('INFO: data=', data);
+			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + caesarCipher(data));
+			solution = caesarCipher(data);
+			break;
+		case "Encryption II: Vigenère Cipher":
+			// ns.tprint('INFO: data=', data);
+			// ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + vignereCipher(data));
+			solution = vignereCipher(data);
+			break;
 	}
 	if (solution == 'none')
 		ns.tprint('ERROR: NO SOLVER FOR ' + contract + ' ' + solution);
@@ -158,6 +160,16 @@ async function solve(type, data, server, contract, ns) {
 	}
 }
 
+function vignereCipher(data) {
+	const cipher = [...data[0]]
+		.map((a, i) => {
+			return a === " "
+				? a
+				: String.fromCharCode(((a.charCodeAt(0) - 2 * 65 + data[1].charCodeAt(i % data[1].length)) % 26) + 65);
+		})
+		.join("");
+	return cipher;
+}
 
 function caesarCipher(data) {
 	const cipher = [...data[0]]

@@ -10,10 +10,10 @@ const W1 = 1;	// Index of first WEAKEN data
 const G = 2;	// Index of GROW data
 const W2 = 3;	// Index of second WEAKEN data
 
-export let HGW_MODE = true;
+export let HGW_MODE = false;
 
 const LEECH = [
-	0.01, 0.02, 0.03, 0.04, 0.05, 0.07, 0.10, 0.15, 0.25, 0.45, 0.55, 0.75, 0.85, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00
+	0.01, 0.02, 0.03, 0.04, 0.0435, 0.045, 0.0455, 0.0460, 0.0465, 0.0470, 0.0475, 0.05, 0.07, 0.10, 0.15, 0.25, 0.45, 0.55, 0.75, 0.85, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00
 ];
 
 const EXTRA_THREAD_FACTOR = 1;		// Apply this factor to GROW and WEAKEN thread calculations, not used right now
@@ -21,6 +21,8 @@ const MIN_EXTRA_THREADS = 0;		// Add this many extra threads to GROW and WEAKEN 
 
 /** @param {NS} ns **/
 export async function main(ns) {
+	let start= performance.now();
+
 	if (!ns.fileExists('Formulas.exe')) {
 		ns.tprint('ERROR: Formulas.exe not found, running this command would take years, aborting.');
 		ns.exit();
@@ -59,6 +61,7 @@ export async function main(ns) {
 
 	if (server == undefined) {
 		await AnalyzeAllServers(ns, maxNetworkRamPct);
+		ns.tprint('Executed in ' + Math.ceil(performance.now() - start) + ' milliseconds');
 		return;
 	}
 	else {
@@ -102,7 +105,7 @@ export async function main(ns) {
 			let pctH2 = Math.round(metrics.threads[H] / maxThreads * 100);
 			pctH = pctH2;//(pctH + pctH2) / 2;
 			tableData.push([
-				{ color: bestPct == metrics.pct ? 'lime' : 'white', text: (Math.round((metrics.pct * 100)).toString() + '% ').padStart(server.length + 1) },
+				{ color: bestPct == metrics.pct ? 'lime' : 'white', text: ((metrics.pct * 100).toFixed(2) + '% ').padStart(server.length + 1) },
 				{ color: 'white', text: ns.nFormat(metrics.cashPerSecond, '0.000a').padStart(9) },
 				{ color: 'white', text: ns.nFormat(Math.ceil(metrics.batchRam) * 1000000000, '0.0b').padStart(9) },
 				{ color: 'white', text: (metrics.maxRunnableBatches + '/' + metrics.maxBatches).padStart(11) },
@@ -150,6 +153,7 @@ export async function main(ns) {
 
 		tableData.pop();
 		PrintTable(ns, tableData, columns, DefaultStyle(), ColorPrint);
+		ns.tprint('Executed in ' + Math.ceil(performance.now() - start) + ' milliseconds');
 	}
 }
 
@@ -408,7 +412,13 @@ export class Metrics {
 			//	this.Report(this.ns, ns.tprint);
 			return;
 		}
-		this.threads[G] = calculateGrowThreads(ns, so, player, this.cores, so.moneyAvailable);
+		// if (this.pct < 0.95) {
+		// 	// Figure grow time and threads
+		// 	const growFactor = 1 / (1 - this.effectivePct);
+		// 	this.threads[G] = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)));
+		// }
+		// else
+			this.threads[G] = calculateGrowThreads(ns, so, player, this.cores, so.moneyAvailable);
 
 		// Figure grow time and threads
 		// const growFactor = 1 / (1 - this.effectivePct);
@@ -511,9 +521,9 @@ export class Metrics {
 
 		// Calculate max concurrent batches (very rough arbitrary calculation)
 		if (HGW_MODE) {
-			//this.maxBatches = Math.ceil(Math.floor(this.times[W2] / (this.spacer * 3)));
-			this.maxBatches = Math.ceil(this.times[W2] / 0.1875);
-			if (this.maxBatches * 3 > 9500) this.maxBatches = Math.ceil(9500 / 3);
+			this.maxBatches = Math.ceil(Math.floor(this.times[W2] / (this.spacer * 3)));
+			//this.maxBatches = Math.ceil(this.times[W2] / 0.1875);
+			//if (this.maxBatches * 3 > 9500) this.maxBatches = Math.ceil(9500 / 3);
 		}
 		else
 			this.maxBatches = Math.ceil(Math.floor(this.times[W2] / (this.spacer * 4)));
@@ -532,18 +542,18 @@ export class Metrics {
 		const ram = new MemoryMap(ns, true);
 		this.maxNetworkRam = ram.total * this.maxNetworkRamPct;
 
-		let nbBatches = 0;
-		for (let i = 0; i < this.maxBatches; i++) {
-			if (ram.ReserveBlock(this.threads[H] * HACK_RAM) == undefined) break;
-			if (!HGW_MODE)
-				if (ram.ReserveBlock(this.threads[W1] * WEAKEN_RAM) == undefined) break;
-			if (ram.ReserveBlock(this.threads[G] * GROW_RAM) == undefined) break;
-			if (ram.ReserveBlock(this.threads[W2] * WEAKEN_RAM) == undefined) break;
-			nbBatches++;
-		}
+		// let nbBatches = 0;
+		// for (let i = 0; i < this.maxBatches; i++) {
+		// 	if (ram.ReserveBlock(this.threads[H] * HACK_RAM) == undefined) break;
+		// 	if (!HGW_MODE)
+		// 		if (ram.ReserveBlock(this.threads[W1] * WEAKEN_RAM) == undefined) break;
+		// 	if (ram.ReserveBlock(this.threads[G] * GROW_RAM) == undefined) break;
+		// 	if (ram.ReserveBlock(this.threads[W2] * WEAKEN_RAM) == undefined) break;
+		// 	nbBatches++;
+		// }
 
-		const maxBatchesInRam = nbBatches; //Math.floor(this.maxNetworkRam / this.batchRam);
-		//const maxBatchesInRam = Math.floor(this.maxNetworkRam / this.batchRam);
+		// const maxBatchesInRam = nbBatches; //Math.floor(this.maxNetworkRam / this.batchRam);
+		const maxBatchesInRam = Math.floor(this.maxNetworkRam / this.batchRam);
 
 		this.maxRunnableBatches = Math.min(this.maxBatches, maxBatchesInRam);
 

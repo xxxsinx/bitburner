@@ -1,7 +1,7 @@
 import { MemoryMap } from "ram.js";
 
 export function BatchSpacer() {
-	return 7;
+	return 30;
 }
 
 /** @param {NS} ns **/

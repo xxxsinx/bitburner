@@ -1,5 +1,8 @@
 import { GetAllServers } from "utils.js";
 
+//speaking of compact, my solution for Vignère Cipher: (credit: MageKing17)
+//return text.split("").map((c, i) => c === ' ' ? ' ' : String.fromCharCode((c.charCodeAt(0) - 65 + (cipher.charCodeAt(i % cipher.length) - 65)) % 26 + 65)).join("");
+
 let blacklist = [];
 
 export async function main(ns) {
@@ -127,10 +130,15 @@ async function solve(type, data, server, contract, ns) {
 			solution = comprLZEncode(data);
 			break;
 		case "Compression I: RLE Compression":
-			ns.tprint('INFO: data=', data);
-			ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + RLEencode(data));
-			solution= RLEencode(data);
+			//ns.tprint('INFO: data=', data);
+			//ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + RLEencode(data));
+			solution = RLEencode(data);
 			break;
+		case "Encryption I: Caesar Cipher":
+			ns.tprint('INFO: data=', data);
+			ns.tprint('WARN: ATTEMPT for ' + type + ' : ' + caesarCipher(data));
+			solution= caesarCipher(data);
+			break;		
 	}
 	if (solution == 'none')
 		ns.tprint('ERROR: NO SOLVER FOR ' + contract + ' ' + solution);
@@ -150,6 +158,13 @@ async function solve(type, data, server, contract, ns) {
 	}
 }
 
+
+function caesarCipher(data) {
+	const cipher = [...data[0]]
+		.map((a) => (a === " " ? a : String.fromCharCode(((a.charCodeAt(0) - 65 - data[1] + 26) % 26) + 65)))
+		.join("");
+	return cipher;
+}
 
 function solverArrayJumpingGameII(arrayData) {
 	let n = arrayData.length;
@@ -938,29 +953,29 @@ export function comprLZEncode(plain) {
 }
 
 function RLEencode(data) {
-	let chars= Array.from(data);
-	let answer= '';
-	let current= undefined;
-	let count= 0;
+	let chars = Array.from(data);
+	let answer = '';
+	let current = undefined;
+	let count = 0;
 	while (chars.length > 0) {
-		let char= chars.shift();
+		let char = chars.shift();
 		switch (current) {
 			case undefined:
-				current= char;
-				count= 1;
+				current = char;
+				count = 1;
 				break;
 			case char:
 				if (count == 9) {
-					answer = `${answer}${count}${current}`;	
-					count= 0;
+					answer = `${answer}${count}${current}`;
+					count = 0;
 				}
-				count++;				
+				count++;
 				break;
 			default:
 				answer = `${answer}${count}${current}`;
-				current= char;
-				count= 1;
-				break;				
+				current = char;
+				count = 1;
+				break;
 		}
 	}
 	answer = `${answer}${count}${current}`;

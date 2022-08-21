@@ -158,7 +158,7 @@ async function StartBatch(ns, server, metrics, batchNumber) {
 	//ns.tprint(logColor);
 
 	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
-	const w1pids= [];
+	let w1pids= [];
 	if (!HGW_MODE) {
 		w1pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W1], 0, metrics.times[W1], batchNumber, logColor, true, false);
 		await ns.sleep(0);

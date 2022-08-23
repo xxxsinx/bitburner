@@ -137,7 +137,7 @@ export async function main(ns) {
 function SuggestedAugs(ns, desired) {
 	let neuro = desired.find(s => s.name.startsWith('NeuroFlux'));
 	desired = desired.filter(s => !s.name.startsWith('NeuroFlux'));
-	let mult = 1.9 * [1, .96, .94, .93][ns.getOwnedSourceFiles().filter(obj => { return obj.n === 11 })[0].lvl];
+	let mult = 1.9 * [1, .96, .94, .93][ns.singularity.getOwnedSourceFiles().filter(obj => { return obj.n === 11 })[0].lvl];
 
 	for (let i = 0; i < desired.length; i++) {
 		let budget = ns.getPlayer().money;
@@ -184,7 +184,7 @@ function SuggestedAugs(ns, desired) {
 function GetMasterList(ns, sortByRep) {
 	const masterlist = [];
 	for (const faction of Object.values(FactionNames)) {
-		let augs = ns.getAugmentationsFromFaction(faction);
+		let augs = ns.singularity.getAugmentationsFromFaction(faction);
 		for (const aug of augs) {
 			let match = masterlist.find(s => s.name == aug);
 			if (!match) {
@@ -316,19 +316,20 @@ function MeetsPreReq(ns, aug) {
 function AugType(ns, aug) {
 	const stats = ns.singularity.getAugmentationStats(aug);
 	let keys = Object.keys(stats);
+	//ns.tprint(keys, Object.values(stats));
 	if (aug.startsWith('NeuroFlux')) return 'NeuroFlux';
-	if (keys.find(s => s.startsWith('bladeburner'))) return 'BladeBurner';
+	if (keys.find(s => s.startsWith('bladeburner') && stats[s] != 1.0)) return 'BladeBurner';
 	if (aug == 'CashRoot Starter Kit') return 'Shit'
 	if (keys.length == 0) return 'Special';
-	if (keys.find(s => s.startsWith('faction_rep'))) return 'Faction';
-	if (keys.find(s => s.startsWith('hacknet'))) return 'Hacknet';
-	if (keys.find(s => s.startsWith('hack'))) return 'Hacking';
-	if (keys.find(s => s.startsWith('charisma'))) return 'Charisma';
-	if (keys.find(s => s.startsWith('str'))) return 'Physical';
-	if (keys.find(s => s.startsWith('def'))) return 'Physical';
-	if (keys.find(s => s.startsWith('dex'))) return 'Physical';
-	if (keys.find(s => s.startsWith('agi'))) return 'Physical';
-	if (keys.find(s => s.startsWith('company'))) return 'Company';
+	if (keys.find(s => s.startsWith('faction_rep') && stats[s] != 1.0)) return 'Faction';
+	if (keys.find(s => s.startsWith('hacknet') && stats[s] != 1.0)) return 'Hacknet';
+	if (keys.find(s => s.startsWith('hack') && stats[s] != 1.0)) return 'Hacking';
+	if (keys.find(s => s.startsWith('charisma') && stats[s] != 1.0)) return 'Charisma';
+	if (keys.find(s => s.startsWith('str') && stats[s] != 1.0)) return 'Physical';
+	if (keys.find(s => s.startsWith('def') && stats[s] != 1.0)) return 'Physical';
+	if (keys.find(s => s.startsWith('dex') && stats[s] != 1.0)) return 'Physical';
+	if (keys.find(s => s.startsWith('agi') && stats[s] != 1.0)) return 'Physical';
+	if (keys.find(s => s.startsWith('company') && stats[s] != 1.0)) return 'Company';
 	return '???';
 }
 

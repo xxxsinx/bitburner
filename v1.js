@@ -1,9 +1,13 @@
+const MAX_SECURITY_DRIFT = 3; // This is how far from minimum security we allow the server to be before weakening
+const MAX_MONEY_DRIFT_PCT = 0.1; // This is how far from 100% money we allow the server to be before growing (1-based percentage)
+const DEFAULT_PCT= 0.25; // This is the default 1-based percentage of money we want to hack from the server in a single pass
+
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
 
 	// Parameters
-	const [target, pct = 0.25] = ns.args;
+	const [target, pct = DEFAULT_PCT] = ns.args;
 
 	// Show usage if no parameters were passed
 	if (target == undefined) {
@@ -52,17 +56,17 @@ async function Exploit(ns, server, pct) {
 		ns.print('');
 
 		// Check if security is above minimum
-		if (sec > minSec && weakenThreads > 0) {
+		if (sec > minSec + MAX_SECURITY_DRIFT && weakenThreads > 0) {
 			// We need to lower security
-			ns.print('WARN: ***WEAKENING*** Security is over minimum, we need ' + weakenThreads + ' threads to floor it');
+			ns.print('WARN: ***WEAKENING*** Security is over threshold, we need ' + weakenThreads + ' threads to floor it');
 			let pid = await RunScript(ns, 'weaken-once.script', server, weakenThreads);
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getWeakenTime(server)) + ')');
 			await WaitPids(ns, pid);
 		}
-		else if (money < maxMoney && growThreads > 0) {
+		else if (money < maxMoney - maxMoney * MAX_MONEY_DRIFT_PCT && growThreads > 0) {
 			// We need to grow the server
-			ns.print('WARN: ***GROWING*** Money is under maximum, we need ' + growThreads + ' threads to max it');
+			ns.print('WARN: ***GROWING*** Money is getting low, we need ' + growThreads + ' threads to max it');
 			let pid = await RunScript(ns, 'grow-once.script', server, growThreads);
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getGrowTime(server)) + ')');
@@ -70,7 +74,7 @@ async function Exploit(ns, server, pct) {
 		}
 		else if (hackThreads > 0) {
 			// Server is ripe for hacking
-			ns.print('WARN: ***HACKING*** Server is ripe for hacking, full hack would require ' + hackThreads + ' threads');
+			ns.print('WARN: ***HACKING*** Server is ripe for hacking, hitting our target would require ' + hackThreads + ' threads');
 			let pid = await RunScript(ns, 'hack-once.script', server, hackThreads);
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getHackTime(server)) + ')');

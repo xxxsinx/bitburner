@@ -616,10 +616,6 @@ export function calculateGrowThreads(ns, serverObject, playerObject, cores, star
 	let threads = 1;
 	let newMoney = 0;
 
-	//let serverObject = ns.getServer(server);
-	//serverObject.hackDifficulty = serverObject.minDifficulty;
-	//serverObject.moneyAvailable = startMoney;
-
 	while (true) {
 		let serverGrowth = ns.formulas.hacking.growPercent(serverObject, threads, playerObject, cores);
 		newMoney = (serverObject.moneyAvailable + threads) * serverGrowth;

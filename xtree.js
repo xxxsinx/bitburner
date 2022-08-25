@@ -4,8 +4,6 @@ import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 export async function main(ns) {
 	const [hackingOnly = true] = ns.args;
 
-
-
 	let servers = GetAllServers(ns);
 	if (hackingOnly) {
 		servers = servers.filter(s => ns.hasRootAccess(s.name) && ns.getServerMaxMoney(s.name) > 0).sort((a, b) => ns.getServerMaxMoney(b.name) - ns.getServerMaxMoney(a.name));
@@ -84,9 +82,9 @@ export async function main(ns) {
 		let weakTime= ns.fileExists('Formulas.exe') ? ns.formulas.hacking.weakenTime(cso, player) : ns.getWeakenTime(cso.hostname); 
 
 		let hackReqColor = 'lime';
-		if (so.requiredHackingSkill <= player.hacking / 2)
+		if (so.requiredHackingSkill <= player.skills.hacking / 2)
 			hackReqColor = 'lime';
-		else if (so.requiredHackingSkill < player.hacking / 2)
+		else if (so.requiredHackingSkill < player.skills.hacking / 2)
 			hackReqColor = 'orange';
 		else
 			hackReqColor = 'red';

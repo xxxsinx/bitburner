@@ -3,34 +3,40 @@ export async function main(ns) {
 	ns.disableLog('ALL');
 
 	const servers = GetAllServers(ns);
-	const targets = ['CSEC', 'I.I.I.I', 'avmnite-02h', 'run4theh111z'];
+	const targets = ['CSEC', 'I.I.I.I', 'avmnite-02h', 'run4theh111z', 'w0r1d_d43m0n'];
 	//'millenium-fitness', 'powerhouse-fitness', 'crush-fitness', 'snap-fitness'/*, 'w0r1d_d43m0n'*/];
 	//const targets = servers.map(s => s.name);
 
 	let count = 0;
 
 	for (const server of servers) {
-		if (servers == 'w0r1d_d43m0n') continue;
+		//if (servers == 'w0r1d_d43m0n') continue;
 
 		if (!targets.includes(server.name)) {
+			ns.tprint('derp 1 ' + server.name);
 			continue;
 		}
 		//ns.tprint(server.name + ' => ' + server.route);
 
 		let so = ns.getServer(server.name);
 		if (so.requiredHackingSkill > ns.getHackingLevel()) {
+			ns.tprint('derp 2');
 			continue;
 		}
 
-		if (!ns.hasRootAccess(server.name))
+		if (!ns.hasRootAccess(server.name)) {
+			ns.tprint('derp 3');
 			continue;
+		}
 
-		if (so.backdoorInstalled)
+		if (so.backdoorInstalled) {
+			ns.tprint('derp 4');
 			continue;
+		}
 
 		//ns.tprint('Traversing the server chain to target: ' + server.name);
 		for (const node of server.route) {
-			if (!ns.connect(node)) {
+			if (!ns.singularity.connect(node)) {
 				ns.tprint('ERROR: Could not connect to ' + node);
 			}
 			else {
@@ -39,7 +45,7 @@ export async function main(ns) {
 		}
 
 		//ns.tprint('INFO: Installing backdoor on ' + server.name);
-		await ns.installBackdoor();
+		await ns.singularity.installBackdoor();
 
 		so = ns.getServer(server.name);
 		if (so.backdoorInstalled == false) {
@@ -51,7 +57,7 @@ export async function main(ns) {
 	}
 
 	ns.tprint('INFO: Done installing backdoors on ' + count + ' servers');
-	ns.connect('home');
+	ns.singularity.connect('home');
 	//ns.tprint('SUCCESS: Done.');
 }
 

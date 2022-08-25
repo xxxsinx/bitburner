@@ -24,7 +24,7 @@ export async function main(ns) {
 
 	ns.tprint('Traversing the server chain to target: ' + target);
 	for (const node of server.route) {
-		if (!ns.connect(node)) {
+		if (!ns.singularity.connect(node)) {
 			ns.tprint('ERROR: Could not connect to ' + node);
 		}
 		else {

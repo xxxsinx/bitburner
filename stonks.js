@@ -1,37 +1,49 @@
-import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { PrintTable, DefaultStyle } from 'tables.js'
 
-// Global variable indicating if we have full 4S data or not (it is automatically set/determined later in script no point changing the value here)
-let g_tixMode = false;
-const LOG_SIZE = 12;
-const BUY_TRIGGER = 0.1;	// deviation from 0.5 (neutral) from which we start buying
-const SELL_TRIGGER = 0.05;	// deviation from 0.5 (neutral) from which we start selling
-const TRANSACTION_COST = 100_000;
-const MIN_TRANSACTION_SIZE = 5_000_000;
+let g_tixMode = false; 					// Global variable indicating if we have full 4S data or not (it is automatically 
+// set/determined later in script no point changing the value here)
+let SHORTS = false;						// Global to determine whether or not we have access to shorts (this is updated at the start of the script)
 
+const LOG_SIZE = 15;					// How many prices we keep in the log for blind/pre-4S trading for each symbol
+const BUY_TRIGGER = 0.1;				// deviation from 0.5 (neutral) from which we start buying
+const SELL_TRIGGER = 0.05;				// deviation from 0.5 (neutral) from which we start selling
+const TRANSACTION_COST = 100_000;		// Cost of a stock transaction
+const MIN_TRANSACTION_SIZE = 5_000_000;	// Minimum amount of stocks to buy, we need this to keep the transaction cost in check
+
+// Little representation of what this script does
 // | <---------------------------- SHORTS | LONGS ------------------------------>|
 // 0                    0.4     0.45     0.5     0.55      0.6                   1
 //                       ^        ^                ^        ^ 
 //                  <<< BUY     SELL >>>     <<< SELL      BUY >>>
 
-let SHORTS = false;
-
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	const sf = ns.getOwnedSourceFiles();
-	SHORTS = sf.some(s => s.n == 8 && s.lvl >= 2) || ns.getPlayer().bitNodeN == 8;
+	// This code determines if we have access to shorts or not
+	// Note: Shorts are an endgame mechanic, it will be obvious to you how to get them
+	// once you get there. Any more info would be spoilers :)
+	// I'm using this instead of ns.singularity.getOwnedSourceFiles() because that bad boy is expensive AF in 2.0+
+	try {
+		ns.stock.buyShort('JGN', 0);
+		SHORTS = true;
+		ns.print('INFO: Shorts activated!');
+		ns.tprint('INFO: Shorts activated!');
+	}
+	catch {
+		ns.print('WARN: Shorts are not available to you yet, disabling them.');
+		ns.tprint('WARN: Shorts are not available to you yet, disabling them.');
+	}
 
 	// Check if we have access to the stock market and the base API
-	const player = ns.getPlayer();
-	if (!player.hasWseAccount || !player.hasTixApiAccess) {
+	if (!ns.stock.hasWSEAccount() || !ns.stock.hasTIXAPIAccess()) {
 		ns.print('ERROR: You need a Wse account and Tix Api access to run this script.');
 		ns.tprint('ERROR: You need a Wse account and Tix Api access to run this script.');
 		return;
 	}
 
 	// Check if we have 4S data or not
-	g_tixMode = player.has4SDataTixApi;
+	g_tixMode = ns.stock.has4SDataTIXAPI();
 	if (g_tixMode) {
 		ns.print('INFO: Starting stonks in 4S mode.');
 		ns.tprint('INFO: Starting stonks in 4S mode.');
@@ -59,7 +71,7 @@ export async function main(ns) {
 	let stonks = [];
 	while (true) {
 		ns.clearLog()
-		if (!g_tixMode && ns.getPlayer().has4SDataTixApi)
+		if (!g_tixMode && ns.stock.has4SDataTixApi)
 			g_tixMode = true; // Switch to 4S data if we obtained it while running
 
 		// Update our market log
@@ -81,7 +93,7 @@ export async function main(ns) {
 		BuyStonks(ns, longs);
 
 		// Display our last snapshot of the stocks data to the user
-		ReportCurrentSnapshot2(ns, longs);
+		ReportCurrentSnapshot(ns, longs);
 
 		// 6 second ticks, we don't have any special treatment for bonus time
 		await ns.sleep(6000);
@@ -105,9 +117,9 @@ function SellStonks(ns, log, dump) {
 			continue;
 		}
 
-		ns.print('WARN: Selling ' + stonk.nbShares + ' LONG shares of ' + stonk.sym);
-		if (dump) ns.tprint('WARN: Selling ' + stonk.nbShares + ' LONG shares of ' + stonk.sym);
-		ns.stock.sell(stonk.sym, stonk.nbShares);
+		ns.print('WARN: Selling ' + stonk.nbShares + ' LONG shares of ' + stonk.sym + ' for ' + ns.nFormat(stonk.GetValue(), "$0.000a") + ' (' + ns.nFormat(stonk.GetProfit(), "$0.000a") + ' profit)');
+		if (dump) ns.tprint('WARN: Selling ' + stonk.nbShares + ' LONG shares of ' + stonk.sym + ' for ' + ns.nFormat(stonk.GetValue(), "$0.000a") + ' (' + ns.nFormat(stonk.GetProfit(), "$0.000a") + ' profit)');
+		ns.stock.sellStock(stonk.sym, stonk.nbShares);
 	}
 
 	if (SHORTS) {
@@ -127,8 +139,8 @@ function SellStonks(ns, log, dump) {
 				continue;
 			}
 
-			ns.print('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym);
-			if (dump) ns.tprint('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym);
+			ns.print('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym + ' for ' + ns.nFormat(stonk.GetValue(), "$0.000a") + ' (' + ns.nFormat(stonk.GetProfit(), "$0.000a") + ' profit)');
+			if (dump) ns.tprint('WARN: Selling ' + stonk.nbShorts + ' SHORT shares of ' + stonk.sym + ' for ' + ns.nFormat(stonk.GetValue(), "$0.000a") + ' (' + ns.nFormat(stonk.GetProfit(), "$0.000a") + ' profit)');
 			ns.stock.sellShort(stonk.sym, stonk.nbShorts);
 		}
 	}
@@ -147,6 +159,9 @@ function BuyStonks(ns, log) {
 		// Check if we have enough pre-S4 data to make a decision
 		if (!g_tixMode && stonk.snapshots.length < LOG_SIZE)
 			continue;
+
+		// If we don't have short and the position is short, skip this symbol
+		if (!SHORTS && stonk.forecast < 0.5) continue;
 
 		// We're only buying at/over 0.6 forecast (anything over 0.5 is trending up)
 		if (stonk.normalizedForecast < 0.5 + BUY_TRIGGER) continue;
@@ -173,7 +188,7 @@ function BuyStonks(ns, log) {
 
 		if (stonk.forecast < 0.5 && !SHORTS) continue;
 
-		let spent = stonk.forecast < 0.5 ? ns.stock.short(stonk.sym, maxShares) : ns.stock.buy(stonk.sym, maxShares);
+		let spent = stonk.forecast < 0.5 ? ns.stock.buyShort(stonk.sym, maxShares) : ns.stock.buyStock(stonk.sym, maxShares);
 		budget -= maxShares * spent + TRANSACTION_COST;
 	}
 }
@@ -211,19 +226,23 @@ function ForecastToGraph(forecast) {
 	return { color: '#00FF00', text: '------' };
 }
 
-function ReportCurrentSnapshot2(ns, stonks) {
+function ReportCurrentSnapshot(ns, stonks) {
 	const columns = [
-		{ header: ' SYM', width: 6 },
-		{ header: ' Type', width: 8 },
+		{ header: ' SYM', width: 7 },
+		{ header: ' Type', width: 7 },
 		{ header: ' Forecast', width: 10 },
 		{ header: ' Forecast', width: 10 },
-		{ header: ' Shares', width: 12 },
-		{ header: ' Money', width: 12 },
-		{ header: ' Profit', width: 12 }
+		{ header: '  Shares', width: 10 },
+		{ header: '   Paid', width: 10 },
+		{ header: '  Value', width: 10 },
+		{ header: '  Profit', width: 10 },
+		{ header: '   %', width: 8 }
 	];
 
 	const total = { nbShares: 0, nbShorts: 0, paid: 0, profit: 0 };
 	const data = [];
+
+	const sum = [0, 0, 0, 0];
 
 	for (const stonk of stonks) {
 		total.nbShares += stonk.nbShares;
@@ -236,124 +255,51 @@ function ReportCurrentSnapshot2(ns, stonks) {
 		let line = [];
 
 		line.push({ color: 'white', text: ' ' + stonk.sym });
-		line.push({ color: 'white', text: ' ' + stonk.forecast >= 0.5 ? 'Long' : 'Short' });
+		line.push({ color: 'white', text: stonk.forecast >= 0.5 ? ' Long' : ' Short' });
 		line.push({ color: 'white', text: ' ' + forecast });
 		line.push(ForecastToGraph(stonk.forecast));
-		line.push({ color: 'white', text: (stonk.nbShares + stonk.nbShorts).toString() });
-		line.push({ color: 'white', text: ns.nFormat(stonk.GetPricePaid(), "0.0a") });
-		line.push({ color: 'white', text: ns.nFormat(stonk.GetProfit(), "0.0a") });
+		line.push({ color: 'white', text: ns.nFormat(stonk.nbShares + stonk.nbShorts, "0.0a").padStart(9) });
+		line.push({ color: 'white', text: ns.nFormat(stonk.GetValue(), "0.0a").padStart(9) });
+		line.push({ color: 'white', text: ns.nFormat(stonk.GetPricePaid(), "0.0a").padStart(9) });
+		line.push({ color: 'white', text: ns.nFormat(stonk.GetProfit(), "0.0a").padStart(9) });
+
+		let pct = stonk.GetProfit() / stonk.GetPricePaid() * 100;
+		if (isNaN(pct)) pct = 0;
+		if (pct == 0) pct = '';
+		else pct = ns.nFormat(pct, "0.0a").padStart(7);
+
+		line.push({ color: 'white', text: pct });
+
+		sum[0] += stonk.nbShares + stonk.nbShorts;
+		sum[1] += stonk.GetValue();
+		sum[2] += stonk.GetPricePaid();
+		sum[3] += stonk.GetProfit();
 
 		data.push(line);
 	}
 
+	data.push(null);
+
+	let pct = sum[3] / sum[2] * 100;
+	if (isNaN(pct)) pct = 0;
+	if (pct == 0) pct = '';
+	else pct = ns.nFormat(pct, "0.0a").padStart(7);
+
+	data.push([
+		{ color: 'white', text: ' Total' },
+		{ color: 'white', text: '' },
+		{ color: 'white', text: '' },
+		{ color: 'white', text: '' },
+		{ color: 'white', text: ns.nFormat(sum[0], "0.0a").padStart(9) },
+		{ color: 'white', text: ns.nFormat(sum[1], "0.0a").padStart(9) },
+		{ color: 'white', text: ns.nFormat(sum[2], "0.0a").padStart(9) },
+		{ color: 'white', text: ns.nFormat(sum[3], "0.0a").padStart(9) },
+		{ color: 'white', text: pct }
+	]);
+
 	PrintTable(ns, data, columns, DefaultStyle(), ns.print);
 
 	let totalWorth = total.paid + total.profit + ns.getServerMoneyAvailable('home');
-	// report =
-	// 	'Total'.padEnd(7) +
-	// 	''.padEnd(10) +
-	// 	''.padEnd(12) +
-	// 	''.padEnd(11) +
-	// 	ns.nFormat(totalWorth, "0.0a").padEnd(12) +
-	// 	''.padEnd(12) +
-	// 	'  │';
-	// ns.print('│  ' + report);
-
-	// ns.print('└' + ''.padEnd(header.length - 2, '─') + '┘');
-
-	UpdateHud(ns, totalWorth);
-
-	const snaps = stonks[0].snapshots.length;
-	if (!g_tixMode && stonks.length > 0 && snaps < LOG_SIZE)
-		ns.print('WARN: Script running in pre-4S data mode (we need ' + LOG_SIZE + ' prices in the log before doing any trading): ' + snaps + '/' + LOG_SIZE);
-}
-
-
-function ReportCurrentSnapshot(ns, stonks) {
-	let header = '│  ' +
-		'SYM'.padEnd(7) +
-		'Forecast'.padEnd(10) +
-		'Normalized'.padEnd(12) +
-		'Shares'.padEnd(11) +
-		'Money'.padEnd(12) +
-		'Profit'.padEnd(12) +
-		'  │';
-
-	ns.print('┌' + ''.padEnd(header.length - 2, '─') + '┐');
-	ns.print(header);
-	ns.print('├' + ''.padEnd(header.length - 2, '─') + '┤');
-
-	const total = { nbShares: 0, nbShorts: 0, paid: 0, profit: 0 };
-
-	for (const stonk of stonks) {
-		let suffix = '';
-		if (stonk.nbShares > 0) suffix = '(L)';
-		else if (stonk.nbShorts > 0) suffix = '(S)';
-
-		total.nbShares += stonk.nbShares;
-		total.nbShorts += stonk.nbShorts;
-		total.paid += stonk.GetPricePaid();
-		total.profit += stonk.GetProfit();
-
-		let forecast = stonk.forecast == 'N/A' ? stonk.forecast : stonk.forecast.toFixed(4);
-		let report =
-			stonk.sym.padEnd(7) +
-			forecast.padEnd(10) +
-			stonk.normalizedForecast.toFixed(2).padEnd(12) +
-			((stonk.nbShares + stonk.nbShorts).toString() + suffix).padEnd(11) +
-			ns.nFormat(stonk.GetPricePaid(), "0.0a").padEnd(12) +
-			ns.nFormat(stonk.GetProfit(), "0.0a").padEnd(12) +
-			'  │';
-
-		ns.print('│  ' + report);
-	}
-	ns.print('├' + ''.padEnd(header.length - 2, '─') + '┤');
-
-	let report =
-		'Stonks'.padEnd(7) +
-		''.padEnd(10) +
-		''.padEnd(12) +
-		''.padEnd(11) +
-		ns.nFormat(total.paid, "0.0a").padEnd(12) +
-		''.padEnd(12) +
-		'  │';
-	ns.print('│  ' + report);
-
-	report =
-		'Profit'.padEnd(7) +
-		''.padEnd(10) +
-		''.padEnd(12) +
-		''.padEnd(11) +
-		ns.nFormat(total.profit, "0.0a").padEnd(12) +
-		ns.nFormat(total.profit, "0.0a").padEnd(12) +
-		'  │';
-	ns.print('│  ' + report);
-
-	report =
-		'Player'.padEnd(7) +
-		''.padEnd(10) +
-		''.padEnd(12) +
-		''.padEnd(11) +
-		ns.nFormat(ns.getServerMoneyAvailable('home'), "0.0a").padEnd(12) +
-		''.padEnd(12) +
-		'  │';
-	ns.print('│  ' + report);
-
-	ns.print('├' + ''.padEnd(header.length - 2, '─') + '┤');
-
-	let totalWorth = total.paid + total.profit + ns.getServerMoneyAvailable('home');
-	report =
-		'Total'.padEnd(7) +
-		''.padEnd(10) +
-		''.padEnd(12) +
-		''.padEnd(11) +
-		ns.nFormat(totalWorth, "0.0a").padEnd(12) +
-		''.padEnd(12) +
-		'  │';
-	ns.print('│  ' + report);
-
-	ns.print('└' + ''.padEnd(header.length - 2, '─') + '┘');
-
 	UpdateHud(ns, totalWorth);
 
 	const snaps = stonks[0].snapshots.length;
@@ -411,7 +357,7 @@ export class Stonk {
 		// Add the snapshot to the list
 		this.snapshots.push(this.price);
 
-		// We keep 12 snapshots maximim total
+		// We keep LOG_SIZE snapshots maximim total
 		if (this.snapshots.length > LOG_SIZE) {
 			this.snapshots.shift();
 		}
@@ -430,9 +376,9 @@ export class Stonk {
 				if (prev < cur) nbUp++;
 			}
 
-			// We simulate a forecast based on the last 12- operations
+			// We simulate a forecast based on the last LOG_SIZE operations
 			if (this.snapshots.length == LOG_SIZE)
-				this.forecast = nbUp / LOG_SIZE;
+				this.forecast = nbUp / (LOG_SIZE - 1); // -1 here because with 15 values, we only have 14 changes
 			else
 				this.forecast = 'N/A';
 		}
@@ -457,5 +403,11 @@ export class Stonk {
 		let longProfit = this.nbShares * this.bidPrice - this.nbShares * this.avgPrice;
 		let shortProfit = this.nbShorts * this.avgShortPrice - this.nbShorts * this.askPrice;
 		return longProfit + shortProfit;
+	}
+
+	GetValue() {
+		let longCost = this.nbShares * this.bidPrice;
+		let shortCost = this.nbShorts * this.askPrice;
+		return longCost + shortCost;
 	}
 }

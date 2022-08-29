@@ -89,7 +89,7 @@ export async function main(ns) {
 				ns.print('WARN: Not enough money to purchase TOR router, postponing purchase.');
 			}
 			else {
-				if (ns.purchaseTor()) {
+				if (ns.singularity.purchaseTor()) {
 					ns.print('INFO: Succesfully bought TOR router.');
 				}
 				else {
@@ -101,31 +101,31 @@ export async function main(ns) {
 		// Buy BruteSSH.exe
 		if (!ns.fileExists('BruteSSH.exe')) {
 			ns.print('INFO: Checking if we can buy BruteSSH.exe.');
-			ns.purchaseProgram("BruteSSH.exe");
+			ns.singularity.purchaseProgram("BruteSSH.exe");
 		}
 
 		// Buy FTPCrack.exe
 		if (!ns.fileExists('FTPCrack.exe')) {
 			ns.print('INFO: Checking if we can buy FTPCrack.exe.');
-			ns.purchaseProgram("FTPCrack.exe");
+			ns.singularity.purchaseProgram("FTPCrack.exe");
 		}
 
 		// Buy relaySMTP.exe
 		if (!ns.fileExists('relaySMTP.exe')) {
 			ns.print('INFO: Checking if we can buy relaySMTP.exe.');
-			ns.purchaseProgram("relaySMTP.exe");
+			ns.singularity.purchaseProgram("relaySMTP.exe");
 		}
 
 		// Buy SQLInject.exe
 		if (!ns.fileExists('SQLInject.exe')) {
 			ns.print('INFO: Checking if we can buy SQLInject.exe.');
-			ns.purchaseProgram("SQLInject.exe");
+			ns.singularity.purchaseProgram("SQLInject.exe");
 		}
 
 		// Buy HTTPWorm.exe 
 		if (!ns.fileExists('HTTPWorm.exe')) {
 			ns.print('INFO: Checking if we can buy HTTPWorm.exe.');
-			ns.purchaseProgram("HTTPWorm.exe");
+			ns.singularity.purchaseProgram("HTTPWorm.exe");
 		}
 
 

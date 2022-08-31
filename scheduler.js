@@ -1,251 +1,202 @@
-import { BatchSpacer, RunScript, WaitPids, Prep, IsPrepped, ServerReport } from "prep.js";
-import { Metrics, GetBestPctForServer, HGW_MODE } from "metrics.js";
-import { MemoryMap } from "ram.js";
-
+// We define constants to index the times and delays in metrics
 const H = 0;
 const W1 = 1;
 const G = 2;
 const W2 = 3;
 
+// Port used by the worker scripts to report their death to this script
 const PORT = 1;
 
-//BatchSpacer();
-//let count = 0;
-//let metrics = new Metrics(ns, 'n00dles', 0.25, BatchSpacer(), 1, 1);
-//let timeAnchor = performance.now();
-
-// if (BatchFitsInMemoryBlocks(ns, metrics)) {
-// 	//setTimeout(() => batch(ns, count++, metrics, PORT), 0);
-// 	batch(ns, count++, metrics, PORT)
-// }
-
+// Amount of time between jobs. The same spacer is used between batches as well.
+const SPACER = 30;
 
 export async function main(ns) {
-	const SPACER = 30; 
+	// We declare a clock object
+	const clock = new ClockSync(ns);
+
+	// This is the fixed window length for a batch paywindow (H-W-G-W, that's SPACER*3, plus another to space out the last W and the next batch's H)
 	const windowLen = SPACER * 4;
+
+	// We are scheduling batches to the clock. In order to do this, we simply increment this variable by windowLen each time we create a new
+	// batch job. This means that we intend to start a batch every windowLength
 	let nextBatch = performance.now();
 
+	// id of the next batch we'll be spawning. This is simply incremented every time we create a new one
+	let id = 0;
+
+	// Semi-bogus metrics, those were precalculated using a script from my repo (n00dles at hack level 2706 with no augs, if you're curious)
+	// Order is H, W1, G, W2
+	let metrics = {
+		// This is how long we expect each job to last. For the purpose of this test the fake job script we call simply sleeps for that amount of time
+		// to simulate each type of job
+		"times": [524, 2094, 1675, 2094],
+		// This is how long we need to wait from batch start to kick each job
+		"delays": [1540, 0, 449, 60]
+	};
+
+	// Simply an array to track batches. We currently never purge this array so don't leave it running too long or it will pile up
+	// and it might skew the results/behavior
+	let batches = [];
+
+	// Empty whatever is still lingering on the port, whatever is there is stale and we have no use for it
+	ClearPort(ns, PORT);
+
 	while (true) {
-		let drift = performance.now() - nextBatch;
-		if (drift < 0) { // we aren't at the next tick yet
-			//ns.tprint('Not there yet...');
-		}
-		else { // we are due or past due
-			if (drift < SPACER / 2) {
-				ns.tprint('We are on time! (drift: ' + Math.ceil(drift) + ')');
-			}
-			else {
-				ns.tprint('Skipping a batch, we missed the window (drift: ' + Math.ceil(drift) + ')');
-			}
+		// Look for 'Batch' tasks and add some if we're under the target. We're using a target of 1 for this test.
+		while (clock.tasks.filter(t => t.desc.startsWith('Batch')).length < 1) {
+			// Adds the new task in the scheduler
+			clock.AddTask(`Batch ${id}`, nextBatch, SPACER - 10, () => StartBatch(ns, id, metrics, PORT, clock), []);
+
+			// The next batch time is based on the previous batch, not the current time
 			nextBatch += windowLen;
+
+			// Add a placeholder object in our batches array to keep track of job ends (see how it's used in WorkerDeathReports())
+			batches.push({ id: id, replies: '', replyCount: 0 });
+
+			// Increase the batch id for the next batch
+			id++;
 		}
+
+		// This simply processes the task queue and runs what needs to be run
+		clock.Process();
+
+		// Removes any task that's aborted or started
+		clock.PurgeTasks();
+
+		// Checks the port for worker reports. We compile those and report when a batch finishes (either in correct or bad order)
+		// Note that any batch that's been partially spawned because of cancelled job will never finish and linger in there forever
+		// in the current implementation
+		WorkerDeathReports(ns, PORT, batches);
+
+		// Yield CPU to other scripts
 		await ns.asleep(0);
 	}
 }
 
-class ClockSync {
-	ExecuteQueue() {
-	}
-	
-	AddTask(time, func, args) {
+// Simply clears the data on the specified port
+function ClearPort(ns, port) {
+	while (ns.peek(port) != 'NULL PORT DATA') {
+		ns.readPort(port);
 	}
 }
 
+// Looks for worker reports and reports batches that fully executed
+// It's very basic, the point is to not spam the log, so we only report batches whose 4 jobs have ended
+// and we are able to determine if they finished in the expected order or not
+function WorkerDeathReports(ns, port, batches) {
+	while (ns.peek(port) != 'NULL PORT DATA') {
+		let raw = ns.readPort(port);
+		let data = JSON.parse(raw);
+		let batch = batches.find(b => b.id == data.id);
+		if (batch == undefined) {
+			ns.tprint("WARN: Dismissing report of an unknown batch " + data.id);
+			continue;
+		}
 
-
-
-// ns.disableLog('ALL');
-
-// if (!ns.fileExists('Formulas.exe')) {
-// 	ns.tprint('ERROR: Formulas.exe is needed to run this script.');
-// 	ns.exit();
-// }
-
-// let [server, maxPctTotalRam= 1, loop= true] = ns.args;
-
-// // ns.args[0] = target server name
-// if (server == null) {
-// 	ns.tprint('ERROR: No server specified');
-// 	ns.exit();
-// }
-
-// // Manage the server!
-// await ManageServer(ns, server, maxPctTotalRam, loop);
-
-
-
-function batch(ns, id, metrics, port) {
-	//ns.tprint('Starting batch ' + batchId);
-	setTimeout(() => job(ns, 'W1', id, metrics.times[W1], port), metrics.delays[W1]);
-	setTimeout(() => job(ns, 'W2', id, metrics.times[W2], port), metrics.delays[W2]);
-	setTimeout(() => job(ns, 'G ', id, metrics.times[G], port), metrics.delays[G]);
-	setTimeout(() => job(ns, 'H ', id, metrics.times[H], port), metrics.delays[H]);
-}
-
-function job(ns, type, id, duration, port) {
-	ns.exec('fakejob.js', 'home', 1, id, type, duration, port);
-}
-
-// async function ManageServer(ns, server, maxPctTotalRam, loop) {
-// 	ns.print('INFO: Gathering batch metrics');
-
-// 	// Batch cycle counter
-// 	let cycle = 0;
-
-// 	// Store hack level, this is just for reporting it when we detect a desync.
-// 	// Ideally, most desyncs are caused by an increase in hackLevel mid-cycle,
-// 	// fudging the batch metrics to the point of throwing batches out of sync
-// 	let hackLevel = ns.getHackingLevel();
-
-// 	while (true) {
-// 		const pct = await GetBestPctForServer(ns, server, BatchSpacer(), 0.05, 0.8, 0.05, maxPctTotalRam);
-// 		let metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, maxPctTotalRam);
-// 		metrics.Report(ns);
-
-// 		await ServerReport(ns, server, metrics);
-
-// 		// Since we prepped in main(), the only reason why we would ever enter this is our metrics changed, something desynced, or some other external factor
-// 		// changed the server state or player capacities
-// 		// if (!IsPrepped(ns, server)) {
-// 		// 	const hackLevelChanged = ns.getHackingLevel() != hackLevel;
-// 		// 	let msg = (hackLevelChanged ? 'WARN: ' : 'ERROR: ') +
-// 		// 		'Desync detected, re-prepping ' + server + ' cycles= ' + cycle + ' hack= ' + ns.getHackingLevel() + ' (was ' + hackLevel + ')';
-// 		// 	if (!hackLevelChanged)
-// 		// 		ns.tprint(msg);
-// 		// 	ns.print(msg);
-// 		// 	await Prep(ns, server, metrics);
-// 		// 	ns.print('SUCCESS: Server prepped!');
-// 		// 	cycle = 0; // reset cycle
-// 		// 	hackLevel = ns.getHackingLevel();
-// 		// 	await ServerReport(ns, server, metrics);
-// 		// }
-// 		cycle++;
-
-// 		let pids = new Array();
-// 		let mem = new MemoryMap(ns);
-
-// 		let batchCount = Math.min(metrics.maxBatches, Math.floor(mem.available * maxPctTotalRam / metrics.batchRam));
-// 		if (batchCount <= 0) {
-// 			ns.print('metrics.maxBatches = ' + metrics.maxBatches);
-// 			ns.print('mem.available = ' + mem.available);
-// 			ns.print('metrics.batchRam = ' + metrics.batchRam);
-// 			ns.print('Math.floor(mem.available / metrics.batchRam) = ' + Math.floor(mem.available / metrics.batchRam));
-
-// 			ns.print('FAIL: Insufficient ram to run a single batch! Aborting...');
-// 			ns.exit();
-// 		}
-// 		ns.print('INFO: Spawning ' + batchCount + ' batches');
-
-// 		for (let i = 0; i < batchCount; i++) {
-// 			// ns.print('INFO: Starting batch #' + (i + 1) + ' of ' + batchCount);
-// 			// if (!BatchFitsInMemoryBlocks(ns, metrics)) {
-// 			// 	ns.print('WARN: Not enough free memory to start batch #' + (i + 1) + ', lets take a break!');
-// 			// 	break;
-// 			// }
-// 			// pids = pids.concat(await StartBatch(ns, server, metrics, i));
-// 			// await ns.sleep(BatchSpacer());
-
-// 			setTimeout(() => ScheduleBatch(ns, server, metrics, i), BatchSpacer() * i);
-// 		}
-
-// 		await ServerReport(ns, server, metrics);
-// 		ns.print('INFO: Waiting for batch to end (approx: ' + ns.tFormat(metrics.batchTime) + ')');
-
-// 		//await WaitPids(ns, pids);
-// 		ns.asleep(batchCount * (BatchSpacer() * 4));
-// 		ns.print('SUCCESS: Cycle ended');
-// 		ns.print('');
-
-// 		if (!loop) {
-// 			ns.print('SUCCESS: We are done, exiting, controller will restart us if needed...');
-// 			return;
-// 		}
-
-// 		await ns.asleep(BatchSpacer());
-// 	}
-// }
-
-export function BatchFitsInMemoryBlocks(ns, metrics) {
-	const mem = new MemoryMap(ns);
-
-	const HACK_RAM = ns.getScriptRam('hack-once.js');
-	const GROW_RAM = ns.getScriptRam('grow-once.js');
-	const WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
-
-	// Failsafe, on veut pas trop taxer
-	if (metrics.batchRam > mem.available * 0.9) {
-		ns.print('Batch won\'t fit in 90% of total ram (failsalfe)');
-		return false;
-	}
-
-	if (mem.ReserveBlock(metrics.threads[H] * HACK_RAM) == undefined) {
-		ns.print('Could not find a block big enough for ' + metrics.threads[H] + ' hack threads');
-		ns.print('Required = ' + metrics.threads[H] * HACK_RAM + ' Biggest block = ' + mem.BiggestBlock());
-
-		return false;
-	}
-	if (mem.ReserveBlock(metrics.threads[G] * GROW_RAM) == undefined) {
-		ns.print('Could not find a block big enough for ' + metrics.threads[G] + ' grow threads');
-		return false;
-	}
-	for (let i = 0; i < (metrics.threads[W1] + metrics.threads[W2]) * WEAKEN_RAM; i++) {
-		if (mem.ReserveBlock(WEAKEN_RAM) == undefined) {
-			ns.print('Could not find enough network RAM for ' + (metrics.threads[W1] + metrics.threads[W2]) + ' weaken threads');
-			return false;
+		batch.replyCount++;
+		batch.replies = batch.replies + data.type;
+		if (batch.replyCount == 4) {
+			if (batch.replies == 'H W1G W2') {
+				ns.tprint('SUCCESS: Batch ' + data.id + ' finished in correct order');
+			}
+			else {
+				ns.tprint('FAIL: Batch ' + data.id + ' finished out of order ' + batch.replies);
+			}
 		}
 	}
-	return true;
 }
 
+// The ClockSync class
+// This class is used to create, execute and delete tasks to be executed at precise time, with a drift tolerance
+// The drift can only be positive (ie: you want to start at X, it will only execute if current time is >= X)
+// Each task has a tolerance parameter, we are using 20ms in this test. This means a task meant to run at X
+// can be delayed up to X + 20ms, if the task is still in the queue at that time and not executed yet,
+// it's cancelled.
+class ClockSync {
+	constructor(ns) {
+		this.tasks = [];
+		this.lastProc = performance.now();
+		this.drift = 0;
+		this.ns = ns;
+	}
 
-// function ScheduleBatch(ns, server, metrics, batchNumber) {
-// 	ns.tprint('Hello this is batch ' + batchNumber + ' calling...');
-// }
+	Process() {
+		// We use the time of entry in this function as the reference.
+		const now = performance.now();
 
-// async function StartBatch(ns, server, metrics, batchNumber) {
-// 	const colors = [
-// 		'#9226e0', '#6b1a93', '#6754f7', '#e81284', '#dd9713', '#338fc4', '#6be84c', '#ea784b',
-// 		'#1dd62a', '#ba02ed', '#4139dd', '#120087', '#4dcc53', '#8c2700', '#7f1ee8', '#2cb2ab',
-// 		'#e84351', '#390b72', '#38c974', '#368293', '#e5a12b', '#4fe274', '#1230b7', '#21d392',
-// 		'#9dd356', '#8c30e8', '#ed2fd3', '#d3303b', '#0dbf6f', '#e8009e', '#3799fc', '#bc3260'
-// 	];
+		// The drift is how much time elapsed since the last time we entered this function (excluding the current one obviously)
+		this.drift = now - this.lastProc;
 
-// 	//const logColor = colors[batchNumber % colors.length];
-// 	const logColor = 0;
-// 	//ns.tprint(logColor);
+		// We filter out tasks that have already been started or that have been aborted, they're just logs/ghosts at this point
+		// We also filter out tasks for which the start time hasn't been reached yet, we'll get to them next time this function
+		// is called
+		const tasks = this.tasks.filter(t => t.time <= now && !t.started && !t.aborted);
+		for (const task of tasks) {
+			// Started is when we processed the task. It could be aborted, it doesn't been it's been spawned/executed.
+			task.started = now;
 
-// 	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
-// 	let w1pids = [];
-// 	if (!HGW_MODE) {
-// 		w1pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W1], 0, metrics.times[W1], batchNumber, logColor, true, false);
-// 		await ns.sleep(0);
-// 		if (w1pids.length == 0) {
-// 			ns.print('FAIL: W1 Aborting batch');
-// 			await ns.sleep(metrics.batchTime);
-// 			return [w1pids].flat(Infinity);
-// 		}
-// 	}
-// 	const w2pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W2], metrics.delays[W2], metrics.times[W2], batchNumber, logColor, true, false);
-// 	await ns.sleep(0);
-// 	if (w2pids.length == 0) {
-// 		ns.print('FAIL: W2 Aborting batch');
-// 		await ns.sleep(metrics.batchTime);
-// 		return [w1pids, w2pids].flat(Infinity);
-// 	}
-// 	const gpids = await RunScript(ns, 'grow-once.js', server, metrics.threads[G], metrics.delays[G], metrics.times[G], batchNumber, logColor, false, false);
-// 	await ns.sleep(0);
-// 	if (gpids.length == 0) {
-// 		ns.print('FAIL: G Aborting batch');
-// 		await ns.sleep(metrics.batchTime);
-// 		return [w1pids, gpids, w2pids].flat(Infinity);
-// 	}
-// 	const hpids = await RunScript(ns, 'hack-once.js', server, metrics.threads[H], metrics.delays[H], metrics.times[H], batchNumber, logColor, false, false);
-// 	await ns.sleep(0);
-// 	if (hpids.length == 0) {
-// 		ns.print('FAIL: H Aborting batch');
-// 		await ns.sleep(metrics.batchTime);
-// 		return [hpids, w1pids, gpids, w2pids].flat(Infinity);
-// 	}
+			// Different from this.drift, this one represents how many ms we are past the time we want to start this task
+			let drift = now - task.time;
 
-// 	return [hpids, w1pids, gpids, w2pids].flat(Infinity);
-// }
+			// If we are past tolerance, task is aborted
+			if (drift > task.tolerance) {
+				// For debugging purposes, we use different colors for batches and jobs
+				// TODO: This should be a task parameter so we can keep this function generic
+				if (task.desc.startsWith('Batch'))
+					this.ns.tprint(`WARN: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+				else
+					this.ns.tprint(`FAIL: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+
+				task.aborted = true;
+				continue;
+			}
+
+			// Execute the scheduled task
+			task.func(...task.args);
+		}
+
+		this.lastProc = now;
+	}
+
+	// Adds a task to the queue
+	// 
+	AddTask(
+		desc,  		// Task description, not important
+		time, 		// Time at which we want to start the task (relative to performance.now())
+		tolerance, 	// How much further than 'time' we allow the task to be started. If we get to it beyond this time, it will be cancelled.
+		func, 		// Lambda function to execute (ie: the proverbial task)
+		args		// Arguments to be passed to the function (pass an empty array if none are needed)
+	) {
+		let task = {
+			desc: desc,
+			time: time,
+			tolerance: tolerance,
+			func: func,
+			args: args,
+			aborted: false,
+			started: null
+		};
+		this.tasks.push(task);
+	}
+
+	// Removes tasks that are started or aborted to keep the queue mean and lean
+	PurgeTasks() {
+		this.tasks = this.tasks.filter(t => t.started == null && t.aborted == false);
+	}
+}
+
+// Test function to start a mock batch. It simply adds them as tasks in the ClockSync instance.
+function StartBatch(ns, id, metrics, port, clock) {
+	let now = performance.now();
+	clock.AddTask(`${id}.H`, now + metrics.delays[H], SPACER - 10, () => StartJob(ns, 'H ', id, metrics.times[H], port), []);
+	clock.AddTask(`${id}.W1`, now + metrics.delays[W1], SPACER - 10, () => StartJob(ns, 'W1', id, metrics.times[W1], port), []);
+	clock.AddTask(`${id}.G`, now + metrics.delays[G], SPACER - 10, () => StartJob(ns, 'G ', id, metrics.times[G], port), []);
+	clock.AddTask(`${id}.W2`, now + metrics.delays[W2], SPACER - 10, () => StartJob(ns, 'W2', id, metrics.times[W2], port), []);
+}
+
+// Test function to start a mock job. The script emulates H/W/G without actually doing anything to the server
+// Desyncs are inconsequential, since they do not affect any servers. The script just sleeps for the duration to simulate
+// a hack, grow or weaken call
+function StartJob(ns, type, id, duration, port) {
+	ns.exec('fakejob.js', 'home', 1, id, type, duration, port);
+}

@@ -13,7 +13,7 @@ const W2 = 3;	// Index of second WEAKEN data
 export let HGW_MODE = false;
 
 const LEECH = [
-	0.01, 0.02, 0.03, 0.04, 0.0435, 0.045, 0.0455, 0.0460, 0.0465, 0.0470, 0.0475, 0.05, 0.07, 0.10, 0.15, 0.25, 0.45, 0.55, 0.75, 0.85, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.00
+	0.01, 0.02, 0.03, 0.4, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
 ];
 
 const EXTRA_THREAD_FACTOR = 1;		// Apply this factor to GROW and WEAKEN thread calculations, not used right now
@@ -21,7 +21,7 @@ const MIN_EXTRA_THREADS = 0;		// Add this many extra threads to GROW and WEAKEN 
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	let start= performance.now();
+	let start = performance.now();
 
 	if (!ns.fileExists('Formulas.exe')) {
 		ns.tprint('ERROR: Formulas.exe not found, running this command would take years, aborting.');
@@ -35,29 +35,29 @@ export async function main(ns) {
 		HGW_MODE = HGW;
 
 	// This is a test to compare different grow thread calculation methods
-	// if (server == 'grow') {
-	// 	for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 && ns.hasRootAccess(s)).sort(s => ns.getServerMaxMoney(s))) {
-	// 		//			try {
-	// 		let so = ns.getServer(server);
-	// 		if (so.minDifficulty > 99) continue;
-	// 		let metrics = new Metrics(ns, server, 1, 30, 1);
+	if (server == 'grow') {
+		for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
+			//			try {
+			let so = ns.getServer(server);
+			//if (so.minDifficulty > 99) continue;
+			let metrics = new Metrics(ns, server, 1, 30, 1);
 
-	// 		let w= metrics.threads[G];
-	// 		let b= metrics.debugThreadsG;
+			let w = metrics.threads[G];
+			let b = metrics.debugThreadsG;
 
-	// 		let pct= Math.round(b * 100 / w) - 100;
+			let pct = Math.round(b * 100 / w) - 100;
 
-	// 		ns.tprint(server.padEnd(25) + ('formula: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
-	// 		//metrics.Report(ns, ns.tprint);
-	// 		await ns.sleep(0);
-	// 		// }
-	// 		// catch (e) {
-	// 		// 	ns.tprint('FAIL: Exception --- ' + e)
+			ns.tprint(server.padEnd(25) + ('formula: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+			//metrics.Report(ns, ns.tprint);
+			await ns.sleep(0);
+			// }
+			// catch (e) {
+			// 	ns.tprint('FAIL: Exception --- ' + e)
 
-	// 		// } 
-	// 	}
-	// 	return;
-	// }
+			// } 
+		}
+		return;
+	}
 
 	if (server == undefined) {
 		await AnalyzeAllServers(ns, maxNetworkRamPct);
@@ -418,12 +418,12 @@ export class Metrics {
 		// 	this.threads[G] = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)));
 		// }
 		// else
-			this.threads[G] = calculateGrowThreads(ns, so, player, this.cores, so.moneyAvailable);
+		this.threads[G] = calculateGrowThreads(ns, so, player, this.cores, so.moneyAvailable);
 
 		// Figure grow time and threads
-		// const growFactor = 1 / (1 - this.effectivePct);
+		const growFactor = 1 / (1 - ((so.moneyMax-0.01)/so.moneyMax));
 		//this.threads[G] = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
-		// this.debugThreadsG = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
+		this.debugThreadsG = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
 		// this.debugThreads2 = calculateGrowThreads(ns, this.server, player, 1, so.moneyAvailable);
 
 		// let opts = {

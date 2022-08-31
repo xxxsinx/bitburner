@@ -28,7 +28,7 @@ let focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = true;
-const MIN_ACCOUNT_BALANCE = 100_000_000_000;
+const MIN_ACCOUNT_BALANCE = 1_000_000;
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -260,6 +260,15 @@ function UpgradeEquipement(ns) {
 		if (type == 'Augmentation' && !allowAugs)
 			continue;
 
+		const allowedHackingAugs= [
+			'BitWire', 'DataJack', 'Neuralstimulator'
+		];		
+		if (type == 'Augmentation' && !allowedHackingAugs.includes(gear))
+			continue;
+
+		if (isHacking && type != 'Rootkit' && type != 'Augmentation' && type != 'Vehicle')
+			continue;
+
 		// if (isHacking && type == 'Rootkit' && budget < 5_000_000_000)
 		// 	continue;
 
@@ -365,7 +374,7 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney) {
 	}
 
 	// We train combat even for hacking gangs, otherwise they get destroyed in Territory Warfare
-	if (mi.def < 600) {
+	if (!isHacking && mi.def < 600) {
 		return 'Train Combat';
 	}
 

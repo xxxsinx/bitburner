@@ -11,6 +11,9 @@ const PORT = 1;
 const SPACER = 30;
 
 export async function main(ns) {
+	ns.disableLog('ALL');
+	ns.tail();
+
 	// We declare a clock object
 	const clock = new ClockSync(ns);
 
@@ -43,12 +46,18 @@ export async function main(ns) {
 
 	while (true) {
 		// Look for 'Batch' tasks and add some if we're under the target. We're using a target of 1 for this test.
-		while (clock.tasks.filter(t => t.desc.startsWith('Batch')).length < 1) {
+		while (clock.tasks.filter(t => t.desc.startsWith('Batch')).length < 2) {
 			// Adds the new task in the scheduler
 			clock.AddTask(`Batch ${id}`, nextBatch, SPACER - 10, () => StartBatch(ns, id, metrics, PORT, clock), []);
 
 			// The next batch time is based on the previous batch, not the current time
 			nextBatch += windowLen;
+
+			// Correct any significant offset we might have
+			while (nextBatch < performance.now()) {
+				nextBatch += windowLen;
+				ns.print('WARN: Skipping ahead, we are lagging behind!');
+			}
 
 			// Add a placeholder object in our batches array to keep track of job ends (see how it's used in WorkerDeathReports())
 			batches.push({ id: id, replies: '', replyCount: 0 });
@@ -89,7 +98,7 @@ function WorkerDeathReports(ns, port, batches) {
 		let data = JSON.parse(raw);
 		let batch = batches.find(b => b.id == data.id);
 		if (batch == undefined) {
-			ns.tprint("WARN: Dismissing report of an unknown batch " + data.id);
+			ns.print("WARN: Dismissing report of an unknown batch " + data.id);
 			continue;
 		}
 
@@ -97,10 +106,10 @@ function WorkerDeathReports(ns, port, batches) {
 		batch.replies = batch.replies + data.type;
 		if (batch.replyCount == 4) {
 			if (batch.replies == 'H W1G W2') {
-				ns.tprint('SUCCESS: Batch ' + data.id + ' finished in correct order');
+				ns.print('SUCCESS: Batch ' + data.id + ' finished in correct order');
 			}
 			else {
-				ns.tprint('FAIL: Batch ' + data.id + ' finished out of order ' + batch.replies);
+				ns.print('FAIL: Batch ' + data.id + ' finished out of order ' + batch.replies);
 			}
 		}
 	}
@@ -143,9 +152,9 @@ class ClockSync {
 				// For debugging purposes, we use different colors for batches and jobs
 				// TODO: This should be a task parameter so we can keep this function generic
 				if (task.desc.startsWith('Batch'))
-					this.ns.tprint(`WARN: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+					this.ns.print(`WARN: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
 				else
-					this.ns.tprint(`FAIL: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+					this.ns.print(`FAIL: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
 
 				task.aborted = true;
 				continue;

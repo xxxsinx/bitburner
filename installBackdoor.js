@@ -3,7 +3,7 @@ export async function main(ns) {
 	ns.disableLog('ALL');
 
 	const servers = GetAllServers(ns);
-	const targets = ['CSEC', 'I.I.I.I', 'avmnite-02h', 'run4theh111z', 'w0r1d_d43m0n'];
+	const targets = servers.map(s=>s.name); // ['CSEC', 'I.I.I.I', 'avmnite-02h', 'run4theh111z', 'w0r1d_d43m0n'];
 	//'millenium-fitness', 'powerhouse-fitness', 'crush-fitness', 'snap-fitness'/*, 'w0r1d_d43m0n'*/];
 	//const targets = servers.map(s => s.name);
 

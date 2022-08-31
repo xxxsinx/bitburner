@@ -10,6 +10,8 @@ const PORT = 1;
 // Amount of time between jobs. The same spacer is used between batches as well.
 const SPACER = 30;
 
+let g_currentId= 0;
+
 export async function main(ns) {
 	ns.disableLog('ALL');
 	ns.tail();
@@ -48,7 +50,7 @@ export async function main(ns) {
 		// Look for 'Batch' tasks and add some if we're under the target. We're using a target of 1 for this test.
 		while (clock.tasks.filter(t => t.desc.startsWith('Batch')).length < 2) {
 			// Adds the new task in the scheduler
-			clock.AddTask(`Batch ${id}`, nextBatch, SPACER - 10, () => StartBatch(ns, id, metrics, PORT, clock), []);
+			clock.AddTask(g_currentId++, `Batch ${id}`, nextBatch, SPACER - 10, () => StartBatch(ns, id, metrics, PORT, clock), []);
 
 			// The next batch time is based on the previous batch, not the current time
 			nextBatch += windowLen;
@@ -170,6 +172,7 @@ class ClockSync {
 	// Adds a task to the queue
 	// 
 	AddTask(
+		id,  		// Task id
 		desc,  		// Task description, not important
 		time, 		// Time at which we want to start the task (relative to performance.now())
 		tolerance, 	// How much further than 'time' we allow the task to be started. If we get to it beyond this time, it will be cancelled.
@@ -177,6 +180,7 @@ class ClockSync {
 		args		// Arguments to be passed to the function (pass an empty array if none are needed)
 	) {
 		let task = {
+			id: id,
 			desc: desc,
 			time: time,
 			tolerance: tolerance,
@@ -197,10 +201,10 @@ class ClockSync {
 // Test function to start a mock batch. It simply adds them as tasks in the ClockSync instance.
 function StartBatch(ns, id, metrics, port, clock) {
 	let now = performance.now();
-	clock.AddTask(`${id}.H`, now + metrics.delays[H], SPACER - 10, () => StartJob(ns, 'H ', id, metrics.times[H], port), []);
-	clock.AddTask(`${id}.W1`, now + metrics.delays[W1], SPACER - 10, () => StartJob(ns, 'W1', id, metrics.times[W1], port), []);
-	clock.AddTask(`${id}.G`, now + metrics.delays[G], SPACER - 10, () => StartJob(ns, 'G ', id, metrics.times[G], port), []);
-	clock.AddTask(`${id}.W2`, now + metrics.delays[W2], SPACER - 10, () => StartJob(ns, 'W2', id, metrics.times[W2], port), []);
+	clock.AddTask(g_currentId++, `${id}.H`, now + metrics.delays[H], SPACER - 10, () => StartJob(ns, 'H ', id, metrics.times[H], port), []);
+	clock.AddTask(g_currentId++, `${id}.W1`, now + metrics.delays[W1], SPACER - 10, () => StartJob(ns, 'W1', id, metrics.times[W1], port), []);
+	clock.AddTask(g_currentId++, `${id}.G`, now + metrics.delays[G], SPACER - 10, () => StartJob(ns, 'G ', id, metrics.times[G], port), []);
+	clock.AddTask(g_currentId++, `${id}.W2`, now + metrics.delays[W2], SPACER - 10, () => StartJob(ns, 'W2', id, metrics.times[W2], port), []);
 }
 
 // Test function to start a mock job. The script emulates H/W/G without actually doing anything to the server

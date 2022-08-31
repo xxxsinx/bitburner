@@ -84,6 +84,19 @@ export async function main(ns) {
 	}
 }
 
+// WIP
+class Batch {
+	constructor() {
+		this.scheduledTime= 0;
+		this.execTime= 0;
+		this.workerStartTime= [0,0,0,0];
+		this.workerEndTime= [0,0,0,0];
+		this.reportedTime [0,0,0,0];
+		this.started= false;
+		this.aborted= false;
+	}
+}
+
 // Simply clears the data on the specified port
 function ClearPort(ns, port) {
 	while (ns.peek(port) != 'NULL PORT DATA') {

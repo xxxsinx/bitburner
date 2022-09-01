@@ -1,12 +1,21 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-    const gameRoot = globalThis['document'].getElementById('root');
-    const sideBar = findReact(gameRoot.firstElementChild.firstElementChild.nextElementSibling);
-    const { router } = sideBar.pendingProps.children[0].props;
-    router.toDevMenu();
+    let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
+    let box = boxes.find(x => hasPlayer(x));
+    if (!box) return;
+    let props = getProps(box);
+    props.router.toDevMenu();
 }
 
-function findReact(element) {
-  const reactKey = Object.keys(element).find((key) => key.startsWith('__reactFiber'));
-  return element[reactKey];
+function getProps(obj) {
+    return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1].children.props;
+}
+
+function hasPlayer(obj) {
+    try {
+        return getProps(obj).player ? true : false;
+    }
+    catch {
+        return false;
+    }
 }

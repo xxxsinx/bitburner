@@ -406,11 +406,8 @@ function uniquePathsII(grid, ignoreFirst = false, ignoreLast = false) {
 //GENERATE IP ADDRESSES
 function generateIps(num) {
 	num = num.toString();
-
 	const length = num.length;
-
 	const ips = [];
-
 	for (let i = 1; i < length - 2; i++) {
 		for (let j = i + 1; j < length - 1; j++) {
 			for (let k = j + 1; k < length; k++) {
@@ -421,20 +418,14 @@ function generateIps(num) {
 					num.slice(k, num.length)
 				];
 				let isValid = true;
-
 				ip.forEach(seg => {
 					isValid = isValid && isValidIpSegment(seg);
 				});
-
 				if (isValid) ips.push(ip.join("."));
-
 			}
-
 		}
 	}
-
-	return ips;
-
+	return ips.toString();
 }
 
 function isValidIpSegment(segment) {

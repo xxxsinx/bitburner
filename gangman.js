@@ -155,7 +155,7 @@ export async function main(ns) {
 			}
 		}
 		else {
-			//ns.print('INFO: Skipping territory warfare, we are at 100% territory!');
+			//ns.print('INFO: Skipping territory warfare, we are at 100% territory! Focusing on $$$');
 			focusMoney = true;
 		}
 
@@ -379,9 +379,10 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 		'Armed Robbery',
 		'Traffick Illegal Arms',
 		'Threaten & Blackmail',
-		'Human Trafficking',
-		'Terrorism'
+		'Human Trafficking'
 	];
+
+	ns.print(ALLOWED_TASKS);
 
 	// For respect, terrorism is king, no reason to waste time with other
 	// tasks. If money is a concern, it would be best to split members
@@ -398,14 +399,14 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 		let wanted = ns.formulas.gang.wantedLevelGain(gangInfo, mi, stats);
 
 		// Skip tasks that increase our wanted level (we'll likely default to combat training)
-		if (respect + carryOver < wanted) continue;
-		carryOver += respect / wanted;
+		if (!prioritizeMoney && respect + carryOver < wanted) continue;
+		if (!prioritizeMoney) carryOver += respect / wanted;
 
 		// Skip tasks that do not generate respect if we're focused on respect
-		if (!focusMoney && respect <= 0) continue;
+		if (!prioritizeMoney && respect <= 0) continue;
 
 		// Skip tasks that do not generate money if we're focused on money
-		if (focusMoney && money >= 0) continue;
+		if (prioritizeMoney && money <= 0) continue;
 
 		// Add the task to our todo list, we'll sort and pick the best one later
 		tasks.push({
@@ -419,7 +420,7 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 
 	// If we have more than one task, sort it based on our focus
 	if (tasks.length > 1) {
-		let sortKey = focusMoney ? 'money' : 'respect';
+		let sortKey = prioritizeMoney ? 'money' : 'respect';
 		tasks.sort((a, b) => b[sortKey] - a[sortKey]);
 	}
 

@@ -80,6 +80,10 @@ export async function main(ns) {
 		gangInfo = ns.gang.getGangInformation();
 		//GangReport(ns, gangInfo);
 
+		if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000) {
+			ns.print('FAIL: Wanted level is too high. This is unexpected, script is designed to avoid this.');
+		}
+
 		// *** Automatic ascension ***
 		// We prevent ascension if at the current rate we expect to get our next member soon
 		const nextMemberTime = GetNextMemberTime(ns, members, gangInfo);
@@ -207,17 +211,18 @@ function getRespectNeededToRecruitMember(ns, members) {
 
 function AssignTasks(ns, members, gangInfo) {
 	//ns.print('WARN: Assigning best tasks');
-	// let rendu = 0;
-	// let half = Math.ceil(members.length / 2);
-	for (let member of members) {
-		AssignBestTask(ns, member, gangInfo);
-	}
-}
 
-function AssignBestTask(ns, member, gangInfo) {
-	let newTask = FindBestTask(ns, gangInfo, member, focusMoney);
-	ns.gang.setMemberTask(member, newTask);
-	//ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
+	// This is used to store the respect/wanted offset
+	// If the first few members are generating mad respect, it can offset lower gang members
+	// being really bad...
+	let carryOver = 0;
+
+	for (let member of members) {
+		let [newTask, carry] = FindBestTask(ns, gangInfo, member, focusMoney, carryOver);
+		carryOver = carry;
+		ns.gang.setMemberTask(member, newTask);
+		//ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
+	}
 }
 
 async function RecruitMembers(ns) {
@@ -254,7 +259,8 @@ async function RecruitMembers(ns) {
 			ns.print('SUCCESS: Recruited a new gang member called ' + newMember);
 			members.push(newMember);
 
-			AssignBestTask(ns, newMember, ns.gang.getGangInformation());
+			let [newTask, carry] = FindBestTask(ns, ns.gang.getGangInformation(), newMember, focusMoney, 0);
+			ns.gang.setMemberTask(newMember, newTask);
 		}
 
 		await ns.sleep(10);
@@ -356,10 +362,12 @@ function GangReport(ns, gangInfo) {
 	ns.print('');
 }
 
-function FindBestTask(ns, gangInfo, member, prioritizeMoney) {
+function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 	// Absolute priority, if we got wanted penalty over 10% we fix that shit, it cripples everything
-	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000)
+	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000) {
 		newTask = 'Vigilante Justice';
+		return [newTask, carryOver];
+	}
 
 	let mi = ns.gang.getMemberInformation(member);
 
@@ -390,7 +398,8 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney) {
 		let wanted = ns.formulas.gang.wantedLevelGain(gangInfo, mi, stats);
 
 		// Skip tasks that increase our wanted level (we'll likely default to combat training)
-		if (respect < wanted) continue;
+		if (respect + carryOver < wanted) continue;
+		carryOver += respect / wanted;
 
 		// Skip tasks that do not generate respect if we're focused on respect
 		if (!focusMoney && respect <= 0) continue;
@@ -403,7 +412,8 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney) {
 			task: task,
 			money: money,
 			wanted: wanted,
-			respect: respect
+			respect: respect,
+			carryOver: carryOver
 		});
 	}
 
@@ -420,10 +430,11 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney) {
 			task: 'Train Combat',
 			money: 0,
 			wanted: 0,
-			respect: 0
+			respect: 0,
+			carryOver: carryOver
 		});
 	}
 
 	// Return the fist task in the list
-	return tasks[0].task;
+	return [tasks[0].task, tasks[0].carryOver];
 }

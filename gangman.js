@@ -23,16 +23,15 @@ const GANGSTER_NAMES = [
 	'Todd Bonzalez'
 ];
 
-let isHacking = false;
 let focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = true;
-const MIN_ACCOUNT_BALANCE = 1_000_000;
+const MIN_ACCOUNT_BALANCE = 0;
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	//ns.disableLog('ALL');
+	ns.disableLog('ALL');
 
 	if (!ns.gang.inGang()) {
 		let karma = ns.heart.break();
@@ -50,14 +49,10 @@ export async function main(ns) {
 			return;
 		}
 
-		if (ns.singularity.checkFactionInvitations().includes('Tetrads'))
-			ns.singularity.joinFaction('Tetrads');
-		else if (ns.singularity.checkFactionInvitations().includes('Slum Snakes'))
+		if (ns.singularity.checkFactionInvitations().includes('Slum Snakes'))
 			ns.singularity.joinFaction('Slum Snakes');
 
-		if (ns.getPlayer().factions.includes('Tetrads'))
-			ns.gang.createGang('Tetrads');
-		else if (ns.getPlayer().factions.includes('Slum Snakes'))
+		if (ns.getPlayer().factions.includes('Slum Snakes'))
 			ns.gang.createGang('Slum Snakes');
 
 		if (!ns.gang.inGang()) {
@@ -72,8 +67,6 @@ export async function main(ns) {
 	let otherGangsInfoPrevCycle = undefined;
 	let nextTick = undefined;
 	let gangInfo = ns.gang.getGangInformation();
-	isHacking = gangInfo.isHacking;
-
 	let members = ns.gang.getMemberNames();
 
 	AssignTasks(ns, members, gangInfo);
@@ -85,19 +78,32 @@ export async function main(ns) {
 		// *** Get current gang member names and gangInfo ***
 		members = ns.gang.getMemberNames();
 		gangInfo = ns.gang.getGangInformation();
-		GangReport(ns, gangInfo);
+		//GangReport(ns, gangInfo);
 
 		// *** Automatic ascension ***
-		if (allowAscension) {
-			for (let member of members) {
-				AscendGangMember(ns, member);
+		// We prevent ascension if at the current rate we expect to get our next member soon
+		const nextMemberTime = GetNextMemberTime(ns, members, gangInfo);
+		const timeLock = Math.pow(2, (members.length + 1) * 0.7) * 1000;
+		//ns.tprint('TimeLock: ' + ns.tFormat(timeLock));
+
+		if (nextMemberTime != -1) {
+			if (nextMemberTime < timeLock) {
+				//ns.print('WARN: Ascension LOCKED, next: ' + ns.tFormat(nextMemberTime) + ' lock threshold: ' + ns.tFormat(timeLock));
+			}
+			else {
+				//ns.print('INFO: Checking ascension, next: ' + ns.tFormat(nextMemberTime) + ' lock threshold: ' + ns.tFormat(timeLock));
+				if (allowAscension) {
+					for (let i = 0; i < members.length; i++) {
+						const member = members[i];
+						//AscendGangMember(ns, member);
+					}
+				}
 			}
 		}
-
 		// *** Equipement stuff ***
 		if (allowUpgrades) {
 			UpgradeEquipement(ns);
-			ns.print('');
+			//ns.print('');
 		}
 
 		// *** Territory warfaire ***
@@ -126,7 +132,7 @@ export async function main(ns) {
 
 		// If we're in a new tick, take note of when next one is going to happen
 		if (newTick) {
-			ns.print('WARN: -- NEW TICK DETECTED --');
+			//ns.print('WARN: -- NEW TICK DETECTED --');
 			if (nextTick != undefined) {
 				AssignTasks(ns, members, gangInfo);
 			}
@@ -139,46 +145,86 @@ export async function main(ns) {
 		if (gangInfo.territory < 1) {
 			// Assign members to territory warfare
 			if (nextTick != undefined && Date.now() + 500 > nextTick) {
-				ns.print('WARN: Assigning all members to territory warfare');
+				//ns.print('WARN: Assigning all members to territory warfare');
 				for (let member of members)
 					ns.gang.setMemberTask(member, 'Territory Warfare');
 			}
 		}
 		else {
-			ns.print('INFO: Skipping territory warfare, we are at 100% territory!');
+			//ns.print('INFO: Skipping territory warfare, we are at 100% territory!');
 			focusMoney = true;
 		}
 
 		ns.gang.setTerritoryWarfare(allowClash && gangInfo.territory < 1);
 
-		ns.print('');
-		ns.print('LOOP END');
-		ns.print('');
+		// ns.print('');
+		// ns.print('LOOP END');
+		// ns.print('');
 		await ns.sleep(1000);
 	}
 }
 
+function GetNextMemberTime(ns, members, gangInfo) {
+	if (members.length == 12) return -1;
+
+	// Check how much reputation we need to recruit the next member
+	const needed = getRespectNeededToRecruitMember(ns, members);
+	//ns.print('Needed: ' + needed);
+	if (needed == 0) return -1;
+
+	// Check how much we currently have
+	const current = gangInfo.respect;
+	//ns.print('Current: ' + current);
+	if (current > needed) return -1;
+
+	// Evaluate our current gain rate
+	let gainPerMs = 0;
+	try {
+		gainPerMs = gangInfo.respectGainRate / 200;
+	}
+	catch {
+		gainPerMs = 0;
+	}
+	//ns.print('Gain: ' + gainPerMs);
+	if (gainPerMs <= 0) return 0;
+
+	// evaluate how long it will take to get our next member at the current rate
+	const time = (needed - current) / gainPerMs;
+	//ns.print('Time: ' + time);
+	return time;
+}
+
+// Ripped/adapted from source code
+// https://github.com/danielyxie/bitburner/blob/2592c6ccd89d5559c9cc3cdf99416eb1c57edca2/src/Gang/Gang.ts#L296-L303
+function getRespectNeededToRecruitMember(ns, members) {
+	// First N gang members are free (can be recruited at 0 respect)
+	const numFreeMembers = 3;
+	if (members.length < numFreeMembers) return 0;
+
+	const i = members.length - (numFreeMembers - 1);
+	return Math.pow(5, i);
+}
+
 function AssignTasks(ns, members, gangInfo) {
-	ns.print('WARN: Assigning best tasks');
+	//ns.print('WARN: Assigning best tasks');
 	// let rendu = 0;
 	// let half = Math.ceil(members.length / 2);
 	for (let member of members) {
-		let newTask = FindBestTask(ns, gangInfo, member, focusMoney);
-
-		if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000)
-			newTask = isHacking ? 'Ethical Hacking' : 'Vigilante Justice';
-
-		ns.gang.setMemberTask(member, newTask);
-		ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
+		AssignBestTask(ns, member, gangInfo);
 	}
 }
 
+function AssignBestTask(ns, member, gangInfo) {
+	let newTask = FindBestTask(ns, gangInfo, member, focusMoney);
+	ns.gang.setMemberTask(member, newTask);
+	//ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
+}
 
 async function RecruitMembers(ns) {
 	let members = ns.gang.getMemberNames();
 
 	while (ns.gang.canRecruitMember()) {
-		ns.print('INFO: We can currently recruit a new member!');
+		//ns.print('INFO: We can currently recruit a new member!');
 
 		let newMember = undefined;
 		for (let i = 0; i < GANGSTER_NAMES.length; i++) {
@@ -201,12 +247,14 @@ async function RecruitMembers(ns) {
 		}
 
 		if (newMember == undefined) {
-			ns.print('ERROR: Could not find a new member name?! Should NOT happen.');
+			ns.tprint('ERROR: Could not find a new member name?! Should NOT happen.');
 		}
 		else {
 			ns.gang.recruitMember(newMember);
 			ns.print('SUCCESS: Recruited a new gang member called ' + newMember);
 			members.push(newMember);
+
+			AssignBestTask(ns, newMember, ns.gang.getGangInformation());
 		}
 
 		await ns.sleep(10);
@@ -217,17 +265,15 @@ function AscendGangMember(ns, member) {
 	const ascensionResult = ns.gang.getAscensionResult(member);
 	if (ascensionResult == undefined) return;
 	let threshold = CalculateAscendTreshold(ns, member);
-	if (isHacking && ascensionResult.hack >= threshold ||
-		(!isHacking && (ascensionResult.agi >= threshold || ascensionResult.str >= threshold || ascensionResult.def >= threshold || ascensionResult.dex >= threshold))) {
+	if (ascensionResult.agi >= threshold || ascensionResult.str >= threshold || ascensionResult.def >= threshold || ascensionResult.dex >= threshold) {
 		ns.gang.ascendMember(member);
-		ns.print(`Ascending ${member}!`);
+		ns.print('WARN: Ascending ' + member);
 	}
 }
 
 // Credit: Mysteyes. https://discord.com/channels/415207508303544321/415207923506216971/940379724214075442
 function CalculateAscendTreshold(ns, member) {
-	let metric = isHacking ? 'hack_asc_mult' : 'str_asc_mult';
-	let mult = ns.gang.getMemberInformation(member)[metric];
+	let mult = ns.gang.getMemberInformation(member)[str_asc_mult];
 	if (mult < 1.632) return 1.6326;
 	if (mult < 2.336) return 1.4315;
 	if (mult < 2.999) return 1.284;
@@ -241,7 +287,6 @@ function CalculateAscendTreshold(ns, member) {
 	if (mult < 7.519) return 1.073;
 	if (mult < 8.025) return 1.0673;
 	if (mult < 8.513) return 1.0631;
-
 	return 1.0591;
 }
 
@@ -260,25 +305,16 @@ function UpgradeEquipement(ns) {
 		if (type == 'Augmentation' && !allowAugs)
 			continue;
 
-		const allowedHackingAugs= [
-			'BitWire', 'DataJack', 'Neuralstimulator'
-		];		
-		if (type == 'Augmentation' && !allowedHackingAugs.includes(gear))
-			continue;
-
-		if (isHacking && type != 'Rootkit' && type != 'Augmentation' && type != 'Vehicle')
-			continue;
-
-		// if (isHacking && type == 'Rootkit' && budget < 5_000_000_000)
+		// const allowedHackingAugs= [
+		// 	'BitWire', 'DataJack', 'Neuralstimulator'
+		// ];		
+		// if (type == 'Augmentation' && !allowedHackingAugs.includes(gear))
 		// 	continue;
 
-		// if (isHacking && (type == 'Weapon' || type == 'Armor' || type == 'Vehicle' || type == 'Rootkit') && budget < 5_000_000_000)
+		// if ((type == 'Weapon' || type == 'Armor' || type == 'Vehicle' || type == 'Rootkit') && budget < 5_000_000_000)
 		// 	continue;
 
-		// if (!isHacking && (type == 'Weapon' || type == 'Armor' || type == 'Vehicle' || type == 'Rootkit') && budget < 5_000_000_000)
-		// 	continue;
-
-		// if (!isHacking && type == 'Rootkit' && budget < 5_000_000_000)
+		// if (type == 'Rootkit' && budget < 5_000_000_000)
 		// 	continue;
 
 		// Find which member(s) do not have that upgrade installed
@@ -293,8 +329,8 @@ function UpgradeEquipement(ns) {
 		let cost = ns.gang.getEquipmentCost(gear);
 		for (let member of missing) {
 			if (cost < budget) {
-				ns.print('Buying ' + gear + ' for ' + member);
-				ns.enableLog('gang.purchaseEquipment');
+				//ns.print('Buying ' + gear + ' for ' + member);
+				//ns.enableLog('gang.purchaseEquipment');
 				ns.gang.purchaseEquipment(member, gear);
 				budget -= cost;
 			}
@@ -321,73 +357,73 @@ function GangReport(ns, gangInfo) {
 }
 
 function FindBestTask(ns, gangInfo, member, prioritizeMoney) {
+	// Absolute priority, if we got wanted penalty over 10% we fix that shit, it cripples everything
+	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000)
+		newTask = 'Vigilante Justice';
+
 	let mi = ns.gang.getMemberInformation(member);
 
 	let ALLOWED_TASKS = [
 		'Mug People',
+		'Deal Drugs',
 		'Strongarm Civilians',
+		'Run a Con',
+		'Armed Robbery',
 		'Traffick Illegal Arms',
+		'Threaten & Blackmail',
 		'Human Trafficking',
 		'Terrorism'
 	];
-	if (isHacking) {
-		ALLOWED_TASKS = [
-			'Ransomware',
-			'Phishing',
-			'Identity Theft',
-			'DDoS Attacks',
-			'Plant Virus',
-			'Fraud & Counterfeiting',
-			'Money Laundering',
-			'Cyberterrorism'
-		];
-	}
 
-	let canGainRespect = false;
-	let canGainMoney = false;
+	// For respect, terrorism is king, no reason to waste time with other
+	// tasks. If money is a concern, it would be best to split members
+	// between money/respect focus instead of doing half-assed tasks
+	// See where this function is called.
+	if (!prioritizeMoney) ALLOWED_TASKS = ['Terrorism'];
 
+	// Evaluate the gains of allowed tasks
 	let tasks = [];
 	for (let task of ALLOWED_TASKS) {
 		let stats = ns.gang.getTaskStats(task);
 		let money = ns.formulas.gang.moneyGain(gangInfo, mi, stats);
 		let respect = ns.formulas.gang.respectGain(gangInfo, mi, stats);
+		let wanted = ns.formulas.gang.wantedLevelGain(gangInfo, mi, stats);
 
+		// Skip tasks that increase our wanted level (we'll likely default to combat training)
+		if (respect < wanted) continue;
+
+		// Skip tasks that do not generate respect if we're focused on respect
+		if (!focusMoney && respect <= 0) continue;
+
+		// Skip tasks that do not generate money if we're focused on money
+		if (focusMoney && money >= 0) continue;
+
+		// Add the task to our todo list, we'll sort and pick the best one later
 		tasks.push({
 			task: task,
 			money: money,
-			//wanted: ns.formulas.gang.wantedLevelGain(gangInfo, mi, stats),
-			respect: respect,
-			stats: stats
+			wanted: wanted,
+			respect: respect
 		});
-
-		if (respect > 0) canGainRespect = true;
-		if (money > 0) canGainMoney = true;
 	}
 
-	if (prioritizeMoney)
-		tasks.sort((a, b) => b.money - a.money);
-	else
-		tasks.sort((a, b) => b.respect - a.respect);
-
-	if (isHacking && mi.hack < 600) {
-		return 'Train Hacking';
+	// If we have more than one task, sort it based on our focus
+	if (tasks.length > 1) {
+		let sortKey = focusMoney ? 'money' : 'respect';
+		tasks.sort((a, b) => b[sortKey] - a[sortKey]);
 	}
 
-	// We train combat even for hacking gangs, otherwise they get destroyed in Territory Warfare
-	if (!isHacking && mi.def < 600) {
-		return 'Train Combat';
+	// If we have no tasks, it means none of them correspond to our focus without generating wanted penalty
+	// We train combat until that changes
+	if (tasks.length == 0) {
+		tasks.push({
+			task: 'Train Combat',
+			money: 0,
+			wanted: 0,
+			respect: 0
+		});
 	}
 
-	// Prioritize money
-	if (canGainMoney && prioritizeMoney) {
-		return tasks[0].task;
-	}
-
-	// Prioritize respect
-	if (canGainRespect && !prioritizeMoney) {
-		return tasks[0].task;
-	}
-
-	// Default task if we can't find any money/respect yielding tasks suited for this member
-	return isHacking ? 'Train Hacking' : 'Train Combat';
+	// Return the fist task in the list
+	return tasks[0].task;
 }

@@ -90,8 +90,8 @@ export async function main(ns) {
 		const timeLock = Math.pow(2, (members.length + 1) * 0.7) * 1000;
 		//ns.tprint('TimeLock: ' + ns.tFormat(timeLock));
 
-		if (nextMemberTime != -1) {
-			if (nextMemberTime < timeLock) {
+		if (nextMemberTime != -1 || members.length == 12) {
+			if (members.length < 12 && nextMemberTime < timeLock) {
 				//ns.print('WARN: Ascension LOCKED, next: ' + ns.tFormat(nextMemberTime) + ' lock threshold: ' + ns.tFormat(timeLock));
 			}
 			else {
@@ -99,7 +99,7 @@ export async function main(ns) {
 				if (allowAscension) {
 					for (let i = 0; i < members.length; i++) {
 						const member = members[i];
-						//AscendGangMember(ns, member);
+						AscendGangMember(ns, member);
 					}
 				}
 			}
@@ -279,7 +279,7 @@ function AscendGangMember(ns, member) {
 
 // Credit: Mysteyes. https://discord.com/channels/415207508303544321/415207923506216971/940379724214075442
 function CalculateAscendTreshold(ns, member) {
-	let mult = ns.gang.getMemberInformation(member)[str_asc_mult];
+	let mult = ns.gang.getMemberInformation(member)['str_asc_mult'];
 	if (mult < 1.632) return 1.6326;
 	if (mult < 2.336) return 1.4315;
 	if (mult < 2.999) return 1.284;

@@ -29,9 +29,13 @@ const allowAscension = true;
 const allowAugs = true;
 const MIN_ACCOUNT_BALANCE = 0;
 
+let g_goals= undefined;
+
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
+
+	g_goals= new GangGoals(ns);
 
 	if (!ns.gang.inGang()) {
 		let karma = ns.heart.break();
@@ -164,7 +168,48 @@ export async function main(ns) {
 		// ns.print('');
 		// ns.print('LOOP END');
 		// ns.print('');
+		g_goals.CheckGoals();
 		await ns.sleep(1000);
+	}
+}
+
+class GangGoals { 
+	constructor(ns) {
+		this.ns= ns;
+		this.goals= [
+			{ name: 'Gang created', condition: () => ns.gang.inGang(), state: undefined },
+			{ name: '12th member recruited', condition: () => ns.gang.inGang() && ns.gang.getMemberNames().length == 12, state: undefined },
+			{ name: 'Faction rep capped', condition: () => ns.gang.inGang() && ns.getPlayer().factions.includes('Slum Snakes') && ns.singularity.getFactionRep('Slum Snakes') >= 1_875_000, state: undefined },
+			{ name: 'Enabled clashes', condition: () => ns.gang.inGang() && (ns.gang.getGangInformation().territoryWarfareEngaged || ns.gang.getGangInformation().territory > 0.15), state: undefined },
+			{ name: '100% territory', condition: () => ns.gang.inGang() && ns.gang.getGangInformation().territory >= 1, state: undefined }
+		];
+		this.CheckGoals();
+	}
+
+	CheckGoals() {
+		for (const goal of this.goals)
+			this.CheckGoal(goal);
+	}
+
+	CheckGoal(goal) {
+		let currentValue= goal.condition();
+
+		switch (goal.state) {
+			case undefined:
+				goal.state= goal.condition();
+				if (goal.state)
+					this.ns.tprint('WARN: Gang goals: Already achieved goal ' + goal.name + ' on script startup');
+				break;
+			case false:
+				if (currentValue) {
+					goal.state= true;
+					this.ns.tprint('FAIL: Gang goals: Achieved goal ' + goal.name);
+				}
+				break;
+			case true:
+				// Nothing to do here
+				break;
+		}		
 	}
 }
 
@@ -272,6 +317,14 @@ function AscendGangMember(ns, member) {
 	if (ascensionResult == undefined) return;
 	let threshold = CalculateAscendTreshold(ns, member);
 	if (ascensionResult.agi >= threshold || ascensionResult.str >= threshold || ascensionResult.def >= threshold || ascensionResult.dex >= threshold) {
+		const respect= Math.max(1, ns.gang.getMemberInformation(member).respect);
+		const gangRespect= Math.max(12, ns.gang.getGangInformation().respect);
+		const respectRatio= respect / gangRespect;
+		if (respectRatio > 1/12) {
+			ns.print('FAIL: Holding ascension of ' + member);
+			return; // Prevent ascending anyone whose respect is over X% of the gang's respect
+		}
+
 		ns.gang.ascendMember(member);
 		ns.print('WARN: Ascending ' + member);
 	}
@@ -365,11 +418,15 @@ function GangReport(ns, gangInfo) {
 function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 	// Absolute priority, if we got wanted penalty over 10% we fix that shit, it cripples everything
 	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000) {
-		newTask = 'Vigilante Justice';
-		return [newTask, carryOver];
+		return ['Vigilante Justice', carryOver];
 	}
 
 	let mi = ns.gang.getMemberInformation(member);
+
+	// // Force training on combat stats to 600
+	// if (mi.str < 600 || mi.def < 600 || mi.agi < 600 /*|| mi.dex < 400*/) {
+	// 	return ['Train Combat', carryOver];
+	// }
 
 	let ALLOWED_TASKS = [
 		'Mug People',
@@ -382,7 +439,7 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 		'Human Trafficking'
 	];
 
-	ns.print(ALLOWED_TASKS);
+	//ns.print(ALLOWED_TASKS);
 
 	// For respect, terrorism is king, no reason to waste time with other
 	// tasks. If money is a concern, it would be best to split members

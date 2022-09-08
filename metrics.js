@@ -13,7 +13,7 @@ const W2 = 3;	// Index of second WEAKEN data
 export let HGW_MODE = false;
 
 const LEECH = [
-	0.01, 0.02, 0.03, 0.4, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
+	0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
 ];
 
 const EXTRA_THREAD_FACTOR = 1;		// Apply this factor to GROW and WEAKEN thread calculations, not used right now
@@ -319,14 +319,14 @@ export class Metrics {
 
 		printfunc('├─────────────────────────────────────────────────────┤');
 		if (HGW_MODE) {
-			printfunc('│ ' + ('HGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
 			printfunc('│ ' + ('HGW threads : ' + this.threads).padEnd(52) + '│');
+			printfunc('│ ' + ('HGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
 			printfunc('│ ' + ('HGW delays  : ' + this.delays).padEnd(52) + '│');
 			printfunc('│ ' + ('HGW ends    : ' + this.ends).padEnd(52) + '│');
 		}
 		else {
-			printfunc('│ ' + ('HWGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
 			printfunc('│ ' + ('HWGW threads : ' + this.threads).padEnd(52) + '│');
+			printfunc('│ ' + ('HWGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
 			printfunc('│ ' + ('HWGW delays  : ' + this.delays).padEnd(52) + '│');
 			printfunc('│ ' + ('HWGW ends    : ' + this.ends).padEnd(52) + '│');
 		}
@@ -418,13 +418,13 @@ export class Metrics {
 		// 	this.threads[G] = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)));
 		// }
 		// else
-		this.threads[G] = calculateGrowThreads(ns, so, player, this.cores, so.moneyAvailable);
+		this.threads[G] = calculateGrowThreads(ns, so, player, this.cores);
 
 		// Figure grow time and threads
-		const growFactor = 1 / (1 - ((so.moneyMax-0.01)/so.moneyMax));
+		const growFactor = 1 / (1 - ((so.moneyMax - 0.01) / so.moneyMax));
 		//this.threads[G] = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
 		this.debugThreadsG = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)/* / mults.ServerGrowthRate)*/));
-		// this.debugThreads2 = calculateGrowThreads(ns, this.server, player, 1, so.moneyAvailable);
+		// this.debugThreads2 = calculateGrowThreads(ns, this.server, player, 1);
 
 		// let opts = {
 		// 	moneyAvailable: so.moneyAvailable,
@@ -612,7 +612,7 @@ export class Metrics {
 	// }
 }
 
-export function calculateGrowThreads(ns, serverObject, playerObject, cores, startMoney) {
+export function calculateGrowThreads(ns, serverObject, playerObject, cores) {
 	let threads = 1;
 	let newMoney = 0;
 

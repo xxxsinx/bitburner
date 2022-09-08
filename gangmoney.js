@@ -4,7 +4,7 @@ export async function main(ns) {
     let box = boxes.find(s => getProps(s)?.player);
     if (!box) return;
     let props = getProps(box);
-    props.router.toDevMenu();
+    ns.tprint(props.player.moneySourceA.gang);
 }
 
 function getProps(obj) {

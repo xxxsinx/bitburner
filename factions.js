@@ -99,7 +99,7 @@ export async function main(ns) {
 	let ownedData = ToColumnData(ns, owned, ' No augmentations installed yet!');
 
 	if (ns.args[0] != undefined && ns.args[0].startsWith('ins')) {
-		let hasNeufo = ns.getOwnedAugmentations(true).find(s => s.startsWith('NeuroFlux'));
+		let hasNeufo = ns.singularity.getOwnedAugmentations(true).find(s => s.startsWith('NeuroFlux'));
 		columns[0].header = ' Installed Augmentations (' + (owned.length + (hasNeufo ? 1 : 0)) + ')';
 		PrintTable(ns, ownedData, columns, DefaultStyle(), ColorPrint);
 	}
@@ -153,7 +153,7 @@ function SuggestedAugs(ns, desired) {
 			budget -= price;
 
 			// Fill with NeuroFlux
-			while (neuro != undefined && budget > neuro.price * currentMult) {
+			if (neuro != undefined && budget > neuro.price * currentMult) {
 				augs.push(neuro);
 				budget -= neuro.price * currentMult;
 				currentMult *= mult;

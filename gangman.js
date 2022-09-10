@@ -27,7 +27,8 @@ let focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = true;
-const MIN_ACCOUNT_BALANCE = 0;
+
+const EXTERNAL_FUNDING= 0; // A balance of zero means the gang will only spend what it makes on it's own. Anything over 0 is extra money that can be taken if/when available.
 
 let g_goals= undefined;
 
@@ -76,6 +77,8 @@ export async function main(ns) {
 	AssignTasks(ns, members, gangInfo);
 
 	while (true) {
+		focusMoney= GetGangBalance(ns) <= 0;
+
 		// *** Recruitment ***
 		await RecruitMembers(ns);
 
@@ -160,7 +163,7 @@ export async function main(ns) {
 		}
 		else {
 			//ns.print('INFO: Skipping territory warfare, we are at 100% territory! Focusing on $$$');
-			focusMoney = true;
+			//focusMoney = true;
 		}
 
 		ns.gang.setTerritoryWarfare(allowClash && gangInfo.territory < 1);
@@ -350,7 +353,7 @@ function CalculateAscendTreshold(ns, member) {
 }
 
 function UpgradeEquipement(ns) {
-	let budget = ns.getPlayer().money - MIN_ACCOUNT_BALANCE;
+	let budget = Math.min(GetGangBalance(ns) + EXTERNAL_FUNDING, ns.getPlayer().money);
 	if (budget < 0) return;
 
 	let allGear = ns.gang.getEquipmentNames();
@@ -423,10 +426,10 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 
 	let mi = ns.gang.getMemberInformation(member);
 
-	// // Force training on combat stats to 600
-	// if (mi.str < 600 || mi.def < 600 || mi.agi < 600 /*|| mi.dex < 400*/) {
-	// 	return ['Train Combat', carryOver];
-	// }
+	 // Force training on combat stats to 200
+	if (mi.str < 200 || mi.def < 200 || mi.agi < 200 /*|| mi.dex < 400*/) {
+		return ['Train Combat', carryOver];
+	}
 
 	let ALLOWED_TASKS = [
 		'Mug People',
@@ -495,4 +498,18 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 
 	// Return the fist task in the list
 	return [tasks[0].task, tasks[0].carryOver];
+}
+
+
+/** @param {NS} ns **/
+function GetGangBalance(ns) {
+    let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
+    let box = boxes.find(s => getProps(s)?.player);
+    if (!box) return 0;
+    let props = getProps(box);
+    return props.player.moneySourceA.gang;
+}
+
+function getProps(obj) {
+    return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1].children.props;
 }

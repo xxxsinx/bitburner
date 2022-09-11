@@ -10,7 +10,7 @@ const W1 = 1;	// Index of first WEAKEN data
 const G = 2;	// Index of GROW data
 const W2 = 3;	// Index of second WEAKEN data
 
-export let HGW_MODE = false;
+export let HGW_MODE = true;
 
 const LEECH = [
 	0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
@@ -484,7 +484,7 @@ export class Metrics {
 
 			this.delays[H] = this.times[W2] - this.spacer * 2 - this.times[H];
 			this.delays[W1] = 0;
-			this.delays[G] = this.times[W2] + this.spacer - this.times[G];
+			this.delays[G] = this.times[W2] - this.spacer - this.times[G];
 			this.delays[W2] = 0;
 
 			this.ends[H] = this.delays[H] + this.times[H];

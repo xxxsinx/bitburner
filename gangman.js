@@ -427,7 +427,7 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 	let mi = ns.gang.getMemberInformation(member);
 
 	 // Force training on combat stats to 200
-	if (mi.str < 200 || mi.def < 200 || mi.agi < 200 /*|| mi.dex < 400*/) {
+	if (mi.str < 50) {
 		return ['Train Combat', carryOver];
 	}
 

@@ -77,7 +77,8 @@ export async function main(ns) {
 	AssignTasks(ns, members, gangInfo);
 
 	while (true) {
-		focusMoney= GetGangBalance(ns) <= 0;
+		gangInfo = ns.gang.getGangInformation();
+		focusMoney= GetGangBalance(ns) <= 0 || gangInfo.territory >= 1;
 
 		// *** Recruitment ***
 		await RecruitMembers(ns);

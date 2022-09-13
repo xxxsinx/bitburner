@@ -108,26 +108,11 @@ export async function main(ns) {
 	}
 
 	for (const hackable of hackableServers) {
-		//await ns.sleep(0);
 		if (ns.args[0] == 'run') {
-			//let target = 'manager.js';
-			//if (!ns.fileExists('Formulas.exe'))
-			let target = 'starter.js';
-
-			//let metrics = await GetBatchMetrics(ns, hackable, 0.75, 200);
-			//const minSec= ns.getServerMinSecurityLevel(hackable);
-			//if (minSec > 10) continue;
-
+			let target = 'v1.js';
 			const so = ns.getServer(hackable);
-			//const player = ns.getPlayer();
-
-			//ns.tprint('so.requiredHackingSkill = ' + so.requiredHackingSkill);
-			//ns.tprint('player.hacking = ' + player.hacking);
 			if (so.requiredHackingSkill > player.hacking / 2)
 				continue;
-
-			//if (ns.fileExists('Formulas.exe') && so.requiredHackingSkill < 300)
-			//	continue;
 
 			let procs = await ns.ps();
 			let alreadyRunning = false;
@@ -144,6 +129,8 @@ export async function main(ns) {
 				if (ns.exec(target, 'home', 1, hackable, 0.5, 10000) == 0) {
 					ns.tprint('FAILED: Launching ' + target + ' for ' + hackable);
 				}
+
+				await ns.sleep(10);
 			}
 		}
 	}

@@ -201,7 +201,7 @@ export class MemoryMap {
 			let free = so.maxRam - (simulateFull ? 0 : so.ramUsed);
 			if (free < 1.6) free = 0;
 
-			this.used += simulateFull ? so.maxRam : so.ramUsed;
+			this.used += simulateFull ? 0 : so.ramUsed;
 			this.available += free;
 			this.total += so.maxRam;
 

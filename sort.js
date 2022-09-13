@@ -46,11 +46,12 @@ export async function main(ns) {
 		const maxMoney = ns.getServerMaxMoney(hackable);
 
 		so.hackDifficulty = so.minDifficulty;
+		let wtime= ns.getWeakenTime(so.hostname);
+
 		if (ns.fileExists('Formulas.exe')) {
 			chance = ns.formulas.hacking.hackChance(so, player);
+			wtime = ns.formulas.hacking.weakenTime(so, player);
 		}
-
-		const wtime = ns.formulas.hacking.weakenTime(so, player);
 
 		ns.tprint('│  ' + hackable.padEnd(18) + '│  ' +
 			FormatMoney(ns, maxMoney).padEnd(9) + '│  ' +

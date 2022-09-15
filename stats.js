@@ -168,7 +168,7 @@ export function GetBestCrime(ns, player) {
 	let bestKps = 0;
 	let bestIps = 0;
 	for (const crime of crimes) {
-		let crimeStats = ns.getCrimeStats(crime);
+		let crimeStats = ns.singularity.getCrimeStats(crime);
 		let chance = calculateCrimeSuccessChance(crimeStats, player)   // ns.getCrimeChance(crime);
 		let cps = crimeStats.money / crimeStats.time * chance;
 		let kps = crimeStats.karma / crimeStats.time * chance;
@@ -189,12 +189,12 @@ export function GetBestCrime(ns, player) {
 
 function calculateCrimeSuccessChance(crimeStats, person) {
 	let chance =
-		crimeStats.hacking_success_weight * person.hacking +
-		crimeStats.strength_success_weight * person.strength +
-		crimeStats.defense_success_weight * person.defense +
-		crimeStats.dexterity_success_weight * person.dexterity +
-		crimeStats.agility_success_weight * person.agility +
-		crimeStats.charisma_success_weight * person.charisma
+		crimeStats.hacking_success_weight * person.skills.hacking +
+		crimeStats.strength_success_weight * person.skills.strength +
+		crimeStats.defense_success_weight * person.skills.defense +
+		crimeStats.dexterity_success_weight * person.skills.dexterity +
+		crimeStats.agility_success_weight * person.skills.agility +
+		crimeStats.charisma_success_weight * person.skills.charisma
 	chance /= 975;
 	chance /= crimeStats.difficulty;
 	return Math.min(chance, 1)

@@ -164,6 +164,7 @@ function PrintStack(ns, printStack, printfunc) {
 	}
 }
 
+// Usage: ColorPrint('red', 'This is some red text', '#FFFFFF', ' This is some white text);
 export function ColorPrint() {
 	let findProp = propName => {
 		for (let div of eval("document").querySelectorAll("div")) {

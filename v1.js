@@ -1,6 +1,8 @@
 const MAX_SECURITY_DRIFT = 3; // This is how far from minimum security we allow the server to be before weakening
 const MAX_MONEY_DRIFT_PCT = 0.1; // This is how far from 100% money we allow the server to be before growing (1-based percentage)
-const DEFAULT_PCT= 0.25; // This is the default 1-based percentage of money we want to hack from the server in a single pass
+const DEFAULT_PCT = 0.25; // This is the default 1-based percentage of money we want to hack from the server in a single pass
+
+let xpMode = false;
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -12,10 +14,18 @@ export async function main(ns) {
 	// Show usage if no parameters were passed
 	if (target == undefined) {
 		ns.tprint('ERROR: No server specified!');
-		ns.tprint('INFO : Usage: v1.js <server> <pct>');
+		ns.tprint('INFO : Usage: run v1.js <server> <pct>');
 		ns.tprint('INFO :    <server> is the name of the target server');
 		ns.tprint('INFO :    <pct> is the 1-based maximum percentage to hack from the target (Optional, default is 25%)');
+		ns.tprint('INFO :');
+		ns.tprint('INFO : XP MODE: run v1.js xp');
+		ns.tprint('INFO :    This mode will simply prepare and then throw all the ram on grow at joesguns for XP');
 		return;
+	}
+
+	// If the user passes xp as a target, we grow joesguns for XP
+	if (target == 'xp') {
+		xpMode = true;
 	}
 
 	// This script calls 1-liner worker scripts, the following commands create those scripts on the current host
@@ -30,20 +40,28 @@ export async function main(ns) {
 }
 
 async function Exploit(ns, server, pct) {
+	if (xpMode) server = 'joesguns';
+
 	while (true) {
 		// Security
 		const minSec = ns.getServerMinSecurityLevel(server);
 		const sec = ns.getServerSecurityLevel(server);
-		const weakenThreads = Math.ceil((sec - minSec) / ns.weakenAnalyze(1));
+		let weakenThreads = Math.ceil((sec - minSec) / ns.weakenAnalyze(1));
 
 		// Money
 		let money = ns.getServerMoneyAvailable(server);
 		if (money <= 0) money = 1; // division by zero safety
 		const maxMoney = ns.getServerMaxMoney(server);
-		const growThreads = Math.ceil(ns.growthAnalyze(server, maxMoney / money));
+		let growThreads = Math.ceil(ns.growthAnalyze(server, maxMoney / money));
 
 		// Hacking (limited by pct)
-		const hackThreads = Math.floor(ns.hackAnalyzeThreads(server, money) * pct);
+		let hackThreads = Math.floor(ns.hackAnalyzeThreads(server, money) * pct);
+
+		if (xpMode) {
+			if (weakenThreads > 0) weakenThreads = Infinity;
+			growThreads = Infinity;
+			hackThreads = 0;
+		}
 
 		// Report
 		ns.print('');
@@ -55,32 +73,44 @@ async function Exploit(ns, server, pct) {
 		ns.print('INFO: Hack     : ' + ns.tFormat(ns.getHackTime(server)) + ' (t=' + hackThreads + ')');
 		ns.print('');
 
+		let startedAnything = false;
+
 		// Check if security is above minimum
-		if (sec > minSec + MAX_SECURITY_DRIFT && weakenThreads > 0) {
+		if ((xpMode || (sec > minSec + MAX_SECURITY_DRIFT)) && weakenThreads > 0) {
 			// We need to lower security
 			ns.print('WARN: ***WEAKENING*** Security is over threshold, we need ' + weakenThreads + ' threads to floor it');
-			let pid = await RunScript(ns, 'weaken-once.script', server, weakenThreads);
+			let pids = await RunScript(ns, 'weaken-once.script', server, weakenThreads);
+
+			if (pids.length > 0 && pids.find(s => s != 0))
+				startedAnything = true;
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getWeakenTime(server)) + ')');
-			await WaitPids(ns, pid);
+			await WaitPids(ns, pids);
 		}
-		else if (money < maxMoney - maxMoney * MAX_MONEY_DRIFT_PCT && growThreads > 0) {
+		else if ((money < maxMoney - maxMoney * MAX_MONEY_DRIFT_PCT && growThreads > 0) || xpMode) {
 			// We need to grow the server
 			ns.print('WARN: ***GROWING*** Money is getting low, we need ' + growThreads + ' threads to max it');
-			let pid = await RunScript(ns, 'grow-once.script', server, growThreads);
+			let pids = await RunScript(ns, 'grow-once.script', server, growThreads);
+
+			if (pids.length > 0 && pids.find(s => s != 0))
+				startedAnything = true;
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getGrowTime(server)) + ')');
-			await WaitPids(ns, pid);
+			await WaitPids(ns, pids);
 		}
 		else if (hackThreads > 0) {
 			// Server is ripe for hacking
 			ns.print('WARN: ***HACKING*** Server is ripe for hacking, hitting our target would require ' + hackThreads + ' threads');
-			let pid = await RunScript(ns, 'hack-once.script', server, hackThreads);
+			let pids = await RunScript(ns, 'hack-once.script', server, hackThreads);
+
+			if (pids.length > 0 && pids.find(s => s != 0))
+				startedAnything = true;
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getHackTime(server)) + ')');
-			await WaitPids(ns, pid);
+			await WaitPids(ns, pids);
 		}
-		else {
+
+		if (!startedAnything) {
 			ns.print('FAIL: ***STALLING*** Could not start any of the scripts, this is most likely because we do not have enough RAM to do so. Waiting a bit.');
 			await ns.sleep(1000); // If we didn't have enough ram to start anything, we need to sleep here to avoid a lock
 		}

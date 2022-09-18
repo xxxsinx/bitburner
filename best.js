@@ -3,6 +3,7 @@ export async function main(ns) {
 	let servers= GetAllServers(ns);
 	servers= servers.filter(s=> ns.getServerRequiredHackingLevel(s) <= ns.getPlayer().skills.hacking / 2 && ns.hasRootAccess(s) && ns.getServerMaxMoney(s) > 0);
 	servers.sort((a,b) => ns.getServerMaxMoney(a) / ns.getServerMinSecurityLevel(a) - ns.getServerMaxMoney(b) / ns.getServerMinSecurityLevel(b));
+	if (servers.length == 0) servers.push('n00dles');
 	let bestServer= servers.pop();
 	ns.tprint('Best server is ' + bestServer);
 }

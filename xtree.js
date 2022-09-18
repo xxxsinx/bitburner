@@ -1,5 +1,30 @@
 import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 
+function Weight(ns, server) {
+	if (!server) return 0;
+	if (server.startsWith('hacknet-node'))
+		return 0;
+
+	ns.tprint(server);
+
+	let player = ns.getPlayer();
+	let so = ns.getServer(server);
+	so.hackDifficulty = so.minDifficulty;
+
+	if (ns.getServerRequiredHackingLevel(server) > player.skills.hacking)
+		return 0;
+
+	let weight = ns.getServerMaxMoney(server) / ns.getServerMinSecurityLevel(server);
+	if (ns.fileExists('Formulas.exe')) {
+		weight = ns.getServerMaxMoney(server) / ns.formulas.hacking.weakenTime(so, player) * ns.formulas.hacking.hackChance(so, player);
+	}
+	else
+		if (ns.getServerRequiredHackingLevel(server) > player.skills.hacking / 2)
+			return 0;
+
+	return weight;
+}
+
 /** @param {NS} ns */
 export async function main(ns) {
 	ns.disableLog('ALL');
@@ -8,7 +33,7 @@ export async function main(ns) {
 
 	let servers = GetAllServers(ns);
 	if (hackingOnly) {
-		servers = servers.filter(s => ns.hasRootAccess(s.name) && ns.getServerMaxMoney(s.name) > 0).sort((a, b) => ns.getServerMaxMoney(b.name) - ns.getServerMaxMoney(a.name));
+		servers = servers.filter(s => ns.hasRootAccess(s.name) && ns.getServerMaxMoney(s.name) > 0).sort((a, b) => ns.getServerMaxMoney(b.name) - ns.getServerMaxMoney(a.name) /*Weight(ns, b.name) - Weight(ns, a.name)*/);
 	}
 
 	const spacer = 1;
@@ -24,10 +49,13 @@ export async function main(ns) {
 		{ header: ' HackReq', width: 9 },
 		{ header: ' Prepped', width: 9 },
 		{ header: ' Chance', width: 8 },
-		{ header: ' Weaken Time', width: 24 }
+		{ header: ' Weaken Time', width: 24 },
+		{ header: ' Weight', width: 9 }
 	];
 
 	let data = [];
+
+	let shortlist = servers.filter(s => Weight(ns, s.name) > 0);
 
 	for (let i = 0; i < servers.length; i++) {
 		const server = servers[i];
@@ -95,6 +123,8 @@ export async function main(ns) {
 
 		let hackable = so.moneyMax > 0 && so.hasAdminRights;
 
+		let weight = Weight(ns, server.name) / Weight(ns, shortlist[shortlist.length - 1].name);
+
 		data.push([
 			{ color: 'white', text: ' ' + (hackingOnly ? '' : prefix) + server.name },
 			{ color: 'white', text: server.sym ? ' ' + server.sym.padEnd(5) : ''.padStart(5) },
@@ -105,7 +135,8 @@ export async function main(ns) {
 			{ color: hackReqColor, text: ' ' + so.requiredHackingSkill.toString().padStart(5) },
 			hackable ? { color: prepped ? 'lime' : '#555555', text: prepped ? '   Yes' : '    -' } : '',
 			hackable ? { color: pctColor(chance), text: ' ' + (Math.round(chance * 100) + '%').padStart(5) } : '',
-			hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : ''
+			hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : '',
+			weight ? { color: 'white', text: ' ' + (weight).toFixed(0) } : ''
 		]);
 	}
 

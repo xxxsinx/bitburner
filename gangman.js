@@ -23,20 +23,38 @@ const GANGSTER_NAMES = [
 	'Todd Bonzalez'
 ];
 
-let focusMoney = false;
+//let focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = true;
 
-const EXTERNAL_FUNDING= 0; // A balance of zero means the gang will only spend what it makes on it's own. Anything over 0 is extra money that can be taken if/when available.
+const EXTERNAL_FUNDING = 1e100; // A balance of zero means the gang will only spend what it makes on it's own. Anything over 0 is extra money that can be taken if/when available.
 
-let g_goals= undefined;
+let g_goals = undefined;
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	g_goals= new GangGoals(ns);
+	if (ns.args[0] == 'names') {
+		// //let names= Set.from(ns.gang.getMemberNames());
+		// let names = new Set();
+		// while ([...names].length < 12) {
+		// 	let index = Math.floor(Math.random() * GANGSTER_NAMES.length);
+		// 	let name = GANGSTER_NAMES[index];
+		// 	names.add(name);
+		// }
+
+		let names= GetNames(ns);
+
+		for (let name of names) {
+			ns.tprint(name);
+		}
+
+		return;
+	}
+
+	g_goals = new GangGoals(ns);
 
 	if (!ns.gang.inGang()) {
 		let karma = ns.heart.break();
@@ -78,7 +96,7 @@ export async function main(ns) {
 
 	while (true) {
 		gangInfo = ns.gang.getGangInformation();
-		focusMoney= GetGangBalance(ns) <= 0 || gangInfo.territory >= 1;
+		//focusMoney= GetGangBalance(ns) <= 0 || gangInfo.territory >= 1;
 
 		// *** Recruitment ***
 		await RecruitMembers(ns);
@@ -177,10 +195,10 @@ export async function main(ns) {
 	}
 }
 
-class GangGoals { 
+class GangGoals {
 	constructor(ns) {
-		this.ns= ns;
-		this.goals= [
+		this.ns = ns;
+		this.goals = [
 			{ name: 'Gang created', condition: () => ns.gang.inGang(), state: undefined },
 			{ name: '12th member recruited', condition: () => ns.gang.inGang() && ns.gang.getMemberNames().length == 12, state: undefined },
 			{ name: 'Faction rep capped', condition: () => ns.gang.inGang() && ns.getPlayer().factions.includes('Slum Snakes') && ns.singularity.getFactionRep('Slum Snakes') >= 1_875_000, state: undefined },
@@ -196,24 +214,24 @@ class GangGoals {
 	}
 
 	CheckGoal(goal) {
-		let currentValue= goal.condition();
+		let currentValue = goal.condition();
 
 		switch (goal.state) {
 			case undefined:
-				goal.state= goal.condition();
+				goal.state = goal.condition();
 				if (goal.state)
 					this.ns.tprint('WARN: Gang goals: Already achieved goal ' + goal.name + ' on script startup');
 				break;
 			case false:
 				if (currentValue) {
-					goal.state= true;
+					goal.state = true;
 					this.ns.tprint('FAIL: Gang goals: Achieved goal ' + goal.name);
 				}
 				break;
 			case true:
 				// Nothing to do here
 				break;
-		}		
+		}
 	}
 }
 
@@ -266,52 +284,35 @@ function AssignTasks(ns, members, gangInfo) {
 	// being really bad...
 	let carryOver = 0;
 
-	for (let member of members) {
-		let [newTask, carry] = FindBestTask(ns, gangInfo, member, focusMoney, carryOver);
+	for (let i = 0; i < members.length; i++) {
+		let member = members[i];
+		let [newTask, carry] = FindBestTask(ns, gangInfo, member, i < members.length / 2, carryOver);
 		carryOver = carry;
 		ns.gang.setMemberTask(member, newTask);
 		//ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
 	}
 }
 
+function GetNames(ns) {
+	let names = new Set(ns.gang.inGang() ? ns.gang.getMemberNames() : []);
+	while ([...names].length < 12) {
+		let index = Math.floor(Math.random() * GANGSTER_NAMES.length);
+		let name = GANGSTER_NAMES[index];
+		names.add(name);
+	}
+	return [...names];
+}
+
 async function RecruitMembers(ns) {
-	let members = ns.gang.getMemberNames();
+	let members = GetNames(ns);
 
 	while (ns.gang.canRecruitMember()) {
 		//ns.print('INFO: We can currently recruit a new member!');
-
-		let newMember = undefined;
-		for (let i = 0; i < GANGSTER_NAMES.length; i++) {
-			const candidate = GANGSTER_NAMES[i];
-			if (candidate == undefined) continue;
-
-			let alreadyExists = false;
-			for (const member of members) {
-				if (candidate == member) {
-					alreadyExists = true;
-					break;
-				}
-			}
-			if (alreadyExists) {
-				await ns.sleep(0);
-				continue;
-			}
-			newMember = candidate;
-			break;
-		}
-
-		if (newMember == undefined) {
-			ns.tprint('ERROR: Could not find a new member name?! Should NOT happen.');
-		}
-		else {
-			ns.gang.recruitMember(newMember);
-			ns.print('SUCCESS: Recruited a new gang member called ' + newMember);
-			members.push(newMember);
-
-			let [newTask, carry] = FindBestTask(ns, ns.gang.getGangInformation(), newMember, focusMoney, 0);
-			ns.gang.setMemberTask(newMember, newTask);
-		}
-
+		let newMember = members.pop();
+		ns.gang.recruitMember(newMember);
+		ns.print('SUCCESS: Recruited a new gang member called ' + newMember);
+		let [newTask, carry] = FindBestTask(ns, ns.gang.getGangInformation(), newMember, false, 0);
+		ns.gang.setMemberTask(newMember, newTask);
 		await ns.sleep(10);
 	}
 }
@@ -321,10 +322,10 @@ function AscendGangMember(ns, member) {
 	if (ascensionResult == undefined) return;
 	let threshold = CalculateAscendTreshold(ns, member);
 	if (ascensionResult.agi >= threshold || ascensionResult.str >= threshold || ascensionResult.def >= threshold || ascensionResult.dex >= threshold) {
-		const respect= Math.max(1, ns.gang.getMemberInformation(member).respect);
-		const gangRespect= Math.max(12, ns.gang.getGangInformation().respect);
-		const respectRatio= respect / gangRespect;
-		if (respectRatio > 1/12) {
+		const respect = Math.max(1, ns.gang.getMemberInformation(member).respect);
+		const gangRespect = Math.max(12, ns.gang.getGangInformation().respect);
+		const respectRatio = respect / gangRespect;
+		if (respectRatio > 1 / 12) {
 			ns.print('FAIL: Holding ascension of ' + member);
 			return; // Prevent ascending anyone whose respect is over X% of the gang's respect
 		}
@@ -421,16 +422,16 @@ function GangReport(ns, gangInfo) {
 
 function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 	// Absolute priority, if we got wanted penalty over 10% we fix that shit, it cripples everything
-	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000) {
+	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 5 && gangInfo.respect > 5) {
 		return ['Vigilante Justice', carryOver];
 	}
 
 	let mi = ns.gang.getMemberInformation(member);
 
-	 // Force training on combat stats to 200
-	if (mi.str < 50) {
-		return ['Train Combat', carryOver];
-	}
+	// Force training on combat stats
+	// if (mi.str < 100) {
+	// 	return ['Train Combat', carryOver];
+	// }
 
 	let ALLOWED_TASKS = [
 		'Mug People',
@@ -504,13 +505,13 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 
 /** @param {NS} ns **/
 function GetGangBalance(ns) {
-    let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
-    let box = boxes.find(s => getProps(s)?.player);
-    if (!box) return 0;
-    let props = getProps(box);
-    return props.player.moneySourceA.gang;
+	let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
+	let box = boxes.find(s => getProps(s)?.player);
+	if (!box) return 0;
+	let props = getProps(box);
+	return props.player.moneySourceA.gang;
 }
 
 function getProps(obj) {
-    return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1].children.props;
+	return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1].children.props;
 }

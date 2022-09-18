@@ -183,7 +183,7 @@ async function AnalyzeAllServers(ns, maxNetworkRamPct) {
 		for (const pct of LEECH) {
 			const metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, maxNetworkRamPct)
 			// Skip stuff we can't hack
-			if (metrics.hackChance >= 0.50 && metrics.cashPerSecond > 0)
+			if (/*metrics.hackChance >= 0.50 &&*/ metrics.cashPerSecond > 0)
 				subData.push(metrics);
 			await ns.sleep(0);
 		}

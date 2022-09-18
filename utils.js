@@ -1,63 +1,68 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-	let servers = GetAllServers(ns);
+	const servers = ((q, s = new Set('.')) => (s.forEach(k => q.scan(k).map(s.add, s)), [...s]))(ns);
 	ns.tprint(servers.length);
 
-	servers = GetAllServers2(ns);
-	ns.tprint(servers.length);
 
-	servers = GetAllServers3(ns);
-	ns.tprint(servers.length);
 
-	servers = GetAllServers4(ns);
-	ns.tprint(servers.length);
+	// let servers = GetAllServers(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers5(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers2(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers6(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers3(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers7(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers4(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers8(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers5(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers9(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers6(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers10(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers7(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers11(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers8(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers12(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers9(ns);
+	// ns.tprint(servers.length);
 
-	servers = GetAllServers13(ns);
-	ns.tprint(servers.length);
+	// servers = GetAllServers10(ns);
+	// ns.tprint(servers.length);
 
-	const s0 = ((n, a = (s, p) => n.scan(s).map(v => v != p ? a(v, s) : s).flat()) => [".", ...a(".")])(ns);
-	const s6 = ((q, s = new Set('.')) => (s.forEach(k => q.scan(k).map(s.add, s)), [...s]))(ns);
+	// servers = GetAllServers11(ns);
+	// ns.tprint(servers.length);
 
-	servers = s0;
-	ns.tprint(servers.length);
+	// servers = GetAllServers12(ns);
+	// ns.tprint(servers.length);
 
-	servers = s6;
-	ns.tprint(servers.length);
+	// servers = GetAllServers13(ns);
+	// ns.tprint(servers.length);
 
-	const GetAllServers14 = (t) => [t].concat(ns.scan(t).slice(t != 'home').flatMap(GetAllServers14));
-	servers = GetAllServers14('home');
-	ns.tprint(servers.length);
+	// const s0 = ((n, a = (s, p) => n.scan(s).map(v => v != p ? a(v, s) : s).flat()) => [".", ...a(".")])(ns);
+	// const s6 = ((q, s = new Set('.')) => (s.forEach(k => q.scan(k).map(s.add, s)), [...s]))(ns);
 
-	const GetAllServers15 = (t) => [t, ...ns.scan(t).slice(t != 'home').flatMap(GetAllServers15)]
-	servers = GetAllServers15('home');
-	ns.tprint(servers.length);
+	// servers = s0;
+	// ns.tprint(servers.length);
 
-	// let missing= servers.filter(s=>!servers2.includes(s));
-	// ns.tprint(missing);
+	// servers = s6;
+	// ns.tprint(servers.length);
+
+	// const GetAllServers14 = (t) => [t].concat(ns.scan(t).slice(t != 'home').flatMap(GetAllServers14));
+	// servers = GetAllServers14('home');
+	// ns.tprint(servers.length);
+
+	// const GetAllServers15 = (t) => [t, ...ns.scan(t).slice(t != 'home').flatMap(GetAllServers15)]
+	// servers = GetAllServers15('home');
+	// ns.tprint(servers.length);
+
+	// // let missing= servers.filter(s=>!servers2.includes(s));
+	// // ns.tprint(missing);
 }
 
 // Recursive network scan

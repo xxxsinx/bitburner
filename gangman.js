@@ -104,9 +104,9 @@ export async function main(ns) {
 		gangInfo = ns.gang.getGangInformation();
 		//GangReport(ns, gangInfo);
 
-		if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 20 && gangInfo.respect > 1000) {
-			ns.print('FAIL: Wanted level is too high. This is unexpected, script is designed to avoid this.');
-		}
+		// if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 1 && gangInfo.respect > 1) {
+		// 	ns.print('FAIL: Wanted level is too high. This is unexpected, script is designed to avoid this.');
+		// }
 
 		// *** Automatic ascension ***
 		// We prevent ascension if at the current rate we expect to get our next member soon
@@ -480,14 +480,14 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 		if (prioritizeMoney && money <= 0) continue;
 
 		//if (wantedPen > 0) {
-		let color = wanted == 0 ? 'SUCCESS:' : 'WARN:';
-		ns.print(color + task + ' wanted penalty is : ' + wantedPen + ' for ' + member);
+		// let color = wanted == 0 ? 'SUCCESS:' : 'WARN:';
+		// ns.print(color + task + ' wanted penalty is : ' + wantedPen + ' for ' + member);
 
-		ns.print('wanted:  ' + wanted);
-		ns.print('respect: ' + respect);
-		ns.print('w/r:     ' + (wanted / respect).toString());
-		ns.print('r/w:     ' + (respect / wanted).toString());
-		ns.print('r/(r+w): ' + (respect / (respect + wanted)).toString());
+		// ns.print('wanted:  ' + wanted);
+		// ns.print('respect: ' + respect);
+		// ns.print('w/r:     ' + (wanted / respect).toString());
+		// ns.print('r/w:     ' + (respect / wanted).toString());
+		// ns.print('r/(r+w): ' + (respect / (respect + wanted)).toString());
 		//continue;
 		//}
 
@@ -532,9 +532,10 @@ function GetGangBalance(ns) {
 	let box = boxes.find(s => getProps(s)?.player);
 	if (!box) return 0;
 	let props = getProps(box);
+	if (!props) return 0;
 	return props.player.moneySourceA.gang;
 }
 
 function getProps(obj) {
-	return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1].children.props;
+	return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1]?.children?.props;
 }

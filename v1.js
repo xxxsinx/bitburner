@@ -42,6 +42,10 @@ export async function main(ns) {
 async function Exploit(ns, server, pct) {
 	if (xpMode) server = 'joesguns';
 
+	// Determines if we have got to the hack part of the cycle
+	// This is used to show some warnings when the target percentage of hack is too high for current ram or target
+	let hackedOnce = false;
+
 	while (true) {
 		// Security
 		const minSec = ns.getServerMinSecurityLevel(server);
@@ -79,7 +83,7 @@ async function Exploit(ns, server, pct) {
 		if ((xpMode || (sec > minSec + MAX_SECURITY_DRIFT)) && weakenThreads > 0) {
 			// We need to lower security
 			ns.print('WARN: ***WEAKENING*** Security is over threshold, we need ' + weakenThreads + ' threads to floor it');
-			let pids = await RunScript(ns, 'weaken-once.script', server, weakenThreads);
+			let pids = await RunScript(ns, 'weaken-once.script', server, weakenThreads, hackedOnce);
 
 			if (pids.length > 0 && pids.find(s => s != 0))
 				startedAnything = true;
@@ -90,10 +94,13 @@ async function Exploit(ns, server, pct) {
 		else if ((money < maxMoney - maxMoney * MAX_MONEY_DRIFT_PCT && growThreads > 0) || xpMode) {
 			// We need to grow the server
 			ns.print('WARN: ***GROWING*** Money is getting low, we need ' + growThreads + ' threads to max it');
-			let pids = await RunScript(ns, 'grow-once.script', server, growThreads);
+			let pids = await RunScript(ns, 'grow-once.script', server, growThreads, hackedOnce);
 
 			if (pids.length > 0 && pids.find(s => s != 0))
 				startedAnything = true;
+
+			if (hackedOnce)
+				MemoryReport(ns);
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getGrowTime(server)) + ')');
 			await WaitPids(ns, pids);
@@ -101,10 +108,12 @@ async function Exploit(ns, server, pct) {
 		else if (hackThreads > 0) {
 			// Server is ripe for hacking
 			ns.print('WARN: ***HACKING*** Server is ripe for hacking, hitting our target would require ' + hackThreads + ' threads');
-			let pids = await RunScript(ns, 'hack-once.script', server, hackThreads);
+			let pids = await RunScript(ns, 'hack-once.script', server, hackThreads, hackedOnce);
 
 			if (pids.length > 0 && pids.find(s => s != 0))
 				startedAnything = true;
+
+			hackedOnce = true;
 
 			ns.print('INFO: Waiting for script completion (approx ' + ns.tFormat(ns.getHackTime(server)) + ')');
 			await WaitPids(ns, pids);
@@ -115,6 +124,21 @@ async function Exploit(ns, server, pct) {
 			await ns.sleep(1000); // If we didn't have enough ram to start anything, we need to sleep here to avoid a lock
 		}
 	}
+}
+
+function MemoryReport(ns) {
+	let servers = RecursiveScan(ns);
+	let free = 0;
+	let used = 0;
+	let total = 0;
+	for (const server of servers) {
+		total += ns.getServerMaxRam(server);
+		used += ns.getServerUsedRam(server);
+		free = total - used;
+	}
+	let pct = (free / total * 100).toFixed(2);
+	if (used / total < 0.85)
+		ns.print('WARN: The full grow cycle for this hacking job is running with ' + pct + '% ram left. You could hack other servers, and/or increase the % hack of this server.')
 }
 
 // This function waits for one (or an array of) PID to stop running
@@ -135,7 +159,7 @@ export async function WaitPids(ns, pids) {
 	}
 }
 
-async function RunScript(ns, scriptName, target, threads) {
+async function RunScript(ns, scriptName, target, threads, hackedOnce) {
 	// Find all servers
 	const allServers = RecursiveScan(ns);
 
@@ -184,6 +208,9 @@ async function RunScript(ns, scriptName, target, threads) {
 
 	if (fired == 0) {
 		ns.print('FAIL: Not enough memory to launch a single thread of ' + scriptName + ' (out of memory on all servers!)');
+	}
+	if (hackedOnce && fired != threads) {
+		ns.print('FAIL: There wasn\'t enough ram to run ' + threads + ' threads of ' + scriptName + ' (fired: ' + fired + '). It is recommended to either reduce the hack percentage or reduce memory usage from other scripts.');
 	}
 
 	return pids;

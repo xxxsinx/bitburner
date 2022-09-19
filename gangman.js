@@ -23,12 +23,11 @@ const GANGSTER_NAMES = [
 	'Todd Bonzalez'
 ];
 
-//let focusMoney = false;
 const allowUpgrades = true;
 const allowAscension = true;
 const allowAugs = true;
 
-const EXTERNAL_FUNDING = 1e100; // A balance of zero means the gang will only spend what it makes on it's own. Anything over 0 is extra money that can be taken if/when available.
+const EXTERNAL_FUNDING = 0; // A balance of zero means the gang will only spend what it makes on it's own. Anything over 0 is extra money that can be taken if/when available.
 
 let g_goals = undefined;
 
@@ -45,7 +44,7 @@ export async function main(ns) {
 		// 	names.add(name);
 		// }
 
-		let names= GetNames(ns);
+		let names = GetNames(ns);
 
 		for (let name of names) {
 			ns.tprint(name);
@@ -96,7 +95,6 @@ export async function main(ns) {
 
 	while (true) {
 		gangInfo = ns.gang.getGangInformation();
-		//focusMoney= GetGangBalance(ns) <= 0 || gangInfo.territory >= 1;
 
 		// *** Recruitment ***
 		await RecruitMembers(ns);
@@ -182,7 +180,6 @@ export async function main(ns) {
 		}
 		else {
 			//ns.print('INFO: Skipping territory warfare, we are at 100% territory! Focusing on $$$');
-			//focusMoney = true;
 		}
 
 		ns.gang.setTerritoryWarfare(allowClash && gangInfo.territory < 1);
@@ -284,13 +281,21 @@ function AssignTasks(ns, members, gangInfo) {
 	// being really bad...
 	let carryOver = 0;
 
-	for (let i = 0; i < members.length; i++) {
-		let member = members[i];
-		let [newTask, carry] = FindBestTask(ns, gangInfo, member, i < members.length / 2, carryOver);
+	let sortedMembers = [...members].sort((a, b) => MemberWeight(ns, b) - MemberWeight(ns, a));
+
+	for (let i = 0; i < sortedMembers.length; i++) {
+		let member = sortedMembers[i];
+		let [newTask, carry] = FindBestTask(ns, gangInfo, member, (i < sortedMembers.length / 2) || ns.gang.getGangInformation().territory == 1, carryOver);
 		carryOver = carry;
 		ns.gang.setMemberTask(member, newTask);
 		//ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);
 	}
+}
+
+function MemberWeight(ns, member) {
+	let stats = ns.gang.getMemberInformation(member);
+	let weight = stats.str + stats.def + stats.dex + stats.agi + stats['ha' + 'ck'] + stats.cha;
+	return weight;
 }
 
 function GetNames(ns) {
@@ -311,6 +316,7 @@ async function RecruitMembers(ns) {
 		let newMember = members.pop();
 		ns.gang.recruitMember(newMember);
 		ns.print('SUCCESS: Recruited a new gang member called ' + newMember);
+		// new members go straight to respect tasks
 		let [newTask, carry] = FindBestTask(ns, ns.gang.getGangInformation(), newMember, false, 0);
 		ns.gang.setMemberTask(newMember, newTask);
 		await ns.sleep(10);
@@ -421,10 +427,10 @@ function GangReport(ns, gangInfo) {
 }
 
 function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
-	// Absolute priority, if we got wanted penalty over 10% we fix that shit, it cripples everything
-	if (gangInfo.wantedPenalty < 0.90 && gangInfo.wantedLevel > 5 && gangInfo.respect > 5) {
-		return ['Vigilante Justice', carryOver];
-	}
+	// Absolute priority, if we got wanted penalty goes too far we fix that shit, it cripples everything
+	// if (gangInfo.wantedPenalty < 0.80 && gangInfo.wantedLevel > 1 && gangInfo.respect > 1) {
+	// 	return ['Vigilante Justice', carryOver];
+	// }
 
 	let mi = ns.gang.getMemberInformation(member);
 
@@ -460,15 +466,32 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 		let respect = ns.formulas.gang.respectGain(gangInfo, mi, stats);
 		let wanted = ns.formulas.gang.wantedLevelGain(gangInfo, mi, stats);
 
+		let wantedPen = wanted == 0 ? 0 : respect / (respect + wanted);
+
+
 		// Skip tasks that increase our wanted level (we'll likely default to combat training)
-		if (!prioritizeMoney && respect + carryOver < wanted) continue;
-		if (!prioritizeMoney) carryOver += respect / wanted;
+		//if (!prioritizeMoney && respect + carryOver < wanted) continue;
+		//if (!prioritizeMoney) carryOver += respect / wanted;
 
 		// Skip tasks that do not generate respect if we're focused on respect
 		if (!prioritizeMoney && respect <= 0) continue;
 
 		// Skip tasks that do not generate money if we're focused on money
 		if (prioritizeMoney && money <= 0) continue;
+
+		//if (wantedPen > 0) {
+		let color = wanted == 0 ? 'SUCCESS:' : 'WARN:';
+		ns.print(color + task + ' wanted penalty is : ' + wantedPen + ' for ' + member);
+
+		ns.print('wanted:  ' + wanted);
+		ns.print('respect: ' + respect);
+		ns.print('w/r:     ' + (wanted / respect).toString());
+		ns.print('r/w:     ' + (respect / wanted).toString());
+		ns.print('r/(r+w): ' + (respect / (respect + wanted)).toString());
+		//continue;
+		//}
+
+		if (wanted > respect / 2) continue;
 
 		// Add the task to our todo list, we'll sort and pick the best one later
 		tasks.push({

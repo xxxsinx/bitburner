@@ -94,7 +94,7 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			}
 
 			pids = pids.concat(await StartBatch(ns, server, metrics, i));
-			await ns.sleep(BatchSpacer());
+			await ns.sleep(BatchSpacer() * 4);
 		}
 
 		await ServerReport(ns, server, metrics);

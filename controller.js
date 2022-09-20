@@ -4,13 +4,13 @@ import { IsPrepped, BatchSpacer, FormatMoney } from 'prep.js'
 import { MemoryMap } from 'ram.js'
 
 const QmConfig = new Object({
-	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
-	MaxBatchingServers: 1,		// how many servers can be batching at the same time
-	MaxServers: 4,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
-	ListMaxServers: 20,			// how many servers are analyzed. More trivial servers are dropped from the list.
+	MaxPreppingServers: 30,		// how many servers can be in prep simultaneously
+	MaxBatchingServers: 30,		// how many servers can be batching at the same time
+	MaxServers: 30,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
+	ListMaxServers: 30,			// how many servers are analyzed. More trivial servers are dropped from the list.
 	EvalDelay: 120 * 1000,		// frequency in ms that we re-evaluate the metrics on the server list
 	LoopDelay: 1000,			// delay in the main loop
-	MaxPrepingDepth: 20,		// This is how deep from the top of the server list we can allow prep
+	MaxPrepingDepth: 30,		// This is how deep from the top of the server list we can allow prep
 	MaxBatchingDepth: 30		// This is how deep from the top of the server list we can allow batching
 });
 
@@ -137,7 +137,7 @@ export class QuarterMaster {
 			let so = this.ns.getServer(metrics.server);
 
 			let prefix = 'WARN: ';
-			if (!IsPrepped(this.ns, metrics.server))
+			if (!IsPrepped(this.ns, metrics.server) && metrics.state != 'BATCHING')
 				prefix = 'FAIL: ';
 
 			this.ns.print((prefix + metrics.server).padEnd(30) +

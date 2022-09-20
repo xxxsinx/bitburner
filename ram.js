@@ -14,12 +14,15 @@ export async function main(ns) {
 		{ header: '   Hack', width: 8 },
 		{ header: '  Share', width: 8 },
 		{ header: ' Charge', width: 8 },
-		{ header: '  Other', width: 8 }
+		{ header: '  Other', width: 8 },
+		{ header: ' Scripts', width: 9 }
 	];
 
 	let data = [];
 	let servers = GetAllServers(ns).filter(s => ns.hasRootAccess(s)).sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
 	let details = [];
+	let totalProcs= 0;
+
 	for (const server of servers) {
 		if (ns.getServerMaxRam(server) < 1.6) continue;
 
@@ -36,13 +39,17 @@ export async function main(ns) {
 			{ color: pctColor(freePct / 100), text: ns.nFormat(free * 1e9, '0.00b').padStart(9) + (freePct.toFixed(0) + '%').padStart(5) }
 		];
 
-		let procs = GetProcessDetails(ns, server);
+		let [procs, nbProcs] = GetProcessDetails(ns, server);
 		details.push(procs);
 		procs.forEach(function (s) {
 			entry.push(
 				{ color: pctColor(1 - (s.percent / 100)), text: s.percent > 0 ? (s.percent.toFixed(0) + '%').padStart(7) : '' }
 			)
 		});
+
+		totalProcs+= nbProcs;
+		entry.push({ color: 'white', text: nbProcs.toString().padStart(8) });
+
 		data.push(entry);
 	}
 	data.push(null);
@@ -66,6 +73,9 @@ export async function main(ns) {
 			{ color: pctColor(1 - (pct / 100)), text: pct > 0 ? (pct.toFixed(1) + '%').padStart(7) : '' }
 		)
 	}
+
+	entry.push({ color: 'white', text: totalProcs.toString().padStart(8) });
+
 	data.push(entry);
 
 
@@ -166,7 +176,7 @@ function GetProcessDetails(ns, server) {
 	let pct = Math.round(ram / serverRam * 100);
 	ret.push({ category: 'Other', percent: pct, ram: ram });
 
-	return ret;
+	return [ret, procs.length];
 }
 
 

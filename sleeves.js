@@ -13,8 +13,11 @@ export async function main(ns) {
 
 		//if (task == 'augs' && i > 3) continue;
 
-		if (getBest)
-			task = GetBestCrime(ns, ns.sleeve.getSleeveStats(i));
+		if (getBest) {
+			let fakePlayer = ns.getPlayer();
+			fakePlayer.skills = ns.sleeve.getSleeveStats(i);
+			task = GetBestCrime(ns, fakePlayer);
+		}
 
 		if (task == 'shock') {
 			ns.tprint('Setting sleeve ' + i + ' to Shock Recovery');
@@ -59,8 +62,8 @@ export async function main(ns) {
 						// if (key.search('hacknet') >= 0)
 						// 	color = 'purple';
 
-						  if (aug.cost > 15_000_000_000)
-						  	continue;
+						if (aug.cost > 15_000_000_000)
+							continue;
 						//color = 'red';
 
 						//if (color == 'yellow') {

@@ -1,6 +1,7 @@
-import { BatchSpacer, RunScript, WaitPids, Prep, IsPrepped, ServerReport } from "prep.js";
-import { Metrics, GetBestPctForServer, HGW_MODE } from "metrics.js";
-import { MemoryMap } from "ram.js";
+import { Prep, IsPrepped } from "prep.js";
+import { BATCH_SPACER, Metrics, GetBestPctForServer, HGW_MODE } from "metrics.js";
+import { MemoryMap, RunScript } from "ram.js";
+import { ServerReport, WaitPids } from "utils.js";
 
 const H = 0;
 const W1 = 1;
@@ -48,11 +49,11 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 	let hackLevel = ns.getHackingLevel();
 
 	while (true) {
-		const pct = await GetBestPctForServer(ns, server, BatchSpacer(), 0.05, 0.8, 0.05, maxPctTotalRam);
-		let metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, maxPctTotalRam);
+		const pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 0.8, 0.05, maxPctTotalRam);
+		let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, maxPctTotalRam);
 		metrics.Report(ns);
 
-		await ServerReport(ns, server, metrics);
+		ServerReport(ns, server, metrics);
 
 		// Since we prepped in main(), the only reason why we would ever enter this is our metrics changed, something desynced, or some other external factor
 		// changed the server state or player capacities
@@ -67,7 +68,7 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			ns.print('SUCCESS: Server prepped!');
 			cycle = 0; // reset cycle
 			hackLevel = ns.getHackingLevel();
-			await ServerReport(ns, server, metrics);
+			ServerReport(ns, server, metrics);
 		}
 		cycle++;
 
@@ -94,10 +95,10 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			}
 
 			pids = pids.concat(await StartBatch(ns, server, metrics, i));
-			await ns.sleep(BatchSpacer() * 4);
+			await ns.sleep(BATCH_SPACER * 4);
 		}
 
-		await ServerReport(ns, server, metrics);
+		ServerReport(ns, server, metrics);
 		ns.print('INFO: Waiting for batch to end (approx: ' + ns.tFormat(metrics.batchTime) + ')');
 
 		await WaitPids(ns, pids);
@@ -109,7 +110,7 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			return;
 		}
 
-		await ns.sleep(BatchSpacer());
+		await ns.sleep(BATCH_SPACER);
 	}
 }
 
@@ -158,7 +159,7 @@ async function StartBatch(ns, server, metrics, batchNumber) {
 	//ns.tprint(logColor);
 
 	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
-	let w1pids= [];
+	let w1pids = [];
 	if (!HGW_MODE) {
 		w1pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W1], 0, metrics.times[W1], batchNumber, logColor, true, false);
 		await ns.sleep(0);

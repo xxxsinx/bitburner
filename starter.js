@@ -1,4 +1,5 @@
-import { ServerReport, Weaken, Grow, Hack } from "prep.js";
+import { Weaken, Grow, Hack } from "prep.js";
+import { ServerReport } from "utils.js";
 
 // ns.args[0] = target server name
 // ns.args[1] = hack percent factor (0.1 to 1)
@@ -21,7 +22,7 @@ async function ManageServer(ns, server, pct, debug) {
 		pct = 0.9;
 
 	for (; ;) {
-		await ServerReport(ns, server);
+		ServerReport(ns, server);
 
 		const so = ns.getServer(server);
 

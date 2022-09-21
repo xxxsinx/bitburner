@@ -1,165 +1,119 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-	const servers = ((q, s = new Set('.')) => (s.forEach(k => q.scan(k).map(s.add, s)), [...s]))(ns);
-	ns.tprint(servers.length);
+	// const servers = GetAllServers(ns);
+	// ns.tprint(servers.length + ' ' + servers);
 
+	// ns.tprint('path of ecorp is ' + GetServerPath(ns, 'ecorp'));
 
-
-	// let servers = GetAllServers(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers2(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers3(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers4(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers5(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers6(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers7(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers8(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers9(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers10(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers11(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers12(ns);
-	// ns.tprint(servers.length);
-
-	// servers = GetAllServers13(ns);
-	// ns.tprint(servers.length);
-
-	// const s0 = ((n, a = (s, p) => n.scan(s).map(v => v != p ? a(v, s) : s).flat()) => [".", ...a(".")])(ns);
-	// const s6 = ((q, s = new Set('.')) => (s.forEach(k => q.scan(k).map(s.add, s)), [...s]))(ns);
-
-	// servers = s0;
-	// ns.tprint(servers.length);
-
-	// servers = s6;
-	// ns.tprint(servers.length);
-
-	// const GetAllServers14 = (t) => [t].concat(ns.scan(t).slice(t != 'home').flatMap(GetAllServers14));
-	// servers = GetAllServers14('home');
-	// ns.tprint(servers.length);
-
-	// const GetAllServers15 = (t) => [t, ...ns.scan(t).slice(t != 'home').flatMap(GetAllServers15)]
-	// servers = GetAllServers15('home');
-	// ns.tprint(servers.length);
-
-	// // let missing= servers.filter(s=>!servers2.includes(s));
-	// // ns.tprint(missing);
-}
-
-// Recursive network scan
-export function GetAllServers(ns, root = 'home', found = new Set()) {
-	found.add(root);
-	for (const server of ns.scan(root))
-		if (!found.has(server))
-			GetAllServers(ns, server, found);
-	return [...found];
-}
-
-// Recursive network scan, compressed
-export function GetAllServers2(ns, root = 'home', found = []) {
-	found.push(root);
-	for (const server of root == 'home' ? ns.scan(root) : ns.scan(root).slice(1)) GetAllServers2(ns, server, found);
-	return found;
+	// ns.tprint(FormatMoney(ns, 0));
+	// ns.tprint(FormatMoney(ns, 1e3));
+	// ns.tprint(FormatMoney(ns, 1e6));
+	// ns.tprint(FormatMoney(ns, 1e9));
+	// ns.tprint(FormatMoney(ns, 1e12));
+	// ns.tprint(FormatMoney(ns, 1e15));
+	// ns.tprint(FormatMoney(ns, 1e18));
+	// ns.tprint(FormatMoney(ns, 1e21));
+	// ns.tprint(FormatMoney(ns, 1e24));
+	// ns.tprint(FormatMoney(ns, 1e27));
+	// ns.tprint(FormatMoney(ns, 1e30));
+	// ns.tprint(FormatMoney(ns, 1e33));
+	// ns.tprint(FormatMoney(ns, 1e36));
+	// ns.tprint(FormatMoney(ns, 1e39));
+	// ns.tprint(FormatMoney(ns, 1e42));
+	// ns.tprint(FormatMoney(ns, 1e45));
+	// ns.tprint(FormatMoney(ns, 1e48));
+	// ns.tprint(FormatMoney(ns, 1e51));
+	// ns.tprint(FormatMoney(ns, 1e54));
+	// ns.tprint(FormatMoney(ns, 1e57));
+	// ns.tprint(FormatMoney(ns, 1e60));
+	// ns.tprint(FormatMoney(ns, 1e63));
+	// ns.tprint(FormatMoney(ns, 1e66));
 }
 
 // Iterative network scan
-export function GetAllServers3(ns) {
+export function GetAllServers(ns) {
 	let servers = ['home'];
-	for (let i = 0; i < servers.length; i++) {
-		let found = ns.scan(servers[i]);
-		for (let j = 0; j < found.length; j++) {
-			if (servers.includes(found[j])) continue;
-			servers.push(found[j]);
-		}
+	for (const server of servers) {
+		const found = ns.scan(server);
+		if (server != 'home') found.splice(0, 1);
+		servers.push(...found);
 	}
 	return servers;
 }
 
-// Iterative network scan
-export function GetAllServers4(ns) {
-	let servers = ns.scan('home');
-	for (let i = 0; i < servers.length; i++) servers = servers.concat(ns.scan(servers[i]).slice(1));
-	return ['home', ...servers];
-}
-
-export function GetAllServers5(ns, set = new Set(['home'])) {
-	return set.forEach(hn => ns.scan(hn).forEach(o => set.add(o))) || [...set.values()];
-}
-
-export function GetAllServers6(ns) {
-	for (var s = ["."], i = 0; i < s.length; i++)s.push(...ns.scan(s[i]).filter(n => !s.includes(n)))
-	return s;
-}
-
-export function GetAllServers7(ns) {
-	let scan = (server, parent) => ns.scan(server).map(newServer => newServer != parent ? scan(newServer, server) : server).flat();
-	return ['home', ...scan('home')];
-}
-
-function GetAllServers8(ns, serv = "home", found = []) { //start from home with empty array
-	found.push(serv); //push this server to array
-	let scanned = ns.scan(serv);
-	while (scanned.length > 0) {
-		const search = scanned.shift(); //joink the first server and save it to var
-		let iAlreadyHaveThis = false;
-		for (const f of found) {
-			if (f == search) iAlreadyHaveThis = true;
-		}
-		if (!iAlreadyHaveThis) GetAllServers8(ns, search, found); //If it's not in the found array, go there and do some more scanning
+// Find the path to a server
+export function GetServerPath(ns, server) {
+	const path = [server];
+	while (server != 'home') {
+		server = ns.scan(server)[0];
+		path.unshift(server);
 	}
-	return (found); //gimme gimme
+	return path;
 }
 
-function GetAllServers9(ns, root = 'home') {
-	let locals = ns.scan(root)
-	let allServers = []
-
-	while (locals.length > 0) {
-		let current = locals.shift();
-		let neighbors = ns.scan(current);
-		neighbors.shift();
-
-		if (neighbors.length > 0) {
-			locals = locals.concat(neighbors);
+// Prints colored text to console. Arguments must be passed in pairs
+// Usage: ColorPrint('red', 'This is some red text', '#FFFFFF', ' This is some white text);
+export function ColorPrint(/* pass pairs of color, text */) {
+	let findProp = propName => {
+		for (let div of eval("document").querySelectorAll("div")) {
+			let propKey = Object.keys(div)[1];
+			if (!propKey) continue;
+			let props = div[propKey];
+			if (props.children?.props && props.children.props[propName]) return props.children.props[propName];
+			if (props.children instanceof Array) for (let child of props.children) if (child?.props && child.props[propName]) return child.props[propName];
 		}
+	};
+	let term = findProp("terminal");
 
-		allServers.push(current);
+	let out = [];
+	for (let i = 0; i < arguments.length; i += 2) {
+		let style = arguments[i];
+		if (style.style == undefined) {
+			style = { style: { color: arguments[i], backgroundColor: '#000000' } };
+		}
+		out.push(React.createElement("span", style, arguments[i + 1]))
 	}
-
-	return ['home', ...allServers];
+	try {
+		term.printRaw(out);
+	}
+	catch { }
 }
 
-function GetAllServers10(ns) {
-	let q = ['home'];
-	Array(17).fill().map(() => q = [...new Set(q.map(s => [s, ns.scan(s)]).flat(2))]);
-	return q;
+export function ServerReport(ns, server, metrics = undefined, printfunc = ns.print) {
+	// Get server object for this server
+	var so = ns.getServer(server);
+
+	// weaken threads
+	const tweaken = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, 1));
+	// grow threads
+	const tgrow = Math.ceil(ns.growthAnalyze(server, so.moneyMax / Math.max(so.moneyAvailable, 1), 1));
+	// hack threads
+	const thack = Math.ceil(ns.hackAnalyzeThreads(server, so.moneyAvailable));
+
+	printfunc('┌─────────────────────────────────────────────────────┐');
+	printfunc('│ ' + server.padStart(52 / 2 + server.length / 2).padEnd(52) + '│');
+	printfunc('├─────────────────────────────────────────────────────┤');
+	printfunc('│ ' + ('Money        : ' + ns.nFormat(so.moneyAvailable, "$0.000a") + ' / ' + ns.nFormat(so.moneyMax, "$0.000a") + ' (' + (so.moneyAvailable / so.moneyMax * 100).toFixed(2) + '%)').padEnd(52) + '│');
+	printfunc('│ ' + ('Security     : ' + (so.hackDifficulty - so.minDifficulty).toFixed(2) + ' min= ' + so.minDifficulty.toFixed(2) + ' current= ' + so.hackDifficulty.toFixed(2)).padEnd(52) + '│');
+	printfunc('├─────────────────────────────────────────────────────┤');
+	printfunc('│ ' + ('Weaken time  : ' + ns.tFormat(ns.getWeakenTime(server)) + ' (t=' + tweaken + ')').padEnd(52) + '│');
+	printfunc('│ ' + ('Grow         : ' + ns.tFormat(ns.getGrowTime(server)) + ' (t=' + tgrow + ')').padEnd(52) + '│');
+	printfunc('│ ' + ('Hack         : ' + ns.tFormat(ns.getHackTime(server)) + ' (t=' + thack + ')').padEnd(52) + '│');
+	printfunc('└─────────────────────────────────────────────────────┘');
+
+	if (metrics != undefined) {
+		metrics.Report(ns, printfunc);
+	}
 }
 
-function GetAllServers11(ns) {
-	return (q => Array(17).fill().map(() => q = [...new Set(q.map(s => [s, ns.scan(s)]).flat(2))]))(['home']).slice(-1)[0];
+export function FormatMoney(ns, value, decimals = 3) {
+	if (value >= 1e33) return '$' + value.toExponential(0);
+	for (const pair of [[1e30, 'n'], [1e27, 'o'], [1e24, 'S'], [1e21, 's'], [1e18, 'Q'], [1e15, 'q'], [1e12, 't'], [1e9, 'b'], [1e6, 'm'], [1e3, 'k']])
+		if (value >= pair[0]) return (value / pair[0]).toFixed(decimals) + pair[1];
+	return '$' + value.toFixed(decimals);
 }
 
-function GetAllServers12(ns) {
-	return (q => Array(17).fill().map(() => q = [...new Set(q.map(s => [s, ns.scan(s)]).flat(2))]))(['home']).pop();
+export async function WaitPids(ns, pids) {
+	if (!Array.isArray(pids)) pids = [pids];
+	while (pids.some(p => ns.getRunningScript(p) != undefined)) { await ns.sleep(5); }
 }
-
-globalThis.GetAllServers13 = (n, a = (s, p) => n.scan(s).map(v => v != p ? a(v, s) : s).flat()) => [".", ...a(".")];

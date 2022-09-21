@@ -1,23 +1,19 @@
-//this.hackDifficulty -= amt * BitNodeMultipliers.ServerWeakenRate;
-
-import { BatchSpacer, FormatMoney } from "prep.js";
 import { MemoryMap } from "ram.js";
-import { GetAllServers } from "utils.js";
-import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { FormatMoney, GetAllServers, ColorPrint } from "utils.js";
+import { PrintTable, DefaultStyle } from 'tables.js'
 
-const H = 0;	// Index of HACK data
-const W1 = 1;	// Index of first WEAKEN data
-const G = 2;	// Index of GROW data
-const W2 = 3;	// Index of second WEAKEN data
+export const H = 0;		// Index of HACK data
+export const W1 = 1;	// Index of first WEAKEN data
+export const G = 2;		// Index of GROW data
+export const W2 = 3;	// Index of second WEAKEN data
+
+export const BATCH_SPACER = 30; // Spacer between jobs (and batches) in milliseconds
 
 export let HGW_MODE = false;
 
 const LEECH = [
 	0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
 ];
-
-const EXTRA_THREAD_FACTOR = 1;		// Apply this factor to GROW and WEAKEN thread calculations, not used right now
-const MIN_EXTRA_THREADS = 0;		// Add this many extra threads to GROW and WEAKEN thread calculations
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -68,13 +64,13 @@ export async function main(ns) {
 		let results = [];
 
 		for (const pct of LEECH) {
-			let metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, 1);
+			let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, 1);
 			//metrics.Report(ns, ns.tprint);
 			results.push(metrics);
 			await ns.sleep(0);
 		}
 
-		let bestPct = await GetBestPctForServer(ns, server, BatchSpacer(), 0.05, 1, 0.05, 1);
+		let bestPct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 1, 0.05, 1);
 
 		let cpsorder = [...results].sort((a, b) => a.cashPerSecond - b.cashPerSecond);
 		let ramorder = [...results].sort((a, b) => a.batchRam - b.batchRam);
@@ -112,7 +108,7 @@ export async function main(ns) {
 				{ color: metrics.maxRunnableBatches == 0 ? 'red' : 'lime', text: metrics.maxRunnableBatches == 0 ? ' Not enough RAM available!' : '$/sec'.padStart(6) + ' '.padEnd(pctOfMax / 4 + 2, barchar) },
 				{ color: 'orange', text: 'H ' + metrics.threads[H].toString().padStart(7) + ' '.padEnd(pctH / 4 + 2, barchar) },
 				{ color: 'white', text: ns.nFormat(metrics.batchMoney * metrics.maxRunnableBatches, '0.0a').padStart(8) },
-				{ color: 'white', text: ' ' + ns.tFormat(metrics.batchTime + BatchSpacer() * metrics.maxRunnableBatches).padStart(9) }
+				{ color: 'white', text: ' ' + ns.tFormat(metrics.batchTime + BATCH_SPACER * metrics.maxRunnableBatches).padStart(9) }
 			]);
 
 			pctOfMax = Math.round(metrics.maxRunnableBatches / batches[ramorder.length - 1].maxRunnableBatches * 100);
@@ -157,7 +153,7 @@ export async function main(ns) {
 	}
 }
 
-export async function GetBestPctForServer(ns, server, spacer = BatchSpacer(), minPct = 0.05, maxPct = 1, step = 0.05, maxNetworkRamPct) {
+export async function GetBestPctForServer(ns, server, spacer = BATCH_SPACER, minPct = 0.05, maxPct = 1, step = 0.05, maxNetworkRamPct) {
 	let bestPct = 0;
 	let bestCps = 0;
 
@@ -181,7 +177,7 @@ async function AnalyzeAllServers(ns, maxNetworkRamPct) {
 	for (let server of servers) {
 		let subData = new Array();
 		for (const pct of LEECH) {
-			const metrics = new Metrics(ns, server, pct, BatchSpacer(), 1, maxNetworkRamPct)
+			const metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, maxNetworkRamPct)
 			// Skip stuff we can't hack
 			if (/*metrics.hackChance >= 0.50 &&*/ metrics.cashPerSecond > 0)
 				subData.push(metrics);
@@ -397,11 +393,6 @@ export class Metrics {
 
 		// Figure first weaken time and threads
 		this.threads[W1] = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, this.cores) /*/ mults.ServerWeakenRate*/);
-		{
-			let extraThreads = Math.ceil(this.threads[W1] * (EXTRA_THREAD_FACTOR - 1));
-			if (extraThreads < MIN_EXTRA_THREADS) extraThreads = EXTRA_THREAD_FACTOR;
-			this.threads[W1] += extraThreads;
-		}
 		if (!HGW_MODE)
 			so.hackDifficulty = so.minDifficulty;
 
@@ -457,21 +448,11 @@ export class Metrics {
 
 		// // *** ALTERNATE GROW ***
 
-		{
-			let extraThreads = Math.ceil(this.threads[G] * (EXTRA_THREAD_FACTOR - 1));
-			if (extraThreads < MIN_EXTRA_THREADS) extraThreads = MIN_EXTRA_THREADS;
-			this.threads[G] += extraThreads;
-		}
 		so.hackDifficulty += ns.growthAnalyzeSecurity(this.threads[G]);
 		so.moneyAvailable = so.moneyMax;
 
 		// Figure second weaken time and threads
 		this.threads[W2] = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, this.cores) /*/ mults.ServerWeakenRate*/);
-		{
-			let extraThreads = Math.ceil(this.threads[W2] * (EXTRA_THREAD_FACTOR - 1));
-			if (extraThreads < MIN_EXTRA_THREADS) extraThreads = MIN_EXTRA_THREADS;
-			this.threads[W2] += extraThreads;
-		}
 		so.hackDifficulty = so.minDifficulty;
 
 		// Make sure we have whole values of threads and times
@@ -542,18 +523,18 @@ export class Metrics {
 		const ram = new MemoryMap(ns, true);
 		this.maxNetworkRam = ram.total * this.maxNetworkRamPct;
 
-		// let nbBatches = 0;
-		// for (let i = 0; i < this.maxBatches; i++) {
-		// 	if (ram.ReserveBlock(this.threads[H] * HACK_RAM) == undefined) break;
-		// 	if (!HGW_MODE)
-		// 		if (ram.ReserveBlock(this.threads[W1] * WEAKEN_RAM) == undefined) break;
-		// 	if (ram.ReserveBlock(this.threads[G] * GROW_RAM) == undefined) break;
-		// 	if (ram.ReserveBlock(this.threads[W2] * WEAKEN_RAM) == undefined) break;
-		// 	nbBatches++;
-		// }
+		let nbBatches = 0;
+		for (let i = 0; i < this.maxBatches; i++) {
+			if (ram.ReserveBlock(this.threads[H] * HACK_RAM) == undefined) break;
+			if (!HGW_MODE)
+				if (ram.ReserveBlock(this.threads[W1] * WEAKEN_RAM) == undefined) break;
+			if (ram.ReserveBlock(this.threads[G] * GROW_RAM) == undefined) break;
+			if (ram.ReserveBlock(this.threads[W2] * WEAKEN_RAM) == undefined) break;
+			nbBatches++;
+		}
 
-		// const maxBatchesInRam = nbBatches; //Math.floor(this.maxNetworkRam / this.batchRam);
-		const maxBatchesInRam = Math.floor(this.maxNetworkRam / this.batchRam);
+		const maxBatchesInRam = nbBatches;
+		//const maxBatchesInRam = Math.floor(this.maxNetworkRam / this.batchRam);
 
 		this.maxRunnableBatches = Math.min(this.maxBatches, maxBatchesInRam);
 
@@ -579,20 +560,20 @@ export class Metrics {
 	// 	this.period = 0;
 	// 	this.depth = 0;
 
-	// 	const kW_max = Math.floor(1 + (this.times[W1] - 4 * BatchSpacer()) / (8 * BatchSpacer()));
+	// 	const kW_max = Math.floor(1 + (this.times[W1] - 4 * BATCH_SPACER) / (8 * BATCH_SPACER));
 	// 	schedule: for (let kW = kW_max; kW >= 1; --kW) {
-	// 		const t_min_W = (this.times[W1] + 4 * BatchSpacer()) / kW;
-	// 		const t_max_W = (this.times[W1] - 4 * BatchSpacer()) / (kW - 1);
+	// 		const t_min_W = (this.times[W1] + 4 * BATCH_SPACER) / kW;
+	// 		const t_max_W = (this.times[W1] - 4 * BATCH_SPACER) / (kW - 1);
 	// 		const kG_min = Math.ceil(Math.max((kW - 1) * 0.8, 1));
 	// 		const kG_max = Math.floor(1 + kW * 0.8);
 	// 		for (let kG = kG_max; kG >= kG_min; --kG) {
-	// 			const t_min_G = (this.times[G] + 3 * BatchSpacer()) / kG
-	// 			const t_max_G = (this.times[G] - 3 * BatchSpacer()) / (kG - 1);
+	// 			const t_min_G = (this.times[G] + 3 * BATCH_SPACER) / kG
+	// 			const t_max_G = (this.times[G] - 3 * BATCH_SPACER) / (kG - 1);
 	// 			const kH_min = Math.ceil(Math.max((kW - 1) * 0.25, (kG - 1) * 0.3125, 1));
 	// 			const kH_max = Math.floor(Math.min(1 + kW * 0.25, 1 + kG * 0.3125));
 	// 			for (let kH = kH_max; kH >= kH_min; --kH) {
-	// 				const t_min_H = (this.times[H] + 5 * BatchSpacer()) / kH;
-	// 				const t_max_H = (this.times[H] - 1 * BatchSpacer()) / (kH - 1);
+	// 				const t_min_H = (this.times[H] + 5 * BATCH_SPACER) / kH;
+	// 				const t_max_H = (this.times[H] - 1 * BATCH_SPACER) / (kH - 1);
 	// 				const t_min = Math.max(t_min_H, t_min_G, t_min_W);
 	// 				const t_max = Math.min(t_max_H, t_max_G, t_max_W);
 	// 				if (t_min <= t_max) {
@@ -605,10 +586,10 @@ export class Metrics {
 	// 	}
 
 	// 	this.fishDelays = [];
-	// 	this.fishDelays[H] = Math.round(this.depth * this.period - 4 * BatchSpacer() - this.times[H]);
-	// 	this.fishDelays[W1] = Math.round(this.depth * this.period - 3 * BatchSpacer() - this.times[W1]);
-	// 	this.fishDelays[G] = Math.round(this.depth * this.period - 2 * BatchSpacer() - this.times[G]);
-	// 	this.fishDelays[W2] = Math.round(this.depth * this.period - 1 * BatchSpacer() - this.times[W2]);
+	// 	this.fishDelays[H] = Math.round(this.depth * this.period - 4 * BATCH_SPACER - this.times[H]);
+	// 	this.fishDelays[W1] = Math.round(this.depth * this.period - 3 * BATCH_SPACER - this.times[W1]);
+	// 	this.fishDelays[G] = Math.round(this.depth * this.period - 2 * BATCH_SPACER - this.times[G]);
+	// 	this.fishDelays[W2] = Math.round(this.depth * this.period - 1 * BATCH_SPACER - this.times[W2]);
 	// }
 }
 

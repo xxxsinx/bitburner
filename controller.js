@@ -1,6 +1,6 @@
-import { Metrics } from 'metrics.js'
-import { GetAllServers } from 'utils.js'
-import { IsPrepped, BatchSpacer, FormatMoney } from 'prep.js'
+import { BATCH_SPACER, Metrics } from 'metrics.js'
+import { FormatMoney, GetAllServers } from 'utils.js'
+import { IsPrepped } from 'prep.js'
 import { MemoryMap } from 'ram.js'
 
 const QmConfig = new Object({
@@ -157,7 +157,7 @@ export class QuarterMaster {
 		for (let server of servers) {
 			let subData = new Array();
 			for (let pct = 0.05; pct <= 0.95; pct += 0.05) {
-				const metrics = new Metrics(this.ns, server, Math.min(pct, 0.99), BatchSpacer(), 1, maxNetworkRamPct)
+				const metrics = new Metrics(this.ns, server, Math.min(pct, 0.99), BATCH_SPACER, 1, maxNetworkRamPct)
 				// Skip stuff we can't hack
 				//if (metrics.hackChance >= 0.50)
 				if (metrics.cashPerSecond == undefined) continue;

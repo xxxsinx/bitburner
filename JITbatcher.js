@@ -1,6 +1,7 @@
-import { BatchSpacer, AnyPidStillRunning, RunScript, WaitPids, Prep, IsPrepped, ServerReport } from "prep.js";
-import { Metrics, GetBestPctForServer } from "metrics.js";
-import { MemoryMap } from "ram.js";
+import { AnyPidStillRunning, Prep, IsPrepped } from "prep.js";
+import { BATCH_SPACER, Metrics, GetBestPctForServer } from "metrics.js";
+import { MemoryMap, RunScript } from "ram.js";
+import { ServerReport } from "utils.js";
 
 const H = 0;
 const W1 = 1;
@@ -42,9 +43,9 @@ async function ManageServer(ns, server) {
 	// Ideally, most desyncs are caused by an increase in hackLevel mid-cycle,
 	// fudging the batch metrics to the point of throwing batches out of sync
 	let hackLevel = ns.getHackingLevel();
-	let pct = await GetBestPctForServer(ns, server, BatchSpacer(), 0.05, 1, 0.05, 1);
+	let pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 1, 0.05, 1);
 	let lastEval = Date.now() - (60 * 60 * 1000);
-	let metrics = new Metrics(ns, server, pct, BatchSpacer(), 1);
+	let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1);
 	let skipHack = 0;
 
 	while (true) {
@@ -54,16 +55,16 @@ async function ManageServer(ns, server) {
 
 		if (Date.now() - lastEval > 5 * 60 * 1000) {
 			ns.print('WARN: Evaluating best percentage');
-			pct = await GetBestPctForServer(ns, server, BatchSpacer(), 0.05, 1, 0.05, 1);
+			pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 1, 0.05, 1);
 			ns.print('WARN: Best percentage: ' + (pct * 100) + '%');
 			lastEval = Date.now();
 		}
 
 		if (hackLevelChanged)
-			metrics = new Metrics(ns, server, pct, BatchSpacer(), 1);
+			metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1);
 		metrics.Report(ns);
 
-		await ServerReport(ns, server);
+		ServerReport(ns, server);
 
 		// Need to wait for the next window before we check prep state, otherwise we could check during a paywindow
 		if (await WaitNextWindow(ns, metrics, batches)) {
@@ -96,7 +97,7 @@ async function ManageServer(ns, server) {
 
 				// Recalc metrics
 				if (hackLevelChanged)
-					metrics = new Metrics(ns, server, pct, BatchSpacer(), 1);
+					metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1);
 				metrics.Report(ns);
 
 				skipHack = 10;
@@ -104,9 +105,9 @@ async function ManageServer(ns, server) {
 		}
 		else {
 			ns.print('WARN: Could not find a valid window to fit this batch.');
-			await ns.sleep(BatchSpacer());
+			await ns.sleep(BATCH_SPACER);
 			if (hackLevelChanged)
-				metrics = new Metrics(ns, server, pct, BatchSpacer(), 1);
+				metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1);
 		}
 
 		for (let b = batches.length - 1; b >= 0; b--) {
@@ -129,7 +130,7 @@ async function ManageServer(ns, server) {
 
 		if (mem.available * 0.9 < metrics.batchRam) {
 			ns.print('WARN: Not enough free memory to start batch #' + (totalBatches + 1) + ', lets take a break!');
-			await ns.sleep(BatchSpacer());
+			await ns.sleep(BATCH_SPACER);
 			continue;
 		}
 
@@ -137,12 +138,12 @@ async function ManageServer(ns, server) {
 		if (!BatchFitsInMemoryBlocks(ns, metrics)) {
 			ns.print('WARN: Not memory block configuration available to start batch #' + (totalBatches + 1) + ', lets take a break!');
 
-			await ServerReport(ns, server);
+			ServerReport(ns, server);
 			metrics.Report(ns);
 
-			await ns.sleep(BatchSpacer());
+			await ns.sleep(BATCH_SPACER);
 			if (hackLevelChanged)
-				metrics = new Metrics(ns, server, pct, BatchSpacer(), 1);
+				metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1);
 			continue;
 		}
 
@@ -157,12 +158,12 @@ async function ManageServer(ns, server) {
 		}
 		else {
 			ns.print('WARN: Could not find a valid window to fit this batch.');
-			await ns.sleep(BatchSpacer());
+			await ns.sleep(BATCH_SPACER);
 		}
 
 		ns.print('INFO: Started a total of ' + totalBatches + ' during this session.');
 
-		await ns.sleep(BatchSpacer());
+		await ns.sleep(BATCH_SPACER);
 	}
 }
 
@@ -174,7 +175,7 @@ function DumpBatches(ns, batches, newBatch) {
 
 	for (let batch of batches) {
 		let offset = batch.startTime - oldestBatchStart;
-		let sliceOffset = Math.ceil(offset / BatchSpacer());
+		let sliceOffset = Math.ceil(offset / BATCH_SPACER);
 		let prefix = '';
 		for (let i = 0; i < sliceOffset; i++)
 			prefix += ' ';
@@ -184,7 +185,7 @@ function DumpBatches(ns, batches, newBatch) {
 		ns.print(prefix + batch.metrics.Visualize());
 	}
 
-	let offset = Math.ceil((performance.now - oldestBatchStart) / BatchSpacer());
+	let offset = Math.ceil((performance.now - oldestBatchStart) / BATCH_SPACER);
 	let prefix = '';
 	for (let i = 0; i < offset; i++)
 		prefix += ' ';

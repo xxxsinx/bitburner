@@ -1,4 +1,4 @@
-//import { MemoryMap } from "ram.js";
+import { FormatMoney } from "utils.js";
 
 export async function main(ns) {
 	ns.disableLog('ALL');
@@ -219,13 +219,6 @@ function UsableServers(ns, servers) {
 		if (ServerUsableRam(ns, a) < ServerUsableRam(ns, b)) return 1;
 		return 0;
 	}
-}
-
-function FormatMoney(ns, value) {
-	if (value > 1000000000) return Math.round(value * 100 / 1000000000) / 100 + 'b';
-	if (value > 1000000) return Math.round(value * 100 / 1000000) / 100 + 'm';
-	if (value > 1000) return Math.round(value * 100 / 1000) / 100 + 'k';
-	return value;
 }
 
 function RecursiveScan(ns, root, found) {

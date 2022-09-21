@@ -1,5 +1,6 @@
-import { Prep, IsPrepped, RunScript, WaitPids, ServerReport } from "prep.js";
+import { Prep, IsPrepped } from "prep.js";
 import { MemoryMap } from "ram.js";
+import { RunScript, WaitPids, ServerReport } from "utils.js";
 
 // ns.args[0] = ram percent to allow (0.001 to 1)
 export async function main(ns) {
@@ -19,7 +20,7 @@ export async function main(ns) {
 	for (; ;) {
 		const ram = new MemoryMap(ns);
 		const threads = Math.floor(ram.total * ramPct / scriptSize);
-		await ServerReport(ns, server);
+		ServerReport(ns, server);
 		await GrowJoesgunsForXP(ns, server, threads);
 		await ns.sleep(100);
 	}

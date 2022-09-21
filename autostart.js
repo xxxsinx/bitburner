@@ -1,4 +1,4 @@
-import { WaitPids } from "prep.js";
+import { WaitPids } from "utils.js";
 
 /*
 Brainstorm of what's needed for a "main brain" script

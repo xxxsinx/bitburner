@@ -1,6 +1,5 @@
-import { RunScript } from "prep.js";
-import { MemoryMap } from "ram.js";
 import { GetAllServers } from "utils.js";
+import { RunScript } from "ram.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {

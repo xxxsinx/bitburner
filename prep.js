@@ -13,12 +13,12 @@ export async function main(ns) {
 	}
 
 	if (IsPrepped(ns, target)) {
-		ns.tprint('INFO: Server is already prepped (' + target + ')');
+		//ns.tprint('INFO: Server is already prepped (' + target + ')');
 	}
 	else {
-		ns.tprint('INFO: Prep initiated on ' + target);
+		//ns.tprint('INFO: Prep initiated on ' + target);
 		await Prep(ns, target);
-		ns.tprint('SUCCESS: Prep completed on ' + target);
+		//ns.tprint('SUCCESS: Prep completed on ' + target);
 	}
 }
 

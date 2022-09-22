@@ -108,7 +108,7 @@ export async function main(ns) {
 		}
 
 		ns.tprint('Confirming transaction');
-		ns.purchaseServer(2 ** pow, gb);
+		ns.purchaseServer(ns.args[0], gb);
 	}
 }
 

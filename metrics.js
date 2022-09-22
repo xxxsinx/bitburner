@@ -13,9 +13,15 @@ export let HGW_MODE = false;
 
 const DEPTH = 10;
 
+let HACK_RAM = undefined;
+let GROW_RAM = undefined;
+let WEAKEN_RAM = undefined;
+
 const LEECH = [
-	0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
+	0.00366, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
 ];
+
+let MAX_RAM = Infinity;
 
 function MaxHackForServer(ns, server) {
 	let so = ns.getServer(server);
@@ -57,7 +63,7 @@ export async function GetBestMetricsForServer(ns, server, minThreads, maxThreads
 	}
 
 	if (STEP > 1) {
-		//ns.tprint('WARN: Best threads yet for server is ' + bestThreads);
+		//ns.tprint('WARN: Best threads yet for server is ' + bestMetrics.threads[H]);
 		return await GetBestMetricsForServer(ns, server, Math.max(Math.round(bestMetrics.threads[H] - STEP), minThreads), Math.min(Math.round(bestMetrics.threads[H] + STEP), maxThreads), maxNetworkRamPct);
 	}
 
@@ -66,6 +72,11 @@ export async function GetBestMetricsForServer(ns, server, minThreads, maxThreads
 
 /** @param {NS} ns **/
 export async function main(ns) {
+	MAX_RAM = new MemoryMap(ns, true).total;
+	HACK_RAM = ns.getScriptRam('hack-once.js');
+	GROW_RAM = ns.getScriptRam('grow-once.js');
+	WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
+
 	// let test= FindBestPctForServer(ns, 'phantasy');
 	// return;
 	if (ns.args[0] == 'test') {
@@ -469,9 +480,11 @@ export class Metrics {
 		this.batchTime = Math.ceil(this.delays[W2] + this.times[W2]);
 
 		// Calculate batch ram requirement
-		const HACK_RAM = ns.getScriptRam('hack-once.js');
-		const GROW_RAM = ns.getScriptRam('grow-once.js');
-		const WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
+		if (HACK_RAM == undefined) {
+			HACK_RAM = ns.getScriptRam('hack-once.js');
+			GROW_RAM = ns.getScriptRam('grow-once.js');
+			WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
+		}
 		this.batchRam = this.threads[G] * GROW_RAM;
 		this.batchRam += this.threads[W1] * WEAKEN_RAM;
 		this.batchRam += this.threads[W2] * WEAKEN_RAM;
@@ -495,8 +508,10 @@ export class Metrics {
 		this.moneyPerRam = this.batchMoney / this.batchRam;
 
 		// Max number of batches we can run in alloted memory
-		const ram = new MemoryMap(ns, true);
-		this.maxNetworkRam = ram.total * this.maxNetworkRamPct;
+		//const ram = new MemoryMap(ns, true);
+		//this.maxNetworkRam = ram.total * this.maxNetworkRamPct;
+		if (MAX_RAM == Infinity) MAX_RAM = new MemoryMap(ns, true).total;
+		this.maxNetworkRam = MAX_RAM;
 
 		// let nbBatches = 0;
 		// for (let i = 0; i < this.maxBatches; i++) {

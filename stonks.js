@@ -1,4 +1,5 @@
 import { PrintTable, DefaultStyle } from 'tables.js'
+import { FormatMoney } from 'utils.js'
 
 let g_tixMode = false; 					// Global variable indicating if we have full 4S data or not (it is automatically 
 // set/determined later in script no point changing the value here)
@@ -9,6 +10,8 @@ const BUY_TRIGGER = 0.1;				// deviation from 0.5 (neutral) from which we start 
 const SELL_TRIGGER = 0.05;				// deviation from 0.5 (neutral) from which we start selling
 const TRANSACTION_COST = 100_000;		// Cost of a stock transaction
 const MIN_TRANSACTION_SIZE = 5_000_000;	// Minimum amount of stocks to buy, we need this to keep the transaction cost in check
+const TIME_TRACKING = true;				// True if we're benchmarking our performance
+const BENCH_TIME = 1000 * 60 * 60;		// How long we wait before reporting profitability
 
 // Little representation of what this script does
 // | <---------------------------- SHORTS | LONGS ------------------------------>|
@@ -19,6 +22,8 @@ const MIN_TRANSACTION_SIZE = 5_000_000;	// Minimum amount of stocks to buy, we n
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
+
+	let initialFunds = ns.getServerMoneyAvailable('home');
 
 	// This code determines if we have access to shorts or not
 	// Note: Shorts are an endgame mechanic, it will be obvious to you how to get them
@@ -69,6 +74,9 @@ export async function main(ns) {
 
 	// Array that will contain all symbols, we build it once and update it every tick
 	let stonks = [];
+
+	let started = performance.now();
+
 	while (true) {
 		ns.clearLog()
 		if (!g_tixMode && ns.stock.has4SDataTixApi)
@@ -79,6 +87,19 @@ export async function main(ns) {
 
 		// Sort by forecast (for display purposes)
 		let longs = stonks.map(s => s).sort((a, b) => b.forecast - a.forecast);
+
+		// If it's been an hour, report progress
+		if (TIME_TRACKING && performance.now() - started > BENCH_TIME) {
+			// Dump every stock
+			SellStonks(ns, longs, true);
+			let balance = ns.getServerMoneyAvailable('home');
+			//let balance = GetStonksBalance(ns);
+			ns.tprint('FAIL: It\'s been an hour and the current balance is ' + FormatMoney(ns, balance) + ' initial funds were ' + FormatMoney(ns, initialFunds) + ' profit: ' + (balance / initialFunds * 100).toFixed(2) + '%');
+
+			// Reset
+			initialFunds = balance;
+			started = performance.now();
+		}
 
 		// Sell the stonks we have in our wallet that aren't worth keeping anymore
 		SellStonks(ns, longs, ns.args[0] == 'sell');
@@ -410,4 +431,18 @@ export class Stonk {
 		let shortCost = this.nbShorts * this.askPrice;
 		return longCost + shortCost;
 	}
+}
+
+/** @param {NS} ns **/
+function GetStonksBalance(ns) {
+	let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
+	let box = boxes.find(s => getProps(s)?.player);
+	if (!box) return 0;
+	let props = getProps(box);
+	if (!props) return 0;
+	return props.player.moneySourceA.stock;
+}
+
+function getProps(obj) {
+	return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1]?.children?.props;
 }

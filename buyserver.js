@@ -101,14 +101,14 @@ export async function main(ns) {
 		}
 	}
 	else {
-		var resp = await ns.prompt('Confirm purchase of server named ' + ns.args[0] + ' with ' + ns.nFormat(gb * 1000000000, '0.00b') + ' RAM for ' + ns.nFormat(ns.getPurchasedServerCost(ns.args[1]) * 1000000000, '0.00b'));
+		var resp = await ns.prompt('Confirm purchase of server named ' + ns.args[0] + ' with ' + ns.nFormat(gb * 1000000000, '0.00b') + ' RAM for ' + ns.nFormat(ns.getPurchasedServerCost(2 ** pow), '0.00a'));
 		if (resp == false) {
 			ns.tprint("Transaction aborted.");
 			return;
 		}
 
 		ns.tprint('Confirming transaction');
-		ns.purchaseServer(ns.args[0], gb);
+		ns.purchaseServer(2 ** pow, gb);
 	}
 }
 

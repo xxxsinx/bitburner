@@ -82,7 +82,7 @@ export async function main(ns) {
 	PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
 }
 
-export function GetProcessDetails(ns, server) {
+function GetProcessDetails(ns, server) {
 	const categories = [
 		{ script: 'weaken-once.js', header: 'Weaken' },
 		{ script: 'grow-once.js', header: 'Grow' },

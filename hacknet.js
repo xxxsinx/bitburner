@@ -129,7 +129,7 @@ async function UpgradeRound(ns, money) {
 		// Consider upgrading 1 ram
 		let ram = stats.ram;
 		if (ram * 2 <= con.MaxRam) {
-			let cost = ns.hacknet.getRamUpgradeCost(i, ram);
+			let cost = ns.hacknet.getRamUpgradeCost(i, 1);
 			let hashGain = ns.formulas.hacknetServers.hashGainRate(stats.level, 0, ram * 2, stats.cores, ns.getBitNodeMultipliers().HacknetNodeMoney);
 			if (cost <= money) {
 				possibleUpgrades.push({
@@ -139,7 +139,7 @@ async function UpgradeRound(ns, money) {
 					cost: cost,
 					hashGain: hashGain,
 					netGain: hashGain / cost,
-					amount: ram
+					amount: 1
 				});
 			}
 		}

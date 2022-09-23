@@ -1,5 +1,7 @@
 /** @param {NS} ns **/
 export async function main(ns) {
+	ns.tprint(HasFormulas(ns));
+
 	// const servers = GetAllServers(ns);
 	// ns.tprint(servers.length + ' ' + servers);
 
@@ -84,7 +86,7 @@ export function ServerReport(ns, server, metrics = undefined, printfunc = ns.pri
 	var so = ns.getServer(server);
 
 	// weaken threads
-	const tweaken = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, 1));
+	const tweaken = Math.ceil((so.hackDifficulty - so.minDifficulty) / 0.05 /*ns.weakenAnalyze(1, 1)*/);
 	// grow threads
 	const tgrow = Math.ceil(ns.growthAnalyze(server, so.moneyMax / Math.max(so.moneyAvailable, 1), 1));
 	// hack threads
@@ -96,9 +98,9 @@ export function ServerReport(ns, server, metrics = undefined, printfunc = ns.pri
 	printfunc('│ ' + ('Money        : ' + ns.nFormat(so.moneyAvailable, "$0.000a") + ' / ' + ns.nFormat(so.moneyMax, "$0.000a") + ' (' + (so.moneyAvailable / so.moneyMax * 100).toFixed(2) + '%)').padEnd(52) + '│');
 	printfunc('│ ' + ('Security     : ' + (so.hackDifficulty - so.minDifficulty).toFixed(2) + ' min= ' + so.minDifficulty.toFixed(2) + ' current= ' + so.hackDifficulty.toFixed(2)).padEnd(52) + '│');
 	printfunc('├─────────────────────────────────────────────────────┤');
-	printfunc('│ ' + ('Weaken time  : ' + ns.tFormat(ns.getWeakenTime(server)) + ' (t=' + tweaken + ')').padEnd(52) + '│');
-	printfunc('│ ' + ('Grow         : ' + ns.tFormat(ns.getGrowTime(server)) + ' (t=' + tgrow + ')').padEnd(52) + '│');
-	printfunc('│ ' + ('Hack         : ' + ns.tFormat(ns.getHackTime(server)) + ' (t=' + thack + ')').padEnd(52) + '│');
+	printfunc('│ ' + ('Weaken time  : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4) + ' (t=' + tweaken + ')').padEnd(52) + '│');
+	printfunc('│ ' + ('Grow         : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2) + ' (t=' + tgrow + ')').padEnd(52) + '│');
+	printfunc('│ ' + ('Hack         : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer())) + ' (t=' + thack + ')').padEnd(52) + '│');
 	printfunc('└─────────────────────────────────────────────────────┘');
 
 	if (metrics != undefined) {
@@ -116,4 +118,8 @@ export function FormatMoney(ns, value, decimals = 3) {
 export async function WaitPids(ns, pids) {
 	if (!Array.isArray(pids)) pids = [pids];
 	while (pids.some(p => ns.getRunningScript(p) != undefined)) { await ns.sleep(5); }
+}
+
+export function HasFormulas(ns) {
+	try { ns.formulas.hacknetNodes.constants(); return true; } catch { return false; }
 }

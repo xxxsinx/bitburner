@@ -1,7 +1,7 @@
 import { BATCH_SPACER, Metrics } from 'metrics.js'
 import { FormatMoney, GetAllServers } from 'utils.js'
 import { IsPrepped } from 'prep.js'
-import { MemoryMap } from 'ram.js'
+//import { MemoryMap } from 'ram.js'
 
 const QmConfig = new Object({
 	MaxPreppingServers: 4,		// how many servers can be in prep simultaneously
@@ -153,7 +153,7 @@ export class QuarterMaster {
 
 	async GetTopServers(count = QmConfig.ListMaxServers, maxNetworkRamPct = 0.5) {
 		const data = new Array();
-		const servers = GetAllServers(this.ns).filter(s => this.ns.hasRootAccess(s) && this.ns.getServerMaxMoney(s) > 0);;
+		const servers = GetAllServers(this.ns).filter(s => this.ns.getServer(s).hasAdminRights && this.ns.getServer(s).moneyMax > 0);;
 		for (let server of servers) {
 			let subData = new Array();
 			for (let pct = 0.05; pct <= 0.95; pct += 0.05) {

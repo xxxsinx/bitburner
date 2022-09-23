@@ -19,15 +19,15 @@ export async function main(ns) {
 	];
 
 	let data = [];
-	let servers = GetAllServers(ns).filter(s => ns.hasRootAccess(s)).sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
+	let servers = GetAllServers(ns).filter(s => ns.getServer(s).hasAdminRights).sort((a, b) => ns.getServer(b).maxRam - ns.getServer(a).maxRam);
 	let details = [];
-	let totalProcs= 0;
+	let totalProcs = 0;
 
 	for (const server of servers) {
-		if (ns.getServerMaxRam(server) < 1.6) continue;
+		if (ns.getServer(server).maxRam < 1.6) continue;
 
-		let total = ns.getServerMaxRam(server);
-		let used = ns.getServerUsedRam(server);
+		let total = ns.getServer(server).maxRam;
+		let used = ns.getServer(server).ramUsed;
 		let free = total - used;
 		let usedPct = Math.round(used / total * 100);
 		let freePct = Math.round(free / total * 100);
@@ -47,15 +47,15 @@ export async function main(ns) {
 			)
 		});
 
-		totalProcs+= nbProcs;
+		totalProcs += nbProcs;
 		entry.push({ color: 'white', text: nbProcs.toString().padStart(8) });
 
 		data.push(entry);
 	}
 	data.push(null);
 
-	let total = servers.reduce((a, s) => a += ns.getServerMaxRam(s), 0);
-	let used = servers.reduce((a, s) => a += ns.getServerUsedRam(s), 0);
+	let total = servers.reduce((a, s) => a += ns.getServer(s).maxRam, 0);
+	let used = servers.reduce((a, s) => a += ns.getServer(b).ramUsed, 0);
 	let free = total - used;
 	let usedPct = Math.round(used / total * 100);
 	let freePct = Math.round(free / total * 100);
@@ -80,78 +80,9 @@ export async function main(ns) {
 
 
 	PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
-	return;
-
-
-
-
-	const ram = new MemoryMap(ns);
-
-	for (let block of ram.blocks) {
-		let free = block.free;
-		let total = block.total
-		let pct = free / total;
-		let prefix = 'SUCCESS';
-		if (pct < 0.9) prefix = 'INFO';
-		if (pct < 0.5) prefix = 'WARN';
-		if (pct < 0.25) prefix = 'FAIL';
-		prefix = prefix.padEnd(10);
-
-		ns.tprint(prefix + block.server.padEnd(20) + ns.nFormat(free * 1000000000, '0.00b').padStart(10) + ns.nFormat(total * 1000000000, '0.00b').padStart(10) + Math.round(free / total * 100).toString().padStart(5) + '%');
-	}
-
-	ns.tprint(''.padEnd(56, '-'));
-
-	let pct = ram.available / ram.total;
-	let prefix = 'SUCCESS';
-	if (pct < 0.9) prefix = 'INFO';
-	if (pct < 0.5) prefix = 'WARN';
-	if (pct < 0.25) prefix = 'FAIL';
-	prefix = prefix.padEnd(10);
-
-	ns.tprint(prefix + 'Total'.padEnd(20) + ns.nFormat(ram.available * 1000000000, '0.00b').padStart(10) + ns.nFormat(ram.total * 1000000000, '0.00b').padStart(10) + Math.round(ram.available / ram.total * 100).toString().padStart(5) + '%');
-
-	let nbProcs = 0;
-	let nbThreads = 0;
-
-	let nbHack = 0;
-	let nbGrow = 0;
-	let nbWeaken = 0;
-
-	let nbHackThreads = 0;
-	let nbGrowThreads = 0;
-	let nbWeakenThreads = 0;
-
-	for (const server of GetAllServers(ns)) {
-		let procs = ns.ps(server);
-		nbProcs += procs.length;
-		for (let proc of procs) {
-			nbThreads += proc.threads;
-			if (proc.filename.startsWith('hack-once')) {
-				nbHack++;
-				nbHackThreads += proc.threads;
-			}
-			if (proc.filename.startsWith('weaken-once')) {
-				nbWeaken++;
-				nbWeakenThreads += proc.threads;
-			}
-			if (proc.filename.startsWith('grow-once')) {
-				nbGrow++;
-				nbGrowThreads += proc.threads;
-			}
-		}
-	}
-
-	ns.tprint('--------------------------------------------------------------');
-	ns.tprint('Processes: ' + nbProcs + ' threads: ' + nbThreads);
-	ns.tprint('H: ' + nbHack + ' threads: ' + nbHackThreads);
-	ns.tprint('W: ' + nbWeaken + ' threads: ' + nbWeakenThreads);
-	ns.tprint('G: ' + nbGrow + ' threads: ' + nbGrowThreads);
-	ns.tprint('--------------------------------------------------------------');
-
 }
 
-function GetProcessDetails(ns, server) {
+export function GetProcessDetails(ns, server) {
 	const categories = [
 		{ script: 'weaken-once.js', header: 'Weaken' },
 		{ script: 'grow-once.js', header: 'Grow' },
@@ -161,7 +92,7 @@ function GetProcessDetails(ns, server) {
 	];
 
 	let procs = ns.ps(server);
-	let serverRam = ns.getServerMaxRam(server);
+	let serverRam = ns.getServer(server).maxRam;
 
 	let ret = categories.map(function (cat) {
 		let matches = procs.filter(p => p.filename == cat.script);
@@ -193,7 +124,7 @@ function pctColor(pct) {
 
 export class MemoryMap {
 	constructor(ns, simulateFull = false) {
-		const servers = GetAllServers(ns).filter(p => ns.hasRootAccess(p));
+		const servers = GetAllServers(ns).filter(s => ns.getServer(s).hasAdminRights);
 
 		this.blocks = new Array();
 		this.used = 0;
@@ -230,7 +161,7 @@ export class MemoryMap {
 				if (server == 'home') {
 					let minFree = 256;
 					//if (minFree > so.maxRam * 0.25) {
-						minFree = 45;//so.maxRam * 0.25;
+					minFree = 45;//so.maxRam * 0.25;
 					//}
 					if (free < minFree) {
 						minFree = free;

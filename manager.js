@@ -1,7 +1,7 @@
 import { Prep, IsPrepped } from "prep.js";
 import { BATCH_SPACER, Metrics, GetBestPctForServer, HGW_MODE } from "metrics.js";
 import { MemoryMap, RunScript } from "ram.js";
-import { ServerReport, WaitPids } from "utils.js";
+import { HasFormulas, ServerReport, WaitPids } from "utils.js";
 
 const H = 0;
 const W1 = 1;
@@ -11,7 +11,7 @@ const W2 = 3;
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	if (!ns.fileExists('Formulas.exe')) {
+	if (!HasFormulas(ns)) {
 		ns.tprint('ERROR: Formulas.exe is needed to run this script.');
 		ns.exit();
 	}
@@ -46,7 +46,7 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 	// Store hack level, this is just for reporting it when we detect a desync.
 	// Ideally, most desyncs are caused by an increase in hackLevel mid-cycle,
 	// fudging the batch metrics to the point of throwing batches out of sync
-	let hackLevel = ns.getHackingLevel();
+	let hackLevel = ns.getPlayer().skills.hacking;
 
 	while (true) {
 		const pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 0.8, 0.05, maxPctTotalRam);
@@ -58,16 +58,16 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 		// Since we prepped in main(), the only reason why we would ever enter this is our metrics changed, something desynced, or some other external factor
 		// changed the server state or player capacities
 		if (!IsPrepped(ns, server)) {
-			const hackLevelChanged = ns.getHackingLevel() != hackLevel;
+			const hackLevelChanged = ns.getPlayer().skills.hacking != hackLevel;
 			let msg = (hackLevelChanged ? 'WARN: ' : 'ERROR: ') +
-				'Desync detected, re-prepping ' + server + ' cycles= ' + cycle + ' hack= ' + ns.getHackingLevel() + ' (was ' + hackLevel + ')';
+				'Desync detected, re-prepping ' + server + ' cycles= ' + cycle + ' hack= ' + ns.getPlayer().skills.hacking + ' (was ' + hackLevel + ')';
 			if (!hackLevelChanged)
 				ns.tprint(msg);
 			ns.print(msg);
 			await Prep(ns, server, metrics);
 			ns.print('SUCCESS: Server prepped!');
 			cycle = 0; // reset cycle
-			hackLevel = ns.getHackingLevel();
+			hackLevel = ns.getPlayer().skills.hacking;
 			ServerReport(ns, server, metrics);
 		}
 		cycle++;

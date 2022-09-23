@@ -1,5 +1,5 @@
 import { MemoryMap } from "ram.js";
-import { FormatMoney, GetAllServers, ColorPrint } from "utils.js";
+import { HasFormulas, FormatMoney, GetAllServers, ColorPrint } from "utils.js";
 import { PrintTable, DefaultStyle } from 'tables.js'
 
 export const H = 0;		// Index of HACK data
@@ -20,8 +20,6 @@ let WEAKEN_RAM = undefined;
 const LEECH = [
 	0.00366, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
 ];
-
-let MAX_RAM = Infinity;
 
 function MaxHackForServer(ns, server) {
 	let so = ns.getServer(server);
@@ -72,7 +70,6 @@ export async function GetBestMetricsForServer(ns, server, minThreads, maxThreads
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	MAX_RAM = new MemoryMap(ns, true).total;
 	HACK_RAM = ns.getScriptRam('hack-once.js');
 	GROW_RAM = ns.getScriptRam('grow-once.js');
 	WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
@@ -96,7 +93,7 @@ export async function main(ns) {
 
 	let start = performance.now();
 
-	if (!ns.fileExists('Formulas.exe')) {
+	if (!HasFormulas(ns)) {
 		ns.tprint('ERROR: Formulas.exe not found, running this command would take years, aborting.');
 		ns.exit();
 	}
@@ -108,20 +105,20 @@ export async function main(ns) {
 		HGW_MODE = HGW;
 
 	// This is a test to compare different grow thread calculation methods
-	if (server == 'grow') {
-		for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
-			let metrics = new Metrics(ns, server, 1, 30, 1);
+	// if (server == 'grow') {
+	// 	for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
+	// 		let metrics = new Metrics(ns, server, 1, 30, 1);
 
-			let w = metrics.threads[G];
-			let b = metrics.debugThreadsG;
+	// 		let w = metrics.threads[G];
+	// 		let b = metrics.debugThreadsG;
 
-			let pct = Math.round(b * 100 / w) - 100;
+	// 		let pct = Math.round(b * 100 / w) - 100;
 
-			ns.tprint(server.padEnd(25) + ('formula: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
-			await ns.sleep(0);
-		}
-		return;
-	}
+	// 		ns.tprint(server.padEnd(25) + ('formula: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+	// 		await ns.sleep(0);
+	// 	}
+	// 	return;
+	// }
 
 	if (server == undefined) {
 		await AnalyzeAllServers(ns, maxNetworkRamPct);
@@ -239,7 +236,7 @@ export async function GetBestPctForServer(ns, server, spacer = BATCH_SPACER, min
 
 async function AnalyzeAllServers(ns, maxNetworkRamPct) {
 	const data = new Array();
-	const servers = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxMoney(s) > 0);
+	const servers = GetAllServers(ns).filter(s => ns.getServer(s).hasAdminRights && ns.getServer(s).moneyMax > 0);
 
 	ns.tprint('INFO: Getting metrics for ' + servers.length + ' servers');
 	for (let server of servers) {
@@ -378,7 +375,7 @@ export class Metrics {
 	}
 
 	UpdateMetrics(ns) {
-		if (!ns.fileExists('Formulas.exe')) {
+		if (!HasFormulas(ns)) {
 			ns.tprint('ERROR: Formulas.exe is required.');
 			return;
 		}
@@ -407,7 +404,7 @@ export class Metrics {
 		this.batchMoney = Math.floor(so.moneyAvailable * hackPctThread) * this.threads[H];
 
 		so.moneyAvailable -= this.batchMoney;
-		so.hackDifficulty += ns.hackAnalyzeSecurity(this.threads[H]);
+		so.hackDifficulty += this.threads[H] * 0.002; //ns.hackAnalyzeSecurity(this.threads[H]);
 
 		if (this.pct == 1) {
 			this.effectivePct = 1 - 0.000001;
@@ -415,7 +412,7 @@ export class Metrics {
 		}
 
 		// Figure first weaken time and threads
-		this.threads[W1] = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, this.cores) /*/ mults.ServerWeakenRate*/);
+		this.threads[W1] = Math.ceil((so.hackDifficulty - so.minDifficulty) / 0.05 /*ns.weakenAnalyze(1, this.cores)*/);
 		if (!HGW_MODE)
 			so.hackDifficulty = so.minDifficulty;
 
@@ -436,11 +433,11 @@ export class Metrics {
 		// this.threads[G] = calculateGrowThreadsLambert(ns, so.hostname, so.moneyMax - so.moneyAvailable, 1, opts);
 		//this.debugThreadsG = calculateGrowThreadsLambert(ns, so.hostname, so.moneyMax - so.moneyAvailable, 1, opts);
 
-		so.hackDifficulty += ns.growthAnalyzeSecurity(this.threads[G]);
+		so.hackDifficulty += this.threads[G] * 0.004; //ns.growthAnalyzeSecurity(this.threads[G]);
 		so.moneyAvailable = so.moneyMax;
 
 		// Figure second weaken time and threads
-		this.threads[W2] = Math.ceil((so.hackDifficulty - so.minDifficulty) / ns.weakenAnalyze(1, this.cores) /*/ mults.ServerWeakenRate*/);
+		this.threads[W2] = Math.ceil((so.hackDifficulty - so.minDifficulty) / 0.05 /*ns.weakenAnalyze(1, this.cores)*/);
 		so.hackDifficulty = so.minDifficulty;
 
 		// Make sure we have whole values of threads and times
@@ -510,7 +507,7 @@ export class Metrics {
 		// Max number of batches we can run in alloted memory
 		//const ram = new MemoryMap(ns, true);
 		//this.maxNetworkRam = ram.total * this.maxNetworkRamPct;
-		if (MAX_RAM == Infinity) MAX_RAM = new MemoryMap(ns, true).total;
+		const MAX_RAM = new MemoryMap(ns, true).total;
 		this.maxNetworkRam = MAX_RAM;
 
 		// let nbBatches = 0;
@@ -581,72 +578,6 @@ export class Metrics {
 	// }
 }
 
-// export function calculateGrowThreadsOld(ns, serverObject, playerObject, cores) {
-// 	let threads = 1;
-// 	let newMoney = 0;
-
-// 	while (true) {
-// 		let serverGrowth = ns.formulas.hacking.growPercent(serverObject, threads, playerObject, cores);
-// 		newMoney = (serverObject.moneyAvailable + threads) * serverGrowth;
-// 		if (newMoney >= serverObject.moneyMax)
-// 			break;
-// 		threads++;
-// 	}
-
-// 	return threads;
-// }
-
-export function FindBestPctForServer(ns, server) {
-	let so = ns.getServer(server);
-	so.hackDifficulty = so.minDifficulty;
-	so.moneyAvailable = so.moneyMax;
-	const hackPctThread = ns.formulas.hacking.hackPercent(so, ns.getPlayer());
-	let maxThreads = Math.ceil(1 / hackPctThread);
-
-	return binarySearchHack(ns, server, 1, maxThreads)
-}
-
-
-function binarySearchHack(ns, server, min, max) {
-	// ns.tprint('min: ' + min + ' max: ' + max);
-	// if (min == max) return max;
-
-	// let gap= max-min;
-
-	// let threads1 = Math.floor(min + gap / 3);
-	// let threads2 = Math.ceil(min + gap / 3 * 2);
-
-	// let metrics1= new Metrics(ns, server, pct, BATCH_SPACER, 1, 1, threads1);
-	// let metrics2= new Metrics(ns, server, pct, BATCH_SPACER, 1, 1, threads2);
-
-	// if (metrics1.)
-
-
-
-	// if (metrics.cashPerSecond > lastCps) {
-	// 	return binarySearchHack(ns, server, pct, max)
-	// }
-	// else if (metrics.cashPerSecond < lastCps) {
-	// }
-	// else {
-
-	// }
-
-	// if (newMoney > so.moneyMax) {
-	// 	if (CalcGrowth(ns, so, po, threads - 1, cores) < so.moneyMax)
-	// 		return threads;
-	// 	return binarySearchGrow(ns, min, threads - 1, so, po, cores);
-	// }
-	// else if (newMoney < so.moneyMax) {
-	// 	return binarySearchGrow(ns, threads + 1, max, so, po, cores);
-	// }
-	// else { //(newMoney == so.moneyMax)
-	// 	return threads;
-	// }
-}
-
-
-
 export function calculateGrowThreads(ns, serverObject, playerObject, cores) {
 	if (serverObject.moneyAvailable >= serverObject.moneyMax) return 0;
 	let min = 1;
@@ -697,59 +628,59 @@ function CalcGrowth(ns, so, po, threads, cores) {
 
 
 
-/**
- * @author m0dar <gist.github.com/xmodar>
- * {@link https://discord.com/channels/415207508303544321/415211780999217153/954213342917050398}
- *
- * type GrowOptions = Partial<{
- *   moneyAvailable: number;
- *   hackDifficulty: number;
- *   ServerGrowthRate: number; // ns.getBitNodeMultipliers().ServerGrowthRate
- *   // https://github.com/danielyxie/bitburner/blob/dev/src/BitNode/BitNode.tsx
- * }>;
- */
-export function calculateGrowGain(ns, host, threads = 1, cores = 1, opts = {}) {
-	const moneyMax = ns.getServerMaxMoney(host);
-	const { moneyAvailable = ns.getServerMoneyAvailable(host) } = opts;
-	const rate = growPercent(ns, host, threads, cores, opts);
-	return Math.min(moneyMax, rate * (moneyAvailable + threads)) - moneyAvailable;
-}
+// /**
+//  * @author m0dar <gist.github.com/xmodar>
+//  * {@link https://discord.com/channels/415207508303544321/415211780999217153/954213342917050398}
+//  *
+//  * type GrowOptions = Partial<{
+//  *   moneyAvailable: number;
+//  *   hackDifficulty: number;
+//  *   ServerGrowthRate: number; // ns.getBitNodeMultipliers().ServerGrowthRate
+//  *   // https://github.com/danielyxie/bitburner/blob/dev/src/BitNode/BitNode.tsx
+//  * }>;
+//  */
+// export function calculateGrowGain(ns, host, threads = 1, cores = 1, opts = {}) {
+// 	const moneyMax = ns.getServerMaxMoney(host);
+// 	const { moneyAvailable = ns.getServerMoneyAvailable(host) } = opts;
+// 	const rate = growPercent(ns, host, threads, cores, opts);
+// 	return Math.min(moneyMax, rate * (moneyAvailable + threads)) - moneyAvailable;
+// }
 
-/** @param gain money to be added to the server after grow */
-export function calculateGrowThreadsLambert(ns, host, gain, cores = 1, opts = {}) {
-	const moneyMax = ns.getServerMaxMoney(host);
-	const { moneyAvailable = ns.getServerMoneyAvailable(host) } = opts;
-	const money = Math.min(Math.max(moneyAvailable + gain, 0), moneyMax);
-	const rate = Math.log(growPercent(ns, host, 1, cores, opts));
-	const logX = Math.log(money * rate) + moneyAvailable * rate;
-	const threads = lambertWLog(logX) / rate - moneyAvailable;
-	return Math.max(Math.ceil(threads), 0);
-}
+// /** @param gain money to be added to the server after grow */
+// export function calculateGrowThreadsLambert(ns, host, gain, cores = 1, opts = {}) {
+// 	const moneyMax = ns.getServerMaxMoney(host);
+// 	const { moneyAvailable = ns.getServerMoneyAvailable(host) } = opts;
+// 	const money = Math.min(Math.max(moneyAvailable + gain, 0), moneyMax);
+// 	const rate = Math.log(growPercent(ns, host, 1, cores, opts));
+// 	const logX = Math.log(money * rate) + moneyAvailable * rate;
+// 	const threads = lambertWLog(logX) / rate - moneyAvailable;
+// 	return Math.max(Math.ceil(threads), 0);
+// }
 
-function growPercent(ns, host, threads = 1, cores = 1, opts = {}) {
-	const { ServerGrowthRate = 1, hackDifficulty = ns.getServerSecurityLevel(host), } = opts;
-	const growth = ns.getServerGrowth(host) / 100;
-	const multiplier = ns.getPlayer().mults["hacking_grow"];
-	const base = Math.min(1 + 0.03 / hackDifficulty, 1.0035);
-	const power = growth * ServerGrowthRate * multiplier * ((cores + 15) / 16);
-	return base ** (power * threads);
-}
-/**
- * Lambert W-function for log(x) when k = 0
- * {@link https://gist.github.com/xmodar/baa392fc2bec447d10c2c20bbdcaf687}
- */
-function lambertWLog(logX) {
-	if (isNaN(logX)) return NaN;
-	const logXE = logX + 1;
-	const logY = 0.5 * log1Exp(logXE);
-	const logZ = Math.log(log1Exp(logY));
-	const logN = log1Exp(0.13938040121300527 + logY);
-	const logD = log1Exp(-0.7875514895451805 + logZ);
-	let w = -1 + 2.036 * (logN - logD);
-	w *= (logXE - Math.log(w)) / (1 + w);
-	w *= (logXE - Math.log(w)) / (1 + w);
-	w *= (logXE - Math.log(w)) / (1 + w);
-	return isNaN(w) ? (logXE < 0 ? 0 : Infinity) : w;
-}
+// function growPercent(ns, host, threads = 1, cores = 1, opts = {}) {
+// 	const { ServerGrowthRate = 1, hackDifficulty = ns.getServerSecurityLevel(host), } = opts;
+// 	const growth = ns.getServerGrowth(host) / 100;
+// 	const multiplier = ns.getPlayer().mults["hacking_grow"];
+// 	const base = Math.min(1 + 0.03 / hackDifficulty, 1.0035);
+// 	const power = growth * ServerGrowthRate * multiplier * ((cores + 15) / 16);
+// 	return base ** (power * threads);
+// }
+// /**
+//  * Lambert W-function for log(x) when k = 0
+//  * {@link https://gist.github.com/xmodar/baa392fc2bec447d10c2c20bbdcaf687}
+//  */
+// function lambertWLog(logX) {
+// 	if (isNaN(logX)) return NaN;
+// 	const logXE = logX + 1;
+// 	const logY = 0.5 * log1Exp(logXE);
+// 	const logZ = Math.log(log1Exp(logY));
+// 	const logN = log1Exp(0.13938040121300527 + logY);
+// 	const logD = log1Exp(-0.7875514895451805 + logZ);
+// 	let w = -1 + 2.036 * (logN - logD);
+// 	w *= (logXE - Math.log(w)) / (1 + w);
+// 	w *= (logXE - Math.log(w)) / (1 + w);
+// 	w *= (logXE - Math.log(w)) / (1 + w);
+// 	return isNaN(w) ? (logXE < 0 ? 0 : Infinity) : w;
+// }
 
-const log1Exp = (x) => x <= 0 ? Math.log(1 + Math.exp(x)) : x + log1Exp(-x);
+// const log1Exp = (x) => x <= 0 ? Math.log(1 + Math.exp(x)) : x + log1Exp(-x);

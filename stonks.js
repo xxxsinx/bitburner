@@ -94,7 +94,7 @@ export async function main(ns) {
 			SellStonks(ns, longs, true);
 			let balance = ns.getServerMoneyAvailable('home');
 			//let balance = GetStonksBalance(ns);
-			ns.tprint('FAIL: It\'s been an hour and the current balance is ' + FormatMoney(ns, balance) + ' initial funds were ' + FormatMoney(ns, initialFunds) + ' profit: ' + (balance / initialFunds * 100).toFixed(2) + '%');
+			ns.tprint('FAIL: It\'s been an hour and the current balance is ' + FormatMoney(ns, balance) + ' initial funds were ' + FormatMoney(ns, initialFunds) + ' profit: ' + ((1 - balance / initialFunds * 100)).toFixed(2) + '%');
 
 			// Reset
 			initialFunds = balance;

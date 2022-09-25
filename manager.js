@@ -1,5 +1,5 @@
 import { Prep, IsPrepped } from "prep.js";
-import { BATCH_SPACER, Metrics, GetBestPctForServer, HGW_MODE } from "metrics.js";
+import { BATCH_SPACER, MaxHackForServer, GetBestMetricsForServer, HGW_MODE } from "metrics.js";
 import { MemoryMap, RunScript } from "ram.js";
 import { HasFormulas, ServerReport, WaitPids } from "utils.js";
 
@@ -49,10 +49,12 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 	let hackLevel = ns.getPlayer().skills.hacking;
 
 	while (true) {
-		const pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 0.8, 0.05, maxPctTotalRam);
-		let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, maxPctTotalRam);
-		metrics.Report(ns);
+		// const pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 0.8, 0.05, maxPctTotalRam);
+		// let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, maxPctTotalRam);
+		let metrics = await GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), maxPctTotalRam);
+		//const pct= metrics.pct;
 
+		//metrics.Report(ns);
 		ServerReport(ns, server, metrics);
 
 		// Since we prepped in main(), the only reason why we would ever enter this is our metrics changed, something desynced, or some other external factor

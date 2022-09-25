@@ -55,7 +55,7 @@ export async function main(ns) {
 	data.push(null);
 
 	let total = servers.reduce((a, s) => a += ns.getServer(s).maxRam, 0);
-	let used = servers.reduce((a, s) => a += ns.getServer(b).ramUsed, 0);
+	let used = servers.reduce((a, s) => a += ns.getServer(s).ramUsed, 0);
 	let free = total - used;
 	let usedPct = Math.round(used / total * 100);
 	let freePct = Math.round(free / total * 100);

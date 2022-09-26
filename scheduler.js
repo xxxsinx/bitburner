@@ -4,12 +4,24 @@ const W1 = 1;
 const G = 2;
 const W2 = 3;
 
+const ANSI_COLORS = {
+	"r": "\x1b[31m",
+	"g": "\x1b[32m",
+	"b": "\x1b[34m",
+	"c": "\x1b[36m",
+	"m": "\x1b[35m",
+	"y": "\x1b[33m",
+	"bk": "\x1b[30m",
+	"w": "\x1b[37m",
+	"d": "\x1b[0m"
+}
+
 export async function main(ns) {
 	ns.disableLog('ALL');
 	ns.tail();
 
 	// Amount of time between jobs. The same spacer is used between batches as well.
-	const SPACER = 30;
+	const SPACER = 25;
 
 	// Port used by the worker scripts to report their death to this script
 	const PORT = 1;
@@ -70,6 +82,11 @@ export async function main(ns) {
 		// in the current implementation
 		WorkerDeathReports(ns, PORT, batches);
 
+		for (let batch of batches) {
+			batch.Validate();
+		}
+		batches= batches.filter(s=> s.reports.length < 4);
+
 		// Yield CPU to other scripts
 		await ns.asleep(0);
 	}
@@ -88,8 +105,8 @@ class Batch {
 		this.scheduledTime = 0;	// Time when the batch is meant to start (performance.now() based)
 		this.execTime = 0;		// Actual time when the batch was allowed to start ((performance.now() based))
 
-		this.started = false;	// Indicates whether or not we've started running this batch
-		this.aborted = false;	// Indicates whether or not this batch was completely or partially aborted
+		this.started = undefined;	// Indicates time when this batch was started
+		this.aborted = false;		// Indicates whether or not this batch was completely or partially aborted
 
 		this.reports = [];
 		this.workerAborted = [false, false, false, false];	// Indicates whether or not each worker has been aborted
@@ -106,22 +123,50 @@ class Batch {
 
 	// Test function to start a mock batch. It simply adds them as tasks in the ClockSync instance.
 	Start() {
-		let now = performance.now();
-		this.clock.AddTask(`${this.id}.H`, now + this.metrics.delays[H], this.metrics.tolerance, () => this.StartJob(H, this.metrics.times[H]), []);
-		this.clock.AddTask(`${this.id}.W1`, now + this.metrics.delays[W1], this.metrics.tolerance, () => this.StartJob(W1, this.metrics.times[W1]), []);
-		this.clock.AddTask(`${this.id}.G`, now + this.metrics.delays[G], this.metrics.tolerance, () => this.StartJob(G, this.metrics.times[G]), []);
-		this.clock.AddTask(`${this.id}.W2`, now + this.metrics.delays[W2], this.metrics.tolerance, () => this.StartJob(W2, this.metrics.times[W2]), []);
+		this.started = performance.now();
+		this.clock.AddTask(`${this.id}.H`, this.started + this.metrics.delays[H], this.metrics.tolerance, () => this.StartJob('H', H, this.metrics.times[H]), []);
+		this.clock.AddTask(`${this.id}.W1`, this.started + this.metrics.delays[W1], this.metrics.tolerance, () => this.StartJob('W1', W1, this.metrics.times[W1]), []);
+		this.clock.AddTask(`${this.id}.G`, this.started + this.metrics.delays[G], this.metrics.tolerance, () => this.StartJob('G', G, this.metrics.times[G]), []);
+		this.clock.AddTask(`${this.id}.W2`, this.started + this.metrics.delays[W2], this.metrics.tolerance, () => this.StartJob('W2', W2, this.metrics.times[W2]), []);
 	}
 
 	// Test function to start a mock job. The script emulates H/W/G without actually doing anything to the server
 	// Desyncs are inconsequential, since they do not affect any servers. The script just sleeps for the duration to simulate
 	// a hack, grow or weaken call
-	StartJob(type, duration) {
-		this.ns.exec('fakejob.js', 'home', 1, this.id, type, duration, this.port);
+	StartJob(desc, type, duration) {
+		this.ns.exec('fakejob.js', 'home', 1, this.id, desc, type, duration, this.port);
 	}
 
-	ValidateReports() {
-		//let aborted= this.workerAborted.reduce((sum, s) => sum + (s == true ? 1 : 0), 0);
+	LogReport(data) {
+		data.reported = performance.now();
+		this.reports.push(data);
+		let drift = this.GetJobDrift(data.type);
+		if (drift == undefined) this.ns.print(ANSI_COLORS.r, 'This should not happen?!');
+		if (drift > this.delay - 2) {
+			this.ns.print(ANSI_COLORS.y, 'Batch job ' + this.id + '.' + data.desc + ' finished late... drift=' + drift);
+		}
+	}
+
+	GetJobDrift(jobId) {
+		let report = this.reports.find(r => r.type == jobId);
+		if (report == undefined) return 0;
+		let ended = report.end;
+		let expectedEnd = this.started + this.metrics.delays[jobId] + this.metrics.times[jobId];
+		let drift = ended - expectedEnd;
+		return drift;
+	}
+
+	Validate() {
+		let now = performance.now();
+		if (this.scheduledTime > now + this.delay) {
+			this.ns.print(ANSI_COLORS.y, 'Batch ' + this.id + ' did not start on time');
+		}
+
+		if (this.started) {
+			if ([H, W1, G, W2].some(s => this.GetJobDrift(s) > this.metrics.tolerance * 5)) {
+				this.ns.print(ANSI_COLORS.y, 'Batch ' + this.id + ' has some jobs past tolerance');
+			}
+		}
 
 		if (this.reports.length != 4) return;
 
@@ -144,10 +189,10 @@ class Batch {
 		}
 
 		if (replyChain.toString() == 'H,W1,G,W2') {
-			this.ns.print('SUCCESS: Batch ' + this.id + ' finished in correct order');
+			//this.ns.print('SUCCESS: Batch ' + this.id + ' finished in correct order');
 		}
 		else {
-			this.ns.print('FAIL: Batch ' + this.id + ' finished out of order ' + replyChain.toString());
+			this.ns.print(ANSI_COLORS.y, 'Batch ' + this.id + ' finished out of order ' + replyChain.toString());
 		}
 	}
 }
@@ -168,13 +213,12 @@ function WorkerDeathReports(ns, port, batches) {
 		let data = JSON.parse(raw);
 		let batch = batches.find(b => b.id == data.id);
 		if (batch == undefined) {
-			ns.print("WARN: Dismissing report of an unknown batch " + data.id);
+			ns.print(ANSI_COLORS.r, "Dismissing report of an unknown batch " + data.id);
 			continue;
 		}
 
-		data.reported = performance.now();
-		batch.reports.push(data);
-		batch.ValidateReports();
+		batch.LogReport(data);
+		//batch.Validate();
 	}
 }
 
@@ -216,9 +260,9 @@ class ClockSync {
 				// For debugging purposes, we use different colors for batches and jobs
 				// TODO: This should be a task parameter so we can keep this function generic
 				if (task.desc.startsWith('Batch'))
-					this.ns.print(`WARN: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+					this.ns.print(ANSI_COLORS.y, `Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
 				else
-					this.ns.print(`FAIL: Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+					this.ns.print(ANSI_COLORS.y, `Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
 
 				task.aborted = true;
 				continue;

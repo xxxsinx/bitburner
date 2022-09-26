@@ -1,6 +1,6 @@
 /** @param {NS} ns */
 export async function main(ns) {
-	const [id, type, duration, port = null] = ns.args;
+	const [id, desc, type, duration, port = null] = ns.args;
 
 	// Fake a hack/grow/weaken job
 	const start = performance.now();
@@ -9,5 +9,5 @@ export async function main(ns) {
 
 	// Report back to the manager
 	if (port != null)
-		await ns.writePort(port, JSON.stringify({ id: id, type: type, start: start, end: end }));
+		await ns.writePort(port, JSON.stringify({ id: id, desc: desc, type: type, start: start, end: end }));
 }

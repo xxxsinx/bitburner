@@ -3,7 +3,7 @@ import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 // Returns a weight that can be used to sort servers by hack desirability
 function Weight(ns, server) {
 	if (!server) return 0;
-	
+
 	// Don't ask, endgame stuff
 	if (server.startsWith('hacknet-node')) return 0;
 
@@ -23,14 +23,14 @@ function Weight(ns, server) {
 	let weight = so.moneyMax / so.minDifficulty;
 
 	// If we have formulas, we can refine the weight calculation
-	if (ns.fileExists('Formulas.exe')) {
+	if (HasFormulas(ns)) {
 		// We use weakenTime instead of minDifficulty since we got access to it, 
 		// and we add hackChance to the mix (pre-formulas.exe hack chance formula is based on current security, which is useless)
 		weight = so.moneyMax / ns.formulas.hacking.weakenTime(so, player) * ns.formulas.hacking.hackChance(so, player);
 	}
 	else
 		// If we do not have formulas, we can't properly factor in hackchance, so we lower the hacking level tolerance by half
-		if (so.requiredHackingSkill > player.skills.hacking / 2)
+		if (so.requiredHackingSkill > player.skills.hacking / 2 && server != 'n00dles')
 			return 0;
 
 	return weight;
@@ -59,10 +59,16 @@ export async function main(ns) {
 		{ header: ' MinSec', width: 8 },
 		{ header: ' HackReq', width: 9 },
 		{ header: ' Prepped', width: 9 },
-		{ header: ' Chance', width: 8 },
-		{ header: ' Weaken Time', width: 24 },
 		{ header: ' Weight', width: 9 }
 	];
+
+	if (HasFormulas(ns)) {
+		columns.push(
+			{ header: ' Chance', width: 8 },
+			{ header: ' Weaken Time', width: 24 },
+			{ header: ' XP', width: 9 }
+		);
+	}
 
 	let data = [];
 
@@ -134,9 +140,9 @@ export async function main(ns) {
 
 		let hackable = so.moneyMax > 0 && so.hasAdminRights;
 
-		let weight = Weight(ns, server.name) / Weight(ns, shortlist[shortlist.length - 1].name);
+		let weight = shortlist.length > 0 ? Weight(ns, server.name) / Weight(ns, shortlist[shortlist.length - 1].name) : 0;
 
-		data.push([
+		let values = [
 			{ color: 'white', text: ' ' + (hackingOnly ? '' : prefix) + server.name },
 			{ color: 'white', text: server.sym ? ' ' + server.sym.padEnd(5) : ''.padStart(5) },
 			{ color: maxRam > 0 ? freeRamColor : '#555555', text: ' ' + freeRamString.padStart(7) + (maxRam == 0 ? ' ' : '/') + ramString.padStart(7) + ' ' + ramPct.padStart(4) },
@@ -145,10 +151,18 @@ export async function main(ns) {
 			hackable ? { color: 'white', text: ' ' + Math.round(so.minDifficulty).toString().padStart(4) } : '',
 			{ color: hackReqColor, text: ' ' + so.requiredHackingSkill.toString().padStart(5) },
 			hackable ? { color: prepped ? 'lime' : '#555555', text: prepped ? '   Yes' : '    -' } : '',
-			hackable ? { color: pctColor(chance), text: ' ' + (Math.round(chance * 100) + '%').padStart(5) } : '',
-			hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : '',
 			weight ? { color: 'white', text: ' ' + (weight).toFixed(0) } : ''
-		]);
+		];
+
+		if (HasFormulas(ns)) {
+			values.push(
+				hackable ? { color: pctColor(chance), text: ' ' + (Math.round(chance * 100) + '%').padStart(5) } : '',
+				hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : '',
+				' ' + (ns.formulas.hacking.hackExp(so, player) / weakTime * 100000).toFixed(5)
+			);
+		}
+
+		data.push(values);
 	}
 
 	PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
@@ -156,14 +170,14 @@ export async function main(ns) {
 
 function GetHackChance(ns, serverObject, player) {
 	if (serverObject.hostname.startsWith('hacknet-node')) return 0;
-	if (ns.fileExists('Formulas.exe'))
+	if (HasFormulas(ns))
 		return ns.formulas.hacking.hackChance(serverObject, player);
 	return ns.hackAnalyzeChance(serverObject.hostname);
 }
 
 function GetWeakenTime(ns, serverObject, player) {
 	if (serverObject.hostname.startsWith('hacknet-node')) return 0;
-	if (ns.fileExists('Formulas.exe'))
+	if (HasFormulas(ns))
 		return ns.formulas.hacking.weakenTime(serverObject, player);
 	return ns.getWeakenTime(serverObject.hostname);
 }
@@ -303,4 +317,8 @@ export async function GetSymbolAssociations(ns, servers) {
 
 	// Future use maybe?
 	return data;
+}
+
+export function HasFormulas(ns) {
+	try { ns.formulas.hacknetNodes.constants(); return true; } catch { return false; }
 }

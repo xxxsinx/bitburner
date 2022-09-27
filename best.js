@@ -1,11 +1,22 @@
 /** @param {NS} ns */
 export async function main(ns) {
+	const [runCount = 0, scriptName = 'v1.js', pct = 0.25] = ns.args;
+
 	let servers = GetAllServers(ns).filter(s => Weight(ns, s) > 0);
 	servers.sort((a, b) => Weight(ns, b) - Weight(ns, a));
+
+	let ran = 0;
 
 	ns.tprint('Best servers: ');
 	for (let server of servers) {
 		ns.tprint(server.padEnd(20) + ': ' + Weight(ns, server));
+		if (ran < runCount) {
+			let pid = ns.run(scriptName, 1, server, pct);
+			if (pid != 0) {
+				ns.tprint('INFO: Started ' + scriptName + ' on ' + server);
+				ran++;
+			}
+		}
 	}
 }
 

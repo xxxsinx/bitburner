@@ -84,9 +84,9 @@ export async function main(ns) {
 
 function GetProcessDetails(ns, server) {
 	const categories = [
-		{ script: 'weaken-once.js', header: 'Weaken' },
-		{ script: 'grow-once.js', header: 'Grow' },
-		{ script: 'hack-once.js', header: 'Hack' },
+		{ script: 'weaken', header: 'Weaken' },
+		{ script: 'grow', header: 'Grow' },
+		{ script: 'hack', header: 'Hack' },
 		{ script: 'share-forever.js', header: 'Share' },
 		{ script: 'charge.js', header: 'Charge' }
 	];
@@ -95,7 +95,7 @@ function GetProcessDetails(ns, server) {
 	let serverRam = ns.getServer(server).maxRam;
 
 	let ret = categories.map(function (cat) {
-		let matches = procs.filter(p => p.filename == cat.script);
+		let matches = procs.filter(p => p.filename.startsWith(cat.script));
 		let ram = matches.reduce((a, s) => a += s.threads * ns.getScriptRam(s.filename, server), 0);
 		let pct = Math.round(ram / serverRam * 100);
 		return { category: cat, percent: pct, ram: ram };

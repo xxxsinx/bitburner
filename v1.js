@@ -1,6 +1,7 @@
-const MAX_SECURITY_DRIFT = 3; // This is how far from minimum security we allow the server to be before weakening
-const MAX_MONEY_DRIFT_PCT = 0.1; // This is how far from 100% money we allow the server to be before growing (1-based percentage)
-const DEFAULT_PCT = 0.25; // This is the default 1-based percentage of money we want to hack from the server in a single pass
+const MAX_SECURITY_DRIFT = 3;		// This is how far from minimum security we allow the server to be before weakening
+const MAX_MONEY_DRIFT_PCT = 0.1;	// This is how far from 100% money we allow the server to be before growing (1-based percentage)
+const DEFAULT_PCT = 0.25;			// This is the default 1-based percentage of money we want to hack from the server in a single pass
+const MIN_HOME_RAM = 32;			// Number of GBs we want to keep free on home
 
 let xpMode = false;
 
@@ -178,7 +179,11 @@ async function RunScript(ns, scriptName, target, threads, hackedOnce) {
 
 	for (const server of usableServers) {
 		// Determin how many threads we can run on target server for the given script
-		const availableRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server);
+		let availableRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server);
+		if (server == 'home') {
+			availableRam -= MIN_HOME_RAM;
+			if (availableRam < 0) availableRam = 0;
+		}
 		let possibleThreads = Math.floor(availableRam / ramPerThread);
 
 		// Check if server is already at max capacity

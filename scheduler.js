@@ -16,12 +16,12 @@ const ANSI_COLORS = {
 	"d": "\x1b[0m"
 }
 
+// Amount of time between jobs. The same spacer is used between batches as well.
+const SPACER = 25;
+
 export async function main(ns) {
 	ns.disableLog('ALL');
 	ns.tail();
-
-	// Amount of time between jobs. The same spacer is used between batches as well.
-	const SPACER = 25;
 
 	// Port used by the worker scripts to report their death to this script
 	const PORT = 1;
@@ -85,7 +85,7 @@ export async function main(ns) {
 		for (let batch of batches) {
 			batch.Validate();
 		}
-		batches= batches.filter(s=> s.reports.length < 4);
+		batches = batches.filter(s => s.reports.length < 4 && !s.aborted);
 
 		// Yield CPU to other scripts
 		await ns.asleep(0);
@@ -165,7 +165,15 @@ class Batch {
 		if (this.started) {
 			if ([H, W1, G, W2].some(s => this.GetJobDrift(s) > this.metrics.tolerance * 5)) {
 				this.ns.print(ANSI_COLORS.y, 'Batch ' + this.id + ' has some jobs past tolerance');
+				// if ([H, W1, G, W2].some(s => this.GetJobDrift(s) > this.metrics.tolerance * 15)) {
+				// 	this.ns.print(ANSI_COLORS.y, 'Batch ' + this.id + ' has some jobs past tolerance');
+				// }
 			}
+		}
+
+		if (performance.now() > (this.started + this.metrics.times[W1] + 3 * SPACER) + SPACER * 5) {
+			this.ns.print(ANSI_COLORS.r, 'Batch ' + this.id + ' gone on too long, cancelling');
+			this.aborted = true;
 		}
 
 		if (this.reports.length != 4) return;
@@ -262,7 +270,7 @@ class ClockSync {
 				if (task.desc.startsWith('Batch'))
 					this.ns.print(ANSI_COLORS.y, `Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
 				else
-					this.ns.print(ANSI_COLORS.y, `Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
+					this.ns.print(ANSI_COLORS.r, `Task ${task.desc} cancelled... drift=${Math.ceil(drift)}`);
 
 				task.aborted = true;
 				continue;

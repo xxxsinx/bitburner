@@ -189,8 +189,8 @@ async function RunScript(ns, scriptName, target, threads, hackedOnce) {
 		if (possibleThreads > threads - fired)
 			possibleThreads = threads - fired;
 
-		// Copy script to the server
-		if (server != 'home')
+		// Copy script to the server if it's not the current
+		if (server != ns.getHostname())
 			await ns.scp(scriptName, server);
 
 		// Fire the script with as many threads as possible
@@ -198,10 +198,10 @@ async function RunScript(ns, scriptName, target, threads, hackedOnce) {
 		let pid = ns.exec(scriptName, server, possibleThreads, target);
 		if (pid == 0)
 			ns.print('WARN: Could not start script ' + scriptName + ' on ' + server + ' with ' + possibleThreads + ' threads');
-		else
+		else {
+			fired += possibleThreads;
 			pids.push(pid);
-
-		fired += possibleThreads;
+		}
 
 		if (fired >= threads) break;
 	}

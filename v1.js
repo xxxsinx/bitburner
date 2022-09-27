@@ -162,7 +162,12 @@ export async function WaitPids(ns, pids) {
 
 async function RunScript(ns, scriptName, target, threads, hackedOnce) {
 	// Find all servers
-	const allServers = RecursiveScan(ns);
+	let allServers = RecursiveScan(ns);
+	if (ns.args.length > 2) {
+		allServers = [];
+		for (let i = 2; i < ns.args.length; i++)
+			allServers.push(ns.args[i])
+	}
 
 	// Sort by maximum memory
 	allServers.sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));

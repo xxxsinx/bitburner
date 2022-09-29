@@ -23,13 +23,17 @@ export async function main(ns) {
 
 	// No parameter, we list the menu
 	if (ns.args[0] == null && ns.args[1] == null) {
-		for (var i = 1; i <= 30; i++) {
+		for (var i = 1; i <= 20; i++) {
 			var ram = Math.pow(2, i);
 			var cost = ns.getPurchasedServerCost(ram);
 			ns.tprint(i + ': ' + ns.nFormat(ram * 1000000000, '0.00b') + (i <= 20 ? ' RAM = ' + ns.nFormat(cost, "$0.0a") : ''));
-			if (i == 20)
-				ns.tprint('---------------------------')
 		}
+
+		// for (var i = 1; i <= 30; i++) {
+		// 	var ram = Math.pow(2, i);
+		// 	var cost = ns.singularity.getUpgradeHomeRamCost(ram);
+		// 	ns.tprint(i + ': ' + ns.nFormat(ram * 1000000000, '0.00b') + ' RAM = ' + ns.nFormat(cost, "$0.0a"));
+		// }
 
 		return;
 	}

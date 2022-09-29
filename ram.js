@@ -228,7 +228,96 @@ export class MemoryMap {
 }
 
 
-export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
+export function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
+	return RunScript2(ns, scriptName, threads, [target, delay, expectedTime, batchNumber, logColor], allowSpread, allowPartial);
+	// let ramMap = new MemoryMap(ns);
+
+	// // Find script RAM usage
+	// let ram = ns.getScriptRam(scriptName);
+
+	// // Fired threads counter
+	// let fired = 0;
+	// let pids = new Array();
+
+	// let prot = 0;
+
+	// let unique = 0;
+
+	// while (fired < threads) {
+	// 	// const biggest = ramMap.BiggestBlock();
+	// 	// let maxThreads = Math.floor(biggest / ram);
+	// 	// if (maxThreads == 0) break;
+	// 	// if (maxThreads > threads - fired) {
+	// 	// 	maxThreads = threads - fired;
+	// 	// }
+	// 	// const blockSize = maxThreads * ram;
+	// 	// const server = ramMap.ReserveBlock(blockSize);
+
+	// 	let candidate = ramMap.BiggestBlock();
+	// 	// if (allowSpread) {
+	// 	// 	candidate = ramMap.SmallestBlock(ram);
+	// 	// 	//ns.tprint('smallest='+ candidate);
+	// 	// }
+
+	// 	let maxThreads = Math.floor(candidate / ram);
+	// 	if (maxThreads == 0) break;
+	// 	if (maxThreads > threads - fired) {
+	// 		maxThreads = threads - fired;
+	// 	}
+	// 	const blockSize = maxThreads * ram;
+	// 	const server = ramMap.ReserveBlock(blockSize);
+
+	// 	if (server != undefined) {
+	// 		// if (!ns.fileExists(scriptName, server)) {
+	// 		// 	ns.print('WARN: ' + scriptName + ' not found on ' + server);
+	// 		// 	ns.print('WARN: Attempting to copy ' + scriptName + ' to ' + server);
+
+	// 		await ns.scp(scriptName, server, "home");
+
+	// 		// 	if (!ns.fileExists(scriptName, server)) {
+	// 		// 		ns.print('FAIL: Could not copy ' + scriptName + ' to ' + server + ', aborting.');
+	// 		// 		break;
+	// 		// 	}
+	// 		// 	else {
+	// 		// 		ns.print('SUCCESS: Copied ' + scriptName + ' to ' + server + ', resuming.');
+	// 		// 	}
+	// 		// }
+
+	// 		//ns.print('Attempting to start ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
+	// 		let pid = ns.exec(scriptName, server, maxThreads, target, delay, expectedTime, batchNumber, logColor, performance.now() + unique++);
+	// 		if (pid > 0) {
+	// 			ns.print('Started script ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
+	// 			pids.push(pid);
+	// 			fired += maxThreads;
+	// 		}
+	// 		else {
+	// 			ns.print('FAIL: Failed to launch script ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
+	// 		}
+	// 	}
+	// 	else if (!allowPartial) {
+	// 		// Couldn't find a block big enough so can't allowPartial
+	// 		break;
+	// 	}
+	// 	else if (!allowSpread) {
+	// 		// Couldn't find a block big enough and cannot allowSpread
+	// 		break;
+	// 	}
+
+	// 	prot++;
+	// 	if (prot > 100) {
+	// 		ns.print('ERROR: RunScript infinite loop detected.');
+	// 		ns.print('INFO: candidate= ' + candidate + ' ram= ' + ram + ' maxThreads= ' + maxThreads + ' threads= ' + threads + ' fired=' + fired + ' blockSize=' + blockSize);
+	// 		break;
+	// 	}
+	// }
+
+	// if (fired != threads) {
+	// 	ns.print('ERROR: No server big enough to handle ' + threads + ' threads of ' + scriptName + ' (fired ' + fired + ' total)');
+	// }
+	// return pids;
+}
+
+export function RunScript2(ns, scriptName, threads, params, allowSpread, allowPartial) {
 	let ramMap = new MemoryMap(ns);
 
 	// Find script RAM usage
@@ -271,7 +360,7 @@ export async function RunScript(ns, scriptName, target, threads, delay, expected
 			// 	ns.print('WARN: ' + scriptName + ' not found on ' + server);
 			// 	ns.print('WARN: Attempting to copy ' + scriptName + ' to ' + server);
 
-			await ns.scp(scriptName, server, "home");
+			ns.scp(scriptName, server, "home");
 
 			// 	if (!ns.fileExists(scriptName, server)) {
 			// 		ns.print('FAIL: Could not copy ' + scriptName + ' to ' + server + ', aborting.');
@@ -283,7 +372,7 @@ export async function RunScript(ns, scriptName, target, threads, delay, expected
 			// }
 
 			//ns.print('Attempting to start ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
-			let pid = ns.exec(scriptName, server, maxThreads, target, delay, expectedTime, batchNumber, logColor, performance.now() + unique++);
+			let pid = ns.exec(scriptName, server, maxThreads, ...params, performance.now() + unique++);
 			if (pid > 0) {
 				ns.print('Started script ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
 				pids.push(pid);

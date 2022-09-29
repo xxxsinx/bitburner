@@ -1,3 +1,8 @@
+import { Prep, IsPrepped } from "prep.js";
+import { BATCH_SPACER, MaxHackForServer, GetBestMetricsForServer, HGW_MODE } from "metrics.js";
+import { RunScript2, MemoryMap } from "ram.js";
+import { HasFormulas, ServerReport, WaitPids } from "utils.js";
+
 // We define constants to index the times and delays in metrics
 const H = 0;
 const W1 = 1;
@@ -21,6 +26,13 @@ const SPACER = 25;
 
 export async function main(ns) {
 	ns.disableLog('ALL');
+
+	let [target] = ns.args;
+	if (target == null) {
+		ns.tprint('FAIL: Scheduler called without a target! Example usage: run scheduler n00dles');
+		return;
+	}
+
 	ns.tail();
 
 	// Port used by the worker scripts to report their death to this script
@@ -41,17 +53,23 @@ export async function main(ns) {
 
 	// Semi-bogus metrics, those were precalculated using a script from my repo (n00dles at hack level 2706 with no augs, if you're curious)
 	// Order is H, W1, G, W2
-	let metrics = {
-		// This is how long we expect each job to last. For the purpose of this test the fake job script we call simply sleeps for that amount of time
-		// to simulate each type of job
-		"times": [524, 2094, 1675, 2094],
-		// This is how long we need to wait from batch start to kick each job
-		"delays": [1540, 0, 449, 60],
-		// Delay between jobs
-		delay: SPACER,
-		// Tolerance
-		tolerance: SPACER / 1.5
-	};
+	// let metrics = {
+	// 	// This is how long we expect each job to last. For the purpose of this test the fake job script we call simply sleeps for that amount of time
+	// 	// to simulate each type of job
+	// 	"times": [524, 2094, 1675, 2094],
+	// 	// This is how long we need to wait from batch start to kick each job
+	// 	"delays": [1540, 0, 449, 60],
+	// 	// Delay between jobs
+	// 	delay: SPACER,
+	// 	// Tolerance
+	// 	tolerance: SPACER / 1.5
+	// };
+
+	let metrics = await GetBestMetricsForServer(ns, target, 1, MaxHackForServer(ns, target), 1);
+	metrics.delay = SPACER;
+	metrics.tolerance = SPACER / 1.5;
+
+	ServerReport(ns, target, metrics);
 
 	// Simply an array to track batches. We currently never purge this array so don't leave it running too long or it will pile up
 	// and it might skew the results/behavior
@@ -63,6 +81,8 @@ export async function main(ns) {
 	while (true) {
 		// Look for 'Batch' tasks and add some if we're under the target. We're using a target of 1 for this test.
 		while (clock.tasks.filter(t => t.desc.startsWith('Batch')).length < 2) {
+			if (!BatchFitsInMemoryBlocks(ns, metrics)) break;
+
 			const batch = new Batch(ns, id++, metrics);
 			batches.push(batch);
 			batch.Schedule(clock, nextBatch, PORT);
@@ -134,7 +154,25 @@ class Batch {
 	// Desyncs are inconsequential, since they do not affect any servers. The script just sleeps for the duration to simulate
 	// a hack, grow or weaken call
 	StartJob(desc, type, duration) {
-		this.ns.exec('fakejob.js', 'home', 1, this.id, desc, type, duration, this.port);
+		let script = undefined;
+
+		switch (type) {
+			case H:
+				script = 'hack-jit.js';
+				break;
+			case G:
+				script = 'grow-jit.js';
+				break;
+			case W1:
+				script = 'weaken-jit.js';
+				break;
+			case W2:
+				script = 'weaken-jit.js';
+				break;
+		}
+
+		let pids = RunScript2(this.ns, script, this.metrics.threads[type], [this.id, this.metrics.server, desc, type, duration, this.port], type == W1 || type == W2, false);
+		//this.ns.exec(script, 'home', 1, this.id, desc, type, duration, this.port);
 	}
 
 	LogReport(data) {
@@ -310,6 +348,38 @@ class ClockSync {
 	PurgeTasks() {
 		this.tasks = this.tasks.filter(t => t.started == null && t.aborted == false);
 	}
+}
+
+export function BatchFitsInMemoryBlocks(ns, metrics) {
+	const mem = new MemoryMap(ns);
+
+	const HACK_RAM = ns.getScriptRam('hack-jit.js');
+	const GROW_RAM = ns.getScriptRam('grow-jit.js');
+	const WEAKEN_RAM = ns.getScriptRam('weaken-jit.js');
+
+	// Failsafe, on veut pas trop taxer
+	if (metrics.batchRam > mem.available * 0.9) {
+		//ns.print('Batch won\'t fit in 90% of total ram (failsalfe)');
+		return false;
+	}
+
+	if (mem.ReserveBlock(metrics.threads[H] * HACK_RAM) == undefined) {
+		// ns.print('Could not find a block big enough for ' + metrics.threads[H] + ' hack threads');
+		// ns.print('Required = ' + metrics.threads[H] * HACK_RAM + ' Biggest block = ' + mem.BiggestBlock());
+
+		return false;
+	}
+	if (mem.ReserveBlock(metrics.threads[G] * GROW_RAM) == undefined) {
+		//ns.print('Could not find a block big enough for ' + metrics.threads[G] + ' grow threads');
+		return false;
+	}
+	for (let i = 0; i < (metrics.threads[W1] + metrics.threads[W2]) * WEAKEN_RAM; i++) {
+		if (mem.ReserveBlock(WEAKEN_RAM) == undefined) {
+			//ns.print('Could not find enough network RAM for ' + (metrics.threads[W1] + metrics.threads[W2]) + ' weaken threads');
+			return false;
+		}
+	}
+	return true;
 }
 
 // // Test function to start a mock batch. It simply adds them as tasks in the ClockSync instance.

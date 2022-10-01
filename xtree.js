@@ -66,7 +66,7 @@ export async function main(ns) {
 		columns.push(
 			{ header: ' Chance', width: 8 },
 			{ header: ' Weaken Time', width: 24 },
-			{ header: ' XP', width: 9 }
+			{ header: ' XP', width: 12 }
 		);
 	}
 
@@ -155,10 +155,16 @@ export async function main(ns) {
 		];
 
 		if (HasFormulas(ns)) {
+			ns.tprint(so.hostname);
+			let xp= 0;
+			try {
+				xp = ns.formulas.hacking.hackExp(so, player) / weakTime * 100000;
+			} catch { }
+
 			values.push(
 				hackable ? { color: pctColor(chance), text: ' ' + (Math.round(chance * 100) + '%').padStart(5) } : '',
 				hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : '',
-				' ' + (ns.formulas.hacking.hackExp(so, player) / weakTime * 100000).toFixed(5)
+				' ' + xp.toFixed(5)
 			);
 		}
 

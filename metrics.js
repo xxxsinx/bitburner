@@ -70,18 +70,22 @@ export async function GetBestMetricsForServer(ns, server, minThreads, maxThreads
 
 // Solve for number of growth threads required to get from money_lo to money_hi
 function solveGrow(base, money_lo, money_hi) {
-    if (money_lo >= money_hi) { return 0; }
+	if (money_lo >= money_hi) { return 0; }
 
-    let threads = 1000;
-    let prev = threads;
-    for (let i = 0; i < 30; ++i) {
-        let factor = money_hi / Math.min(money_lo + threads, money_hi - 1);
-        threads = Math.log(factor) / Math.log(base);
-        if (Math.ceil(threads) == Math.ceil(prev)) { break; }
-        prev = threads;
-    }
+	let threads = 1000;
+	let prev = threads;
+	for (let i = 0; i < 30; ++i) {
+		let factor = money_hi / Math.min(money_lo + threads, money_hi - 1);
+		threads = Math.log(factor) / Math.log(base);
+		if (Math.ceil(threads) == Math.ceil(prev)) { break; }
+		prev = threads;
+	}
 
-    return Math.ceil(Math.max(threads, prev, 0));
+	return Math.ceil(Math.max(threads, prev, 0));
+}
+
+export function growthIdeal(ns, server, growthAmount, cores) {
+	return Math.log(Math.pow(Math.min(1 + .03 / ns.getServerSecurityLevel(server), 1.0035), ns.growthAnalyze(server, growthAmount, cores))) / Math.log(Math.min(1 + .03 / ns.getServerMinSecurityLevel(server), 1.0035))
 }
 
 /** @param {NS} ns **/
@@ -122,46 +126,46 @@ export async function main(ns) {
 
 	// This is a test to compare different grow thread calculation methods
 	if (server == 'grow') {
-		let player= ns.getPlayer();
+		let player = ns.getPlayer();
 
-		let start= performance.now();
+		//let start = performance.now();
 		for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
-			let so= ns.getServer(server);
-			so.hackDifficulty= so.minDifficulty;
-			so.moneyAvailable= 0;
+			let so = ns.getServer(server);
+			so.hackDifficulty = so.minDifficulty;
+			so.moneyAvailable = 0;
 
-			let a = calculateGrowThreads(ns, so, player, 1);
+			//let a = calculateGrowThreads(ns, so, player, 1);
 
-			// let metrics = new Metrics(ns, server, 1, 30, 1);
+			let metrics = new Metrics(ns, server, 0.99, 30, 1);
 
-			// let w = metrics.threads[G];
-			// let b = metrics.debugThreadsG;
+			let w = metrics.threads[G];
+			let b = metrics.debugThreadsG;
 
-			// let pct = Math.round(b * 100 / w) - 100;
+			let pct = Math.round(b * 100 / w) - 100;
 
-			// ns.tprint(server.padEnd(25) + ('fish: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+			ns.tprint(server.padEnd(25) + ('jean: ' + metrics.debugThreadsG).padEnd(25) + (' formulas: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
 			await ns.sleep(0);
 		}
-		ns.tprint('end: ' + (performance.now() - start));
-		start= performance.now();
-		for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
-			let so= ns.getServer(server);
-			so.hackDifficulty= so.minDifficulty;
-			so.moneyAvailable= 0;
+		// ns.tprint('end: ' + (performance.now() - start));
+		// start = performance.now();
+		// for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
+		// 	let so = ns.getServer(server);
+		// 	so.hackDifficulty = so.minDifficulty;
+		// 	so.moneyAvailable = so.moneyMax * 0.9;
 
-			let b=  solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
+		// 	let b = solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
 
-			// let metrics = new Metrics(ns, server, 1, 30, 1);
+		// 	// let metrics = new Metrics(ns, server, 1, 30, 1);
 
-			// let w = metrics.threads[G];
-			// let b = metrics.debugThreadsG;
+		// 	// let w = metrics.threads[G];
+		// 	// let b = metrics.debugThreadsG;
 
-			// let pct = Math.round(b * 100 / w) - 100;
+		// 	// let pct = Math.round(b * 100 / w) - 100;
 
-			// ns.tprint(server.padEnd(25) + ('fish: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
-			await ns.sleep(0);
-		}
-		ns.tprint('end: ' + (performance.now() - start));
+		// 	// ns.tprint(server.padEnd(25) + ('fish: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+		// 	await ns.sleep(0);
+		// }
+		//ns.tprint('end: ' + (performance.now() - start));
 		return;
 	}
 
@@ -470,12 +474,15 @@ export class Metrics {
 		// const growFactor = 1 / (1 - ((so.moneyMax - 0.01) / so.moneyMax));
 		// this.debugThreadsG = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(so, 1, player, this.cores)));
 
-		this.debugThreadsG= solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
+		//this.debugThreadsG= solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
+
+		if (so.moneyAvailable == 0) so.moneyAvailable = 1;
+		this.debugThreadsG = Math.ceil(growthIdeal(ns, this.server, so.moneyMax / so.moneyAvailable, 1));
 
 		// let opts = {
 		// 	moneyAvailable: so.moneyAvailable,
 		// 	hackDifficulty: so.minDifficulty,
-		// 	ServerGrowthRate: ns.getBitNodeMultipliers().ServerGrowthRate
+		 	//ServerGrowthRate: ns.getBitNodeMultipliers().ServerGrowthRate
 		// };
 		// this.threads[G] = calculateGrowThreadsLambert(ns, so.hostname, so.moneyMax - so.moneyAvailable, 1, opts);
 		//this.debugThreadsG = calculateGrowThreadsLambert(ns, so.hostname, so.moneyMax - so.moneyAvailable, 1, opts);

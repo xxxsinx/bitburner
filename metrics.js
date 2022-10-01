@@ -1,5 +1,5 @@
 import { MemoryMap } from "ram.js";
-import { HasFormulas, FormatMoney, GetAllServers, ColorPrint } from "utils.js";
+import { HasFormulas, FormatMoney, GetAllServers, ColorPrint, GetNextLevelXp } from "utils.js";
 import { PrintTable, DefaultStyle } from 'tables.js'
 
 export const H = 0;		// Index of HACK data
@@ -7,7 +7,7 @@ export const W1 = 1;	// Index of first WEAKEN data
 export const G = 2;		// Index of GROW data
 export const W2 = 3;	// Index of second WEAKEN data
 
-export const BATCH_SPACER = 30; // Spacer between jobs (and batches) in milliseconds
+export const BATCH_SPACER = 25; // Spacer between jobs (and batches) in milliseconds
 
 export let HGW_MODE = false;
 
@@ -18,7 +18,7 @@ let GROW_RAM = undefined;
 let WEAKEN_RAM = undefined;
 
 const LEECH = [
-	0.00366, 0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
+	0.01, 0.02, 0.03, 0.04, 0.05, 0.0833, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
 ];
 
 export function MaxHackForServer(ns, server) {
@@ -108,9 +108,6 @@ export async function main(ns) {
 		return;
 	}
 
-
-
-
 	let start = performance.now();
 
 	if (!HasFormulas(ns)) {
@@ -125,49 +122,49 @@ export async function main(ns) {
 		HGW_MODE = HGW;
 
 	// This is a test to compare different grow thread calculation methods
-	if (server == 'grow') {
-		let player = ns.getPlayer();
+	// if (server == 'grow') {
+	// 	let player = ns.getPlayer();
 
-		//let start = performance.now();
-		for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
-			let so = ns.getServer(server);
-			so.hackDifficulty = so.minDifficulty;
-			so.moneyAvailable = 0;
+	// 	//let start = performance.now();
+	// 	for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
+	// 		let so = ns.getServer(server);
+	// 		so.hackDifficulty = so.minDifficulty;
+	// 		so.moneyAvailable = 0;
 
-			//let a = calculateGrowThreads(ns, so, player, 1);
+	// 		//let a = calculateGrowThreads(ns, so, player, 1);
 
-			let metrics = new Metrics(ns, server, 0.99, 30, 1);
+	// 		let metrics = new Metrics(ns, server, 0.99, 30, 1);
 
-			let w = metrics.threads[G];
-			let b = metrics.debugThreadsG;
+	// 		let w = metrics.threads[G];
+	// 		let b = metrics.debugThreadsG;
 
-			let pct = Math.round(b * 100 / w) - 100;
+	// 		let pct = Math.round(b * 100 / w) - 100;
 
-			ns.tprint(server.padEnd(25) + ('jean: ' + metrics.debugThreadsG).padEnd(25) + (' formulas: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
-			await ns.sleep(0);
-		}
-		// ns.tprint('end: ' + (performance.now() - start));
-		// start = performance.now();
-		// for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
-		// 	let so = ns.getServer(server);
-		// 	so.hackDifficulty = so.minDifficulty;
-		// 	so.moneyAvailable = so.moneyMax * 0.9;
+	// 		ns.tprint(server.padEnd(25) + ('jean: ' + metrics.debugThreadsG).padEnd(25) + (' formulas: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+	// 		await ns.sleep(0);
+	// 	}
+	// 	// ns.tprint('end: ' + (performance.now() - start));
+	// 	// start = performance.now();
+	// 	// for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0 /*&& ns.hasRootAccess(s)*/).sort(s => ns.getServerMaxMoney(s))) {
+	// 	// 	let so = ns.getServer(server);
+	// 	// 	so.hackDifficulty = so.minDifficulty;
+	// 	// 	so.moneyAvailable = so.moneyMax * 0.9;
 
-		// 	let b = solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
+	// 	// 	let b = solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
 
-		// 	// let metrics = new Metrics(ns, server, 1, 30, 1);
+	// 	// 	// let metrics = new Metrics(ns, server, 1, 30, 1);
 
-		// 	// let w = metrics.threads[G];
-		// 	// let b = metrics.debugThreadsG;
+	// 	// 	// let w = metrics.threads[G];
+	// 	// 	// let b = metrics.debugThreadsG;
 
-		// 	// let pct = Math.round(b * 100 / w) - 100;
+	// 	// 	// let pct = Math.round(b * 100 / w) - 100;
 
-		// 	// ns.tprint(server.padEnd(25) + ('fish: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
-		// 	await ns.sleep(0);
-		// }
-		//ns.tprint('end: ' + (performance.now() - start));
-		return;
-	}
+	// 	// 	// ns.tprint(server.padEnd(25) + ('fish: ' + metrics.debugThreadsG).padEnd(25) + (' Lambert: ' + metrics.threads[G]).padEnd(25) + ' %: ' + pct.toString().padStart(4));
+	// 	// 	await ns.sleep(0);
+	// 	// }
+	// 	//ns.tprint('end: ' + (performance.now() - start));
+	// 	return;
+	// }
 
 	if (server == undefined) {
 		await AnalyzeAllServers(ns, maxNetworkRamPct);
@@ -198,7 +195,9 @@ export async function main(ns) {
 			{ header: ' Charts', width: 34 },
 			{ header: ' Threads', width: 37 },
 			{ header: ' Cycle $', width: 9 },
-			{ header: ' Cycle time', width: 25 }
+			{ header: ' Cycle time', width: 25 },
+			{ header: ' Batch XP', width: 10 },
+			{ header: ' Max to lvl', width: 12 }
 		];
 
 		const barchar = '■';
@@ -221,7 +220,9 @@ export async function main(ns) {
 				{ color: metrics.maxRunnableBatches == 0 ? 'red' : 'lime', text: metrics.maxRunnableBatches == 0 ? ' Not enough RAM available!' : '$/sec'.padStart(6) + ' '.padEnd(pctOfMax / 4 + 2, barchar) },
 				{ color: 'orange', text: 'H ' + metrics.threads[H].toString().padStart(7) + ' '.padEnd(pctH / 4 + 2, barchar) },
 				{ color: 'white', text: ns.nFormat(metrics.batchMoney * metrics.maxRunnableBatches, '0.0a').padStart(8) },
-				{ color: 'white', text: ' ' + ns.tFormat(metrics.batchTime + BATCH_SPACER * metrics.maxRunnableBatches).padStart(9) }
+				{ color: 'white', text: ' ' + ns.tFormat(metrics.batchTime + BATCH_SPACER * metrics.maxRunnableBatches).padStart(9) },
+				{ color: 'white', text: ' ' + ns.nFormat(metrics.batchXp, '0.000a').padStart(8) },
+				{ color: 'white', text: ' ' + Math.ceil(GetNextLevelXp(ns).remaining / metrics.batchXp).toString().padStart(10) }
 			]);
 
 			pctOfMax = Math.round(metrics.maxRunnableBatches / batches[ramorder.length - 1].maxRunnableBatches * 100);
@@ -236,6 +237,8 @@ export async function main(ns) {
 				{ color: 'white', text: '' },
 				{ color: 'orange', text: metrics.maxRunnableBatches == 0 ? '' : 'Count'.padStart(6) + ' '.padEnd(pctOfMax / 4 + 2, barchar) },
 				{ color: 'lime', text: 'G ' + metrics.threads[G].toString().padStart(7) + ' '.padEnd(pctG / 4 + 2, barchar) },
+				{ color: 'white', text: '' },
+				{ color: 'white', text: '' },
 				{ color: 'white', text: '' },
 				{ color: 'white', text: '' }
 			]);
@@ -253,6 +256,8 @@ export async function main(ns) {
 				{ color: 'white', text: '' },
 				{ color: 'yellow', text: metrics.maxRunnableBatches == 0 ? '' : 'B.Ram'.padStart(6) + ' '.padEnd(pctOfMax / 4 + 2, barchar) },
 				{ color: '#4488FF', text: 'W ' + weakenThreadsText.padStart(7) + ' '.padEnd(pctW / 4 + 2, barchar) },
+				{ color: 'white', text: '' },
+				{ color: 'white', text: '' },
 				{ color: 'white', text: '' },
 				{ color: 'white', text: '' }
 			]);
@@ -360,6 +365,8 @@ export class Metrics {
 		this.effectivePct = undefined;
 		this.moneyPerRam = undefined;
 		this.maxRunnableBatches = undefined;
+		this.jobXp = new Array(undefined, undefined, undefined, undefined);
+		this.batchXp = undefined;
 
 		// Fill the data
 		this.UpdateMetrics(ns);
@@ -482,7 +489,7 @@ export class Metrics {
 		// let opts = {
 		// 	moneyAvailable: so.moneyAvailable,
 		// 	hackDifficulty: so.minDifficulty,
-		 	//ServerGrowthRate: ns.getBitNodeMultipliers().ServerGrowthRate
+		//ServerGrowthRate: ns.getBitNodeMultipliers().ServerGrowthRate
 		// };
 		// this.threads[G] = calculateGrowThreadsLambert(ns, so.hostname, so.moneyMax - so.moneyAvailable, 1, opts);
 		//this.debugThreadsG = calculateGrowThreadsLambert(ns, so.hostname, so.moneyMax - so.moneyAvailable, 1, opts);
@@ -578,6 +585,12 @@ export class Metrics {
 		const maxBatchesInRam = Math.floor(this.maxNetworkRam / this.batchRam);
 
 		this.maxRunnableBatches = Math.min(this.maxBatches, maxBatchesInRam);
+
+		this.batchXp = 0;
+		for (let i = 0; i < 4; i++) {
+			this.jobXp[i] = this.threads[i] * ns.formulas.hacking.hackExp(so, player);
+			this.batchXp += this.jobXp[i];
+		}
 
 		this.cashPerSecond = Math.ceil(this.batchMoney * this.maxRunnableBatches / (this.batchTime / 1000));
 	}

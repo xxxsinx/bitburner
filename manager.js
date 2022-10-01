@@ -63,8 +63,8 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			const hackLevelChanged = ns.getPlayer().skills.hacking != hackLevel;
 			let msg = (hackLevelChanged ? 'WARN: ' : 'ERROR: ') +
 				'Desync detected, re-prepping ' + server + ' cycles= ' + cycle + ' hack= ' + ns.getPlayer().skills.hacking + ' (was ' + hackLevel + ')';
-			if (!hackLevelChanged)
-				ns.tprint(msg);
+			//if (!hackLevelChanged)
+			ns.tprint(msg);
 			ns.print(msg);
 			await Prep(ns, server, metrics);
 			ns.print('SUCCESS: Server prepped!');
@@ -77,7 +77,9 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 		let pids = new Array();
 		let mem = new MemoryMap(ns);
 
-		let batchCount = Math.min(metrics.maxBatches, Math.floor(mem.available * maxPctTotalRam / metrics.batchRam));
+		let coreBonus = 1 + (ns.getServer('home').cpuCores - 1) / 16;
+
+		let batchCount = Math.min(metrics.maxBatches, Math.floor(mem.available * maxPctTotalRam / (metrics.batchRam / coreBonus)));
 		if (batchCount <= 0) {
 			ns.print('metrics.maxBatches = ' + metrics.maxBatches);
 			ns.print('mem.available = ' + mem.available);

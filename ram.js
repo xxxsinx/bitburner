@@ -157,6 +157,7 @@ export class MemoryMap {
 				let block = new Object();
 				block.server = server;
 				block.free = free;
+				block.coreBonus = 1 + (so.cpuCores - 1) / 16;
 
 				if (server == 'home') {
 					let minFree = 256;
@@ -218,12 +219,17 @@ export class MemoryMap {
 
 	BiggestBlock() {
 		let biggest = 0;
+
 		for (const block of this.blocks) {
 			const available = block.free - block.reserved;
 			if (available > biggest)
 				biggest = available;
 		}
 		return biggest;
+	}
+
+	HomeBlock() {
+		return this.blocks.find(b => b.isHome);
 	}
 }
 
@@ -353,7 +359,23 @@ export function RunScript2(ns, scriptName, threads, params, allowSpread, allowPa
 			maxThreads = threads - fired;
 		}
 		const blockSize = maxThreads * ram;
-		const server = ramMap.ReserveBlock(blockSize);
+		let server = ramMap.ReserveBlock(blockSize);
+
+		let coreBonus = 1;
+
+		if (scriptName.startsWith('grow') || scriptName.startsWith('weaken')) {
+			let homeBlock = ramMap.HomeBlock();
+			if (homeBlock != undefined && homeBlock.coreBonus > 1 && threads * ram < homeBlock.free - homeBlock.reserved) {
+				if (server == 'home') {
+					//ns.tprint('INFO: Favoring home for');
+				}
+				else {
+					server = 'home';
+					//ns.tprint('INFO: Spawning grow on home for bonus!');
+				}
+				coreBonus = homeBlock.coreBonus;
+			}
+		}
 
 		if (server != undefined) {
 			// if (!ns.fileExists(scriptName, server)) {
@@ -372,14 +394,20 @@ export function RunScript2(ns, scriptName, threads, params, allowSpread, allowPa
 			// }
 
 			//ns.print('Attempting to start ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
-			let pid = ns.exec(scriptName, server, maxThreads, ...params, performance.now() + unique++);
+
+			let actualThreads = Math.ceil(maxThreads / coreBonus);
+			if (actualThreads != maxThreads) {
+				ns.print('INFO: Readjusting threads from ' + maxThreads + ' to ' + actualThreads);
+			}
+
+			let pid = ns.exec(scriptName, server, actualThreads, ...params, performance.now() + unique++);
 			if (pid > 0) {
-				ns.print('Started script ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
+				ns.print('Started script ' + scriptName + ' on ' + server + ' with ' + actualThreads + ' threads');
 				pids.push(pid);
 				fired += maxThreads;
 			}
 			else {
-				ns.print('FAIL: Failed to launch script ' + scriptName + ' on ' + server + ' with ' + maxThreads + ' threads');
+				ns.print('FAIL: Failed to launch script ' + scriptName + ' on ' + server + ' with ' + actualThreads + ' threads');
 			}
 		}
 		else if (!allowPartial) {

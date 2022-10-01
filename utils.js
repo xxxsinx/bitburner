@@ -1,6 +1,8 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-	ns.tprint(HasFormulas(ns));
+	ns.tprint(GetNextLevelXp(ns));
+
+	//ns.tprint(HasFormulas(ns));
 
 	// const servers = GetAllServers(ns);
 	// ns.tprint(servers.length + ' ' + servers);
@@ -122,4 +124,26 @@ export async function WaitPids(ns, pids) {
 
 export function HasFormulas(ns) {
 	try { ns.formulas.hacknetNodes.constants(); return true; } catch { return false; }
+}
+
+// Returns the needed XP for the next hacking level
+export function GetNextLevelXp(ns, skill = 'hacking') {
+	let player = ns.getPlayer();
+	let prevXp = ns.formulas.skills.calculateExp(player.skills[skill], player.mults[skill]);
+	let nextXp = ns.formulas.skills.calculateExp(player.skills[skill] + 1, player.mults[skill]);
+
+	let needed = nextXp - prevXp;
+	let progress = player.exp[skill] - prevXp;
+	let remaining = needed - progress;
+	let pct = progress / needed * 100;
+
+	// ns.tprint('Progress : ' + ns.nFormat(progress, '0.000a') + ' / ' + ns.nFormat(needed, '0.000a'));
+	// ns.tprint('Remaining: ' + ns.nFormat(remaining, '0.000a') + ' (' + pct.toFixed(2) + '%)');
+
+	return {
+		needed: needed,
+		progress: progress,
+		remaining: remaining,
+		pct: pct
+	}
 }

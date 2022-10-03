@@ -17,9 +17,9 @@ let HACK_RAM = undefined;
 let GROW_RAM = undefined;
 let WEAKEN_RAM = undefined;
 
-const LEECH = [
-	0.01, 0.02, 0.03, 0.04, 0.05, 0.0833, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.60, 0.65, 0.7, 0.75, 0.85, 0.90, 0.95
-];
+let LEECH = [];
+
+let metricsCounter = 0;
 
 export function MaxHackForServer(ns, server) {
 	let so = ns.getServer(server);
@@ -32,7 +32,7 @@ export function MaxHackForServer(ns, server) {
 	return ret;
 }
 
-export async function GetBestMetricsForServer(ns, server, minThreads, maxThreads, maxNetworkRamPct, depth = DEPTH) {
+export function GetBestMetricsForServer(ns, server, minThreads, maxThreads, maxNetworkRamPct, depth = DEPTH) {
 	if (maxThreads == 0) return undefined;
 
 	let STEP = (maxThreads - minThreads) / depth;
@@ -57,12 +57,12 @@ export async function GetBestMetricsForServer(ns, server, minThreads, maxThreads
 		else if (bestMetrics != undefined && metrics.cashPerSecond < bestMetrics.cashPerSecond * 0.95)
 			break;
 
-		await ns.sleep(0);
+		//await ns.sleep(0);
 	}
 
 	if (STEP > 1) {
 		//ns.tprint('WARN: Best threads yet for server is ' + bestMetrics.threads[H]);
-		return await GetBestMetricsForServer(ns, server, Math.max(Math.round(bestMetrics.threads[H] - STEP), minThreads), Math.min(Math.round(bestMetrics.threads[H] + STEP), maxThreads), maxNetworkRamPct);
+		return GetBestMetricsForServer(ns, server, Math.max(Math.round(bestMetrics.threads[H] - STEP), minThreads), Math.min(Math.round(bestMetrics.threads[H] + STEP), maxThreads), maxNetworkRamPct);
 	}
 
 	return bestMetrics;
@@ -90,6 +90,52 @@ export function growthIdeal(ns, server, growthAmount, cores) {
 
 /** @param {NS} ns **/
 export async function main(ns) {
+	LEECH= [];
+	for (let i = 0.05; i < 1; i += 0.05) {
+		LEECH.push(i);
+	}
+
+	// let fixed = [];
+	// let dynamic = [];
+
+	// let s = performance.now();
+	// for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0)) {
+	// 	let best = GetBestPctForServer(ns, server, BATCH_SPACER, 0, 0, 0, 1);
+	// 	// if (best == undefined)
+	// 	// 	ns.tprint('FAIL: best is undefined for ' + server);
+	// 	fixed.push(best);
+	// }
+	// ns.tprint((performance.now() - s) + 'ms for 5% increments (5% to 95%) ' + metricsCounter + ' metrics evaluated');
+
+	// metricsCounter = 0;
+
+	// s = performance.now();
+	// for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0)) {
+	// 	let metrics = GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), 1, 10);
+
+	// 	// if (metrics == undefined)
+	// 	// 	ns.tprint('FAIL: metrics is undefined for ' + server);
+
+	// 	dynamic.push(metrics);
+	// }
+	// ns.tprint((performance.now() - s) + 'ms for divide and conquer ' + metricsCounter + ' metrics evaluated');
+
+	// if (fixed.length != dynamic.length) {
+	// 	ns.tprint('FAIL: fixed and dynamic don\'t have the same length?');
+	// }
+
+	// for (let i = 0; i < fixed.length; i++) {
+	// 	let f = fixed[i];
+	// 	let d = dynamic[i];
+
+	// 	if (f == null || d == null) continue;
+
+	// 	ns.tprint(f.threads[H].toFixed(0).padStart(15) + d.threads[H].toFixed(0).padStart(15) +
+	// 		f.cashPerSecond.toFixed(3).padStart(15) + d.cashPerSecond.toFixed(3).padStart(15));
+	// }
+
+	// return;
+
 	HACK_RAM = ns.getScriptRam('hack-once.js');
 	GROW_RAM = ns.getScriptRam('grow-once.js');
 	WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
@@ -99,7 +145,7 @@ export async function main(ns) {
 	if (ns.args[0] == 'test') {
 		let server = ns.args[1] || 'n00dles';
 
-		let best = await GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), 1);
+		let best = GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), 1);
 
 		if (best)
 			ns.tprint('FAIL: Best threads for server is ' + best.threads[H] + ' (' + (best.pct * 100).toFixed(2) + '%)');
@@ -176,11 +222,15 @@ export async function main(ns) {
 
 		for (const pct of LEECH) {
 			let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, 1);
+			if (metrics == undefined)
+				ns.tprint('metrics is null?')
+			else if (metrics.cashPerSecond == undefined)
+				ns.tprint('cashPerSecond is null?')
 			results.push(metrics);
-			await ns.sleep(0);
+			//await ns.sleep(0);
 		}
 
-		let bestPct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 1, 0.05, 1);
+		let bestPct = GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 1, 0.05, 1)?.pct ?? 0;
 
 		let cpsorder = [...results].sort((a, b) => a.cashPerSecond - b.cashPerSecond);
 		let ramorder = [...results].sort((a, b) => a.batchRam - b.batchRam);
@@ -207,6 +257,15 @@ export async function main(ns) {
 		let maxW = Math.max(...results.map(s => s.threads[W1] + s.threads[W2]));
 
 		for (const metrics of results) {
+			// if (isNaN(metrics.batchMoney))
+			// 	ns.tprint('metrics.batchMoney == NaN')
+			// if (metrics.maxRunnableBatches == NaN)
+			// 	ns.tprint('metrics.maxRunnableBatches == NaN')
+			// if (metrics.batchMoney * metrics.maxRunnableBatches == NaN)
+			// 	ns.tprint('metrics.maxRunnableBatches * metrics.batchMoney == NaN')
+			// ns.tprint(metrics.batchMoney);
+			// ns.tprint(metrics.maxRunnableBatches);
+
 			let maxThreads = Math.max(...metrics.threads);
 			let pctOfMax = Math.round(metrics.cashPerSecond / cpsorder[cpsorder.length - 1].cashPerSecond * 100);
 			let pctH = Math.round(metrics.threads[H] / maxH * 100);
@@ -271,21 +330,16 @@ export async function main(ns) {
 	}
 }
 
-export async function GetBestPctForServer(ns, server, spacer = BATCH_SPACER, minPct = 0.05, maxPct = 1, step = 0.05, maxNetworkRamPct) {
-	let bestPct = 0;
-	let bestCps = 0;
+export function GetBestPctForServer(ns, server, spacer = BATCH_SPACER, minPct = 0.05, maxPct = 1, step = 0.05, maxNetworkRamPct) {
+	let best = undefined;
 
-	for (const pct of LEECH) { //= minPct; pct <= maxPct; pct += step) {
-		//for (let pct = minPct; pct <= maxPct; pct += step) {
+	for (const pct of LEECH) {
 		const metrics = new Metrics(ns, server, pct, spacer, 1, maxNetworkRamPct)
-		if (metrics.cashPerSecond > bestCps) {
-			bestPct = pct;
-			bestCps = metrics.cashPerSecond;
-		}
-		await ns.sleep(0);
+		if (metrics.cashPerSecond > (best?.cashPerSecond ?? 0))
+			best = metrics;
 	}
 
-	return bestPct;
+	return best;
 }
 
 async function AnalyzeAllServers(ns, maxNetworkRamPct) {
@@ -295,7 +349,7 @@ async function AnalyzeAllServers(ns, maxNetworkRamPct) {
 	ns.tprint('INFO: Getting metrics for ' + servers.length + ' servers');
 	for (let server of servers) {
 		//ns.tprint('Checking server: ' + server);
-		let metrics = await GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), maxNetworkRamPct);
+		let metrics = GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), maxNetworkRamPct);
 		if (metrics)
 			data.push(metrics);
 		// let subData = new Array();
@@ -340,6 +394,8 @@ async function AnalyzeAllServers(ns, maxNetworkRamPct) {
 
 export class Metrics {
 	constructor(ns, server, pct, spacer, cores = 1, maxNetworkRamPct = 1, forcedHackThreads = undefined) {
+		metricsCounter++;
+
 		// Params
 		this.server = server;
 		this.pct = pct;
@@ -350,23 +406,25 @@ export class Metrics {
 		this.forcedHackThreads = forcedHackThreads;
 
 		// Metrics
-		this.times = new Array(undefined, undefined, undefined, undefined);
-		this.threads = new Array(undefined, undefined, undefined, undefined);
+		this.times = new Array(0, 0, 0, 0);
+		this.threads = new Array(0, 0, 0, 0);
 
 		// Calculated values
-		this.delays = new Array(undefined, undefined, undefined, undefined);
-		this.ends = new Array(undefined, undefined, undefined, undefined);
+		this.delays = new Array(0, 0, 0, 0);
+		this.ends = new Array(0, 0, 0, 0);
 
 		// Additional information
-		this.batchRam = undefined;
-		this.batchTime = undefined;
-		this.batchMoney = undefined;
-		this.hackChance = undefined;
-		this.effectivePct = undefined;
-		this.moneyPerRam = undefined;
-		this.maxRunnableBatches = undefined;
-		this.jobXp = new Array(undefined, undefined, undefined, undefined);
-		this.batchXp = undefined;
+		this.batchRam = 0;
+		this.batchTime = 0;
+		this.batchMoney = 0;
+		this.hackChance = 0;
+		this.effectivePct = 0;
+		this.moneyPerRam = 0;
+		this.maxRunnableBatches = 0;
+		this.jobXp = new Array(0, 0, 0, 0);
+		this.batchXp = 0;
+
+		this.cashPerSecond = 0;
 
 		// Fill the data
 		this.UpdateMetrics(ns);
@@ -456,8 +514,12 @@ export class Metrics {
 		// Figure first hack time and threads
 		const hackPctThread = ns.formulas.hacking.hackPercent(so, player);
 		this.threads[H] = Math.ceil(this.pct / hackPctThread);
+		if (this.threads[H] == Infinity) this.threads[H] = 0;
 		this.effectivePct = Math.min(hackPctThread * this.threads[H], 1 - 0.000001);
 		this.batchMoney = Math.floor(so.moneyAvailable * hackPctThread) * this.threads[H];
+		// if (isNaN(this.batchMoney)) {
+		// 	ns.tprint(so.moneyAvailable, hackPctThread, this.threads[H]);
+		// }
 
 		so.moneyAvailable -= this.batchMoney;
 		so.hackDifficulty += this.threads[H] * 0.002; //ns.hackAnalyzeSecurity(this.threads[H]);
@@ -561,6 +623,8 @@ export class Metrics {
 
 		// Correct money by hack chance
 		this.batchMoney *= this.hackChance;
+		if (isNaN(this.batchMoney))
+			ns.tprint('2');
 
 		// Money vs ram ratio
 		this.moneyPerRam = this.batchMoney / this.batchRam;

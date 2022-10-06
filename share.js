@@ -70,6 +70,6 @@ async function AdjustUsage(ns, pct) {
 	if (sharePct < pct) {
 		let missingThreads = targetThreads - shareThreads;
 		ns.print('Attempting to start ' + missingThreads + ' share threads.');
-		await RunScript(ns, 'share-forever.js', '', missingThreads, performance.now(), true, true, true);
+		await RunScript(ns, 'share-forever.js', missingThreads, ['', performance.now(), true], true, true);
 	}
 }

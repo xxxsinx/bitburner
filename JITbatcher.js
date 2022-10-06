@@ -307,14 +307,14 @@ async function StartBatch(ns, server, metrics, batchNumber, skipHack) {
 	ret.server = server;
 	ret.metrics = metrics;
 	ret.startTime = performance.now();
-	ret.w1pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W1], 0, metrics.times[W1], batchNumber, logColor, true, false);
+	ret.w1pids = await RunScript(ns, 'weaken-once.js', metrics.threads[W1], [server, 0, metrics.times[W1], batchNumber, logColor], true, false);
 	await ns.sleep(0);
-	ret.w2pids = await RunScript(ns, 'weaken-once.js', server, metrics.threads[W2], metrics.delays[W2], metrics.times[W2], batchNumber, logColor, true, false);
+	ret.w2pids = await RunScript(ns, 'weaken-once.js', metrics.threads[W2], [server, metrics.delays[W2], metrics.times[W2], batchNumber, logColor], true, false);
 	await ns.sleep(0);
-	ret.gpids = await RunScript(ns, 'grow-once.js', server, metrics.threads[G], metrics.delays[G], metrics.times[G], batchNumber, logColor, false, false);
+	ret.gpids = await RunScript(ns, 'grow-once.js', metrics.threads[G], [server, metrics.delays[G], metrics.times[G], batchNumber, logColor], false, false);
 	await ns.sleep(0);
 	if (!skipHack) {
-		ret.hpids = await RunScript(ns, 'hack-once.js', server, metrics.threads[H], metrics.delays[H], metrics.times[H], batchNumber, logColor, false, false);
+		ret.hpids = await RunScript(ns, 'hack-once.js', metrics.threads[H], [server, metrics.delays[H], metrics.times[H], batchNumber, logColor], false, false);
 		await ns.sleep(0);
 	}
 	else

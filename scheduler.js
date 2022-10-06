@@ -1,6 +1,6 @@
 import { Prep, IsPrepped } from "prep.js";
 import { BATCH_SPACER, MaxHackForServer, GetBestMetricsForServer, HGW_MODE } from "metrics.js";
-import { RunScript2, MemoryMap } from "ram.js";
+import { RunScript, MemoryMap } from "ram.js";
 import { HasFormulas, ServerReport, WaitPids } from "utils.js";
 
 // We define constants to index the times and delays in metrics
@@ -171,7 +171,7 @@ class Batch {
 				break;
 		}
 
-		let pids = RunScript2(this.ns, script, this.metrics.threads[type], [this.id, this.metrics.server, desc, type, duration, this.port], type == W1 || type == W2, false);
+		let pids = RunScript(this.ns, script, this.metrics.threads[type], [this.id, this.metrics.server, desc, type, duration, this.port], type == W1 || type == W2, false);
 		//this.ns.exec(script, 'home', 1, this.id, desc, type, duration, this.port);
 	}
 

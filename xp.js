@@ -31,7 +31,7 @@ async function GrowJoesgunsForXP(ns, server, threads) {
 	const so = ns.getServer(server);
 	const estTime = await ns.getGrowTime(server);
 	ns.print('INFO: Growing ' + server + ' for XP, starting ' + threads + ' threads');
-	const pids = await RunScript(ns, script, server, threads, 0, 0, 0, 0, true, true);
+	const pids = await RunScript(ns, script, threads, [server, 0, 0, 0, 0], true, true);
 	await WaitPids(ns, pids);
 	return [threads, estTime];
 }

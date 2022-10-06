@@ -35,7 +35,7 @@ export async function Grow(ns, server, allowSpread = false, allowPartial = true,
 	let threads = Math.ceil(ns.growthAnalyze(server, so.moneyMax / Math.max(so.moneyAvailable, 1), 1) * extra);
 	const estTime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
 	ns.print('INFO: Funds are not maxed, starting ' + threads + ' threads to grow them');
-	const pids = await RunScript(ns, script, server, threads, 0, estTime, 0, 0, allowSpread, allowPartial);
+	const pids = await RunScript(ns, script, threads, [server, 0, estTime, 0, 0], allowSpread, allowPartial);
 	await WaitPids(ns, pids);
 	return [threads, estTime];
 }
@@ -46,7 +46,7 @@ export async function Weaken(ns, server, allowSpread = true, allowPartial = true
 	const threads = Math.ceil((so.hackDifficulty - so.minDifficulty) / 0.05 /*ns.weakenAnalyze(1, 1)*/ * extra);
 	const estTime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4;
 	ns.print('INFO: Security is over minimum, starting ' + threads + ' threads to floor it');
-	const pids = await RunScript(ns, script, server, threads, 0, estTime, 0, 0, allowSpread, allowPartial);
+	const pids = await RunScript(ns, script, threads, [server, 0, estTime, 0, 0], allowSpread, allowPartial);
 	await WaitPids(ns, pids);
 	return [threads, estTime];
 }
@@ -57,7 +57,7 @@ export async function Hack(ns, server, pct, allowSpread = false, allowPartial = 
 	const threads = Math.floor(ns.hackAnalyzeThreads(server, so.moneyAvailable) * pct * extra);
 	const estTime = ns.formulas.hacking.hackTime(so, ns.getPlayer());
 	ns.print('INFO: Server is ripe for hacking, starting ' + threads + ' threads to hack it');
-	const pids = await RunScript(ns, script, server, threads, 0, estTime, 0, 0, allowSpread, allowPartial);
+	const pids = await RunScript(ns, script, threads, [server, 0, estTime, 0, 0], allowSpread, allowPartial);
 	await WaitPids(ns, pids);
 	return [threads, estTime];
 }

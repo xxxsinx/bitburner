@@ -1,6 +1,6 @@
 import { Prep, IsPrepped } from "prep.js";
 import { BATCH_SPACER, MaxHackForServer, GetBestMetricsForServer, HGW_MODE } from "metrics.js";
-import { MemoryMap, RunScript2 } from "ram.js";
+import { MemoryMap, RunScript } from "ram.js";
 import { HasFormulas, ServerReport, WaitPids } from "utils.js";
 
 const H = 0;
@@ -162,11 +162,9 @@ async function StartBatch(ns, server, metrics, batchNumber) {
 	const logColor = 0;
 	//ns.tprint(logColor);
 
-	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
-	//export function RunScript2(ns, scriptName, threads, params, allowSpread, allowPartial) {
 	let w1pids = [];
 	if (!HGW_MODE) {
-		w1pids = await RunScript2(ns, 'weaken-once.js', metrics.threads[W1], [server, 0, metrics.times[W1], batchNumber, logColor], true, false);
+		w1pids = await RunScript(ns, 'weaken-once.js', metrics.threads[W1], [server, 0, metrics.times[W1], batchNumber, logColor], true, false);
 		await ns.sleep(0);
 		if (w1pids.length == 0) {
 			ns.print('FAIL: W1 Aborting batch');
@@ -174,21 +172,21 @@ async function StartBatch(ns, server, metrics, batchNumber) {
 			return [w1pids].flat(Infinity);
 		}
 	}
-	const w2pids = await RunScript2(ns, 'weaken-once.js', metrics.threads[W2], [server, metrics.delays[W2], metrics.times[W2], batchNumber, logColor], true, false);
+	const w2pids = await RunScript(ns, 'weaken-once.js', metrics.threads[W2], [server, metrics.delays[W2], metrics.times[W2], batchNumber, logColor], true, false);
 	await ns.sleep(0);
 	if (w2pids.length == 0) {
 		ns.print('FAIL: W2 Aborting batch');
 		await ns.sleep(metrics.batchTime);
 		return [w1pids, w2pids].flat(Infinity);
 	}
-	const gpids = await RunScript2(ns, 'grow-once.js', metrics.threads[G], [server, metrics.delays[G], metrics.times[G], batchNumber, logColor], false, false);
+	const gpids = await RunScript(ns, 'grow-once.js', metrics.threads[G], [server, metrics.delays[G], metrics.times[G], batchNumber, logColor], false, false);
 	await ns.sleep(0);
 	if (gpids.length == 0) {
 		ns.print('FAIL: G Aborting batch');
 		await ns.sleep(metrics.batchTime);
 		return [w1pids, gpids, w2pids].flat(Infinity);
 	}
-	const hpids = await RunScript2(ns, 'hack-once.js', metrics.threads[H], [server, metrics.delays[H], metrics.times[H], batchNumber, logColor], false, false);
+	const hpids = await RunScript(ns, 'hack-once.js', metrics.threads[H], [server, metrics.delays[H], metrics.times[H], batchNumber, logColor], false, false);
 	await ns.sleep(0);
 	if (hpids.length == 0) {
 		ns.print('FAIL: H Aborting batch');

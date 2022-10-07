@@ -3,11 +3,12 @@ const MAX_MONEY_DRIFT_PCT = 0.1;	// This is how far from 100% money we allow the
 const DEFAULT_PCT = 0.25;			// This is the default 1-based percentage of money we want to hack from the server in a single pass
 const MIN_HOME_RAM = 32;			// Number of GBs we want to keep free on home
 
-let xpMode = false;
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
+
+	let xpMode = false;
 
 	// Parameters
 	const [target, pct = DEFAULT_PCT] = ns.args;
@@ -37,10 +38,10 @@ export async function main(ns) {
 	// Open the tail window, you can comment this if it bothers you
 	ns.tail();
 
-	await Exploit(ns, target, pct);
+	await Exploit(ns, target, pct, xpMode);
 }
 
-async function Exploit(ns, server, pct) {
+async function Exploit(ns, server, pct, xpMode) {
 	if (xpMode) server = 'joesguns';
 
 	// Determines if we have got to the hack part of the cycle

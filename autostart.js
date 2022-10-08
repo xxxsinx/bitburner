@@ -94,29 +94,30 @@ async function SleeveManagement(ns, karma) {
 	let stats = ns.sleeve.getSleeveStats(0);
 
 	// If shock > 95% we force shock recovery
-	if (stats.shock > 0.95) {
-		await TryRunScript(ns, 'sleeves.js', ['shock', 0, 8, true]);
+	if (stats.shock > 95) {
+		ns.print('Shock is ' + stats.shock)
+		await TryRunScript(ns, 'shock.js', [0, 8]);
 		return;
 	}
 
 	// Mug for a bit if our stats are shit, getting us a tiny bit of income
 	if (stats.strengt < 30 || stats.defense < 30 || stats.dexterity < 30 || stats.agility < 15) {
-		await TryRunScript(ns, 'sleeves.js', ['mug', 0, 8, true]);
+		await TryRunScript(ns, 'sleevecrime.js', ['mug', 0, 8]);
 		return;
 	}
 
 	// Homicide for karma
 	if (karma > -54000) {
-		await TryRunScript(ns, 'sleeves.js', ['homicide', 0, 8, true]);
+		await TryRunScript(ns, 'sleevecrime.js', ['Homicide', 0, 8]);
 		return;
 	}
 
 	// Default action set to homicide for money
-	await TryRunScript(ns, 'sleeves.js', ['homicide', 0, 8, true]);
+	await TryRunScript(ns, 'sleevecrime.js', ['Homicide', 0, 8]);
 
 	// Always have one sleeve on shock duty unless we're grinding gangs
 	if (stats.shock > 0) {
-		await TryRunScript(ns, 'sleeves.js', ['shock', 0, 1, true]);
+		await TryRunScript(ns, 'shock.js', [0, 1]);
 	}
 }
 

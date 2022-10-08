@@ -1,13 +1,16 @@
 import { PrintTable, DefaultStyle } from 'tables.js'
 import { FormatMoney } from 'utils.js'
 
+let getTail = false
+const width = 1000
+const height = 740
 let g_tixMode = false; 					// Global variable indicating if we have full 4S data or not (it is automatically 
 // set/determined later in script no point changing the value here)
 let SHORTS = false;						// Global to determine whether or not we have access to shorts (this is updated at the start of the script)
 
 const LOG_SIZE = 15;					// How many prices we keep in the log for blind/pre-4S trading for each symbol
 const BUY_TRIGGER = 0.1;				// deviation from 0.5 (neutral) from which we start buying
-const SELL_TRIGGER = 0.05;				// deviation from 0.5 (neutral) from which we start selling
+const SELL_TRIGGER = 0;				// deviation from 0.5 (neutral) from which we start selling
 const TRANSACTION_COST = 100_000;		// Cost of a stock transaction
 const MIN_TRANSACTION_SIZE = 5_000_000;	// Minimum amount of stocks to buy, we need this to keep the transaction cost in check
 const TIME_TRACKING = true;				// True if we're benchmarking our performance
@@ -59,7 +62,7 @@ export async function main(ns) {
 	}
 
 	// We show the tail in normal mode, but not if we're in sales mode
-	if (ns.args[0] != 'sell') ns.tail();
+	if (ns.args[0] != 'sell') null //ns.tail();
 	else {
 		// Passing sell to the script sells all the stocks and kills any other running scripts, then exists
 		let procs = ns.ps();
@@ -78,6 +81,11 @@ export async function main(ns) {
 	let started = performance.now();
 
 	while (true) {
+		ns.resizeTail(width, height);
+		if (getTail) {
+			ns.tail();
+			getTail = false
+		}
 		ns.clearLog()
 		if (!g_tixMode && ns.stock.has4SDataTixApi)
 			g_tixMode = true; // Switch to 4S data if we obtained it while running
@@ -348,6 +356,8 @@ function UpdateHud(ns, totalWorth) {
 
 		hook0.innerText = headers.join(" \n");
 		hook1.innerText = values.join("\n");
+		hook0.onclick = function () { getTail = true }
+
 	} catch (err) {
 		ns.print("ERROR: Update Skipped: " + String(err));
 	}

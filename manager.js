@@ -38,8 +38,6 @@ export async function main(ns) {
 }
 
 async function ManageServer(ns, server, maxPctTotalRam, loop) {
-	ns.print('INFO: Gathering batch metrics');
-
 	// Batch cycle counter
 	let cycle = 0;
 
@@ -51,20 +49,27 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 	while (true) {
 		// const pct = await GetBestPctForServer(ns, server, BATCH_SPACER, 0.05, 0.8, 0.05, maxPctTotalRam);
 		// let metrics = new Metrics(ns, server, pct, BATCH_SPACER, 1, maxPctTotalRam);
+		ns.print('INFO: Cycle ' + cycle + ' - Gathering batch metrics');
 		let metrics = await GetBestMetricsForServer(ns, server, 1, MaxHackForServer(ns, server), maxPctTotalRam);
 		//const pct= metrics.pct;
 
 		//metrics.Report(ns);
 		ServerReport(ns, server, metrics);
 
+		const hackLevelChanged = ns.getPlayer().skills.hacking != hackLevel;
+		if (hackLevelChanged)
+			ns.tprint('WARN: Cycle ' + cycle + ' - Hack level changed, was ' + hackLevel + ' now is ' + ns.getPlayer().skills.hacking);
+
 		// Since we prepped in main(), the only reason why we would ever enter this is our metrics changed, something desynced, or some other external factor
 		// changed the server state or player capacities
 		if (!IsPrepped(ns, server)) {
-			const hackLevelChanged = ns.getPlayer().skills.hacking != hackLevel;
 			let msg = (hackLevelChanged ? 'WARN: ' : 'ERROR: ') +
-				'Desync detected, re-prepping ' + server + ' cycles= ' + cycle + ' hack= ' + ns.getPlayer().skills.hacking + ' (was ' + hackLevel + ')';
-			if (!hackLevelChanged)
-				ns.tprint(msg);
+				'Cycle ' + cycle + ' - Desync detected, re-prepping ' + server + ' cycles= ' + cycle + ' hack= ' + ns.getPlayer().skills.hacking + ' (was ' + hackLevel + ')';
+			if (cycle == 0)
+				msg = 'WARN: Cycle ' + cycle + ' prepping server!';
+
+			//if (!hackLevelChanged)
+			ns.tprint(msg);
 			ns.print(msg);
 			await Prep(ns, server, metrics);
 			ns.print('SUCCESS: Server prepped!');
@@ -89,10 +94,10 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			ns.print('FAIL: Insufficient ram to run a single batch! Aborting...');
 			ns.exit();
 		}
-		ns.print('INFO: Spawning ' + batchCount + ' batches');
+		ns.print('INFO: Cycle ' + cycle + ' - Spawning ' + batchCount + ' batches');
 
 		for (let i = 0; i < batchCount; i++) {
-			ns.print('INFO: Starting batch #' + (i + 1) + ' of ' + batchCount);
+			ns.print('INFO: Cycle ' + cycle + ' - Starting batch #' + (i + 1) + ' of ' + batchCount);
 			if (!BatchFitsInMemoryBlocks(ns, metrics)) {
 				ns.print('WARN: Not enough free memory to start batch #' + (i + 1) + ', lets take a break!');
 				break;
@@ -103,10 +108,10 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 		}
 
 		ServerReport(ns, server, metrics);
-		ns.print('INFO: Waiting for batch to end (approx: ' + ns.tFormat(metrics.batchTime) + ')');
+		ns.print('INFO: Cycle ' + cycle + ' - Waiting for batch to end (approx: ' + ns.tFormat(metrics.batchTime) + ')');
 
 		await WaitPids(ns, pids);
-		ns.print('SUCCESS: Cycle ended');
+		ns.print('SUCCESS: Cycle ' + cycle + ' - Cycle ended');
 		ns.print('');
 
 		if (!loop) {

@@ -90,7 +90,7 @@ export function growthIdeal(ns, server, growthAmount, cores) {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	LEECH= [];
+	LEECH = [];
 	for (let i = 0.05; i < 1; i += 0.05) {
 		LEECH.push(i);
 	}
@@ -107,7 +107,7 @@ export async function main(ns) {
 	// }
 	// ns.tprint((performance.now() - s) + 'ms for 5% increments (5% to 95%) ' + metricsCounter + ' metrics evaluated');
 
-	// metricsCounter = 0;
+	//metricsCounter = 0;
 
 	// s = performance.now();
 	// for (let server of GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0)) {

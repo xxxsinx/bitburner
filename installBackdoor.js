@@ -3,7 +3,7 @@ export async function main(ns) {
 	ns.disableLog('ALL');
 
 	const servers = GetAllServers(ns);
-	const targets = servers.map(s=>s.name); // ['CSEC', 'I.I.I.I', 'avmnite-02h', 'run4theh111z', 'w0r1d_d43m0n'];
+	const targets = /*servers.map(s => s.name); */['CSEC', 'I.I.I.I', 'avmnite-02h', 'run4theh111z'/*, 'w0r1d_d43m0n'*/];
 	//'millenium-fitness', 'powerhouse-fitness', 'crush-fitness', 'snap-fitness'/*, 'w0r1d_d43m0n'*/];
 	//const targets = servers.map(s => s.name);
 
@@ -13,24 +13,20 @@ export async function main(ns) {
 		//if (servers == 'w0r1d_d43m0n') continue;
 
 		if (!targets.includes(server.name)) {
-			ns.tprint('derp 1 ' + server.name);
 			continue;
 		}
 		//ns.tprint(server.name + ' => ' + server.route);
 
 		let so = ns.getServer(server.name);
-		if (so.requiredHackingSkill > ns.getHackingLevel()) {
-			ns.tprint('derp 2');
-			continue;
-		}
+		// if (so.requiredHackingSkill > ns.getHackingLevel()) {
+		// 	continue;
+		// }
 
-		if (!ns.hasRootAccess(server.name)) {
-			ns.tprint('derp 3');
-			continue;
-		}
+		// if (!ns.hasRootAccess(server.name)) {
+		// 	continue;
+		// }
 
 		if (so.backdoorInstalled) {
-			ns.tprint('derp 4');
 			continue;
 		}
 
@@ -56,7 +52,7 @@ export async function main(ns) {
 		count++;
 	}
 
-	ns.tprint('INFO: Done installing backdoors on ' + count + ' servers');
+	//ns.tprint('INFO: Done installing backdoors on ' + count + ' servers');
 	ns.singularity.connect('home');
 	//ns.tprint('SUCCESS: Done.');
 }

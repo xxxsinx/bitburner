@@ -1,4 +1,5 @@
 import { WaitPids } from "utils.js";
+import { RunScript } from "ram.js"
 
 /*
 Brainstorm of what's needed for a "main brain" script
@@ -40,9 +41,7 @@ Brainstorm of what's needed for a "main brain" script
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	// Initial breach
-	ns.print('INFO: Breaching servers.');
-	await WaitPids(ns, ns.exec('breach.js', 'home'));
+	const started = performance.now();
 
 	// Set sleeves to do something other than nothing
 	// const karma= ns.heart.break();
@@ -55,10 +54,8 @@ export async function main(ns) {
 	// else if (karam > -54000) {
 	// 	job= 'homicide';
 	// }
-	let pid = ns.exec('sleeves.js', 'home', 1, 'shock');
 
 	// Get gangs going
-	pid = ns.exec('gangman.js', 'home');
 
 	// Manage personal servers if cash allows
 	// Delete smaller servers and replace with bigger ones
@@ -71,63 +68,30 @@ export async function main(ns) {
 	//ns.tail(pid);
 
 	while (true) {
-		// Look for contracts and solve them
-		//ns.print('INFO: Solving contracts');
-		let pid = ns.exec('cct.js', 'home');
-		if (pid != undefined) {
-			let pids = new Array();
-			pids.push(pid);
-			await WaitPids(ns, pids);
+		// Buy programs, run programs, nuke
+		await WaitPids(ns, ns.exec('breach.js', 'home'));
+
+		// Solve contracts
+		await WaitPids(ns, ns.exec('cct.js', 'home'));
+
+		// Save work reputation to it's faction
+		await WaitPids(ns, ns.exec('SaveRep.js', 'home'));
+
+		// Install backdoors
+		await WaitPids(ns, ns.exec('installBackdoor.js', 'home'));
+
+		// Sleeve management
+		if (started < 60 * 5) { // First 2 minutes we deshock
+			await WaitPids(ns.exec('sleeves.js', 'home', 1, 'shock'));
+		}
+		else if (karma == 0) { // Start killing for karma
+			// We don't have gang karma, have sleeves grind karma for us
+			await WaitPids(ns.exec('sleeves.js', 'home', 1, 'homicide'));
 		}
 
-		ApplyRep(ns);
-
-		// Buy TOR
-		if (!ns.getPlayer().tor) {
-			ns.print('WARN: TOR router not found.');
-			if (ns.getPlayer().money < 200000) {
-				ns.print('WARN: Not enough money to purchase TOR router, postponing purchase.');
-			}
-			else {
-				if (ns.singularity.purchaseTor()) {
-					ns.print('INFO: Succesfully bought TOR router.');
-				}
-				else {
-					ns.print('ERROR: Something went wrong buying the TOR router.');
-				}
-			}
-		}
-
-		// Buy BruteSSH.exe
-		if (!ns.fileExists('BruteSSH.exe')) {
-			ns.print('INFO: Checking if we can buy BruteSSH.exe.');
-			ns.singularity.purchaseProgram("BruteSSH.exe");
-		}
-
-		// Buy FTPCrack.exe
-		if (!ns.fileExists('FTPCrack.exe')) {
-			ns.print('INFO: Checking if we can buy FTPCrack.exe.');
-			ns.singularity.purchaseProgram("FTPCrack.exe");
-		}
-
-		// Buy relaySMTP.exe
-		if (!ns.fileExists('relaySMTP.exe')) {
-			ns.print('INFO: Checking if we can buy relaySMTP.exe.');
-			ns.singularity.purchaseProgram("relaySMTP.exe");
-		}
-
-		// Buy SQLInject.exe
-		if (!ns.fileExists('SQLInject.exe')) {
-			ns.print('INFO: Checking if we can buy SQLInject.exe.');
-			ns.singularity.purchaseProgram("SQLInject.exe");
-		}
-
-		// Buy HTTPWorm.exe 
-		if (!ns.fileExists('HTTPWorm.exe')) {
-			ns.print('INFO: Checking if we can buy HTTPWorm.exe.');
-			ns.singularity.purchaseProgram("HTTPWorm.exe");
-		}
-
+		// Start gangs if we have the karma for it
+		const karma = ns.heart.break();
+		if (karma <= -54000) ns.exec('gangman.js', 'home');
 
 		// Leave 1m for travels
 		// Auto join Tian
@@ -142,20 +106,14 @@ export async function main(ns) {
 		// If required > 750k
 		// Reset at 365k for favor
 		// Farm the rest by donations
-
 		// Run share when ram allows
-
-		// Breach again
-		await WaitPids(ns, ns.exec('breach.js', 'home'));
 
 		ns.print('');
 		await ns.sleep(10000);
 	}
 }
 
-function ApplyRep(ns) {
-	let player = ns.getPlayer();
-	if (player.workType != 'Working for Faction') return;
-	if (player.currentWorkFactionDescription != 'carrying out hacking contracts') return;
-	ns.singularity.workForFaction(player.currentWorkFactionName, 'Hacking Contracts', false);
+export async function TryRunScript(ns, script, params) {
+	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
+		RunScript(ns, script, )
 }

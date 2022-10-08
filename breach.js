@@ -1,10 +1,12 @@
 export async function main(ns) {
 	ns.disableLog('ALL');
 
+	BuyPrograms(ns);
+
 	const servers = GetAllServers(ns);
 
-	let rooted= 0;
-	let newlyRooted= 0;
+	let rooted = 0;
+	let newlyRooted = 0;
 
 	for (const server of servers) {
 		if (ns.hasRootAccess(server)) {
@@ -18,8 +20,58 @@ export async function main(ns) {
 	}
 	if (newlyRooted > 0)
 		ns.tprint('SUCCESS: Successfully breached ' + newlyRooted + ' new servers (before: ' + rooted + ' after: ' + (rooted + newlyRooted) + ')');
-	else 
+	else
 		ns.tprint('FAIL: No new servers rooted.');
+}
+
+function BuyPrograms(ns) {
+	// Buy TOR
+	if (!ns.getPlayer().tor) {
+		ns.print('WARN: TOR router not found.');
+		if (ns.getPlayer().money < 200000) {
+			ns.print('WARN: Not enough money to purchase TOR router, postponing purchase.');
+			return;
+		}
+		else {
+			if (ns.singularity.purchaseTor()) {
+				ns.print('INFO: Succesfully bought TOR router.');
+			}
+			else {
+				ns.print('ERROR: Something went wrong buying the TOR router.');
+				return;
+			}
+		}
+	}
+
+	// Buy BruteSSH.exe
+	if (!ns.fileExists('BruteSSH.exe')) {
+		ns.print('INFO: Checking if we can buy BruteSSH.exe.');
+		ns.singularity.purchaseProgram("BruteSSH.exe");
+	}
+
+	// Buy FTPCrack.exe
+	if (!ns.fileExists('FTPCrack.exe')) {
+		ns.print('INFO: Checking if we can buy FTPCrack.exe.');
+		ns.singularity.purchaseProgram("FTPCrack.exe");
+	}
+
+	// Buy relaySMTP.exe
+	if (!ns.fileExists('relaySMTP.exe')) {
+		ns.print('INFO: Checking if we can buy relaySMTP.exe.');
+		ns.singularity.purchaseProgram("relaySMTP.exe");
+	}
+
+	// Buy SQLInject.exe
+	if (!ns.fileExists('SQLInject.exe')) {
+		ns.print('INFO: Checking if we can buy SQLInject.exe.');
+		ns.singularity.purchaseProgram("SQLInject.exe");
+	}
+
+	// Buy HTTPWorm.exe 
+	if (!ns.fileExists('HTTPWorm.exe')) {
+		ns.print('INFO: Checking if we can buy HTTPWorm.exe.');
+		ns.singularity.purchaseProgram("HTTPWorm.exe");
+	}
 }
 
 async function Breach(ns, server) {
@@ -28,7 +80,7 @@ async function Breach(ns, server) {
 	try { ns.relaysmtp(server); } catch { }
 	try { ns.httpworm(server); } catch { }
 	try { ns.sqlinject(server); } catch { }
-	try { ns.nuke(server); } catch {}
+	try { ns.nuke(server); } catch { }
 	return ns.hasRootAccess(server);
 }
 

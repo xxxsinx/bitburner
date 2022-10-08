@@ -3,11 +3,12 @@ import { GetAllServers } from "utils.js";
 let blacklist = [];
 
 export async function main(ns) {
-	if (ns.args[0] == 'debug') {
-		ns.tprint(HammingEncode(28095708441));
-		return;
-	}
+	// if (ns.args[0] == 'debug') {
+	// 	ns.tprint(HammingEncode(28095708441));
+	// 	return;
+	// }
 
+	const [silent = false] = ns.args;
 
 	let found = 0;
 	const servers = GetAllServers(ns);
@@ -22,7 +23,7 @@ export async function main(ns) {
 			const didSolve = await solve(type, data, server, contract, ns);
 
 			if (didSolve)
-				ns.tprint(`INFO: ` + didSolve);
+				ns.tprint(`INFO: Solved ` + type + ' (' + didSolve + ')');
 			else
 				ns.tprint(`FAIL: ${server} - ${contract} - ${type} - ${didSolve || "FAILED!"}`);
 
@@ -30,13 +31,12 @@ export async function main(ns) {
 		}
 	}
 
-	if (found > 0)
+	if (found > 0 && !silent)
 		ns.tprint(`Found ${found} contracts`);
 }
 
 async function solve(type, data, server, contract, ns) {
 	let solution = 'none';
-	ns.tprint(type);
 	switch (type) {
 		case "Algorithmic Stock Trader I":
 			solution = maxProfit([1, data]);

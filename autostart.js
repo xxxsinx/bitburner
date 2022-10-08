@@ -1,5 +1,4 @@
 import { WaitPids } from "utils.js";
-import { RunScript } from "ram.js"
 
 /*
 Brainstorm of what's needed for a "main brain" script
@@ -43,55 +42,33 @@ export async function main(ns) {
 
 	const started = performance.now();
 
-	// Set sleeves to do something other than nothing
-	// const karma= ns.heart.break();
-	// let job= 'homicide';
-	// let shock= ns.sleeve.getSleeveStats(0).shock;
-
-	// if (shock > 95) {
-	// 	job= 'shock';
-	// }
-	// else if (karam > -54000) {
-	// 	job= 'homicide';
-	// }
-
-	// Get gangs going
-
-	// Manage personal servers if cash allows
-	// Delete smaller servers and replace with bigger ones
-	// TODO: ??? Upgrade home ram ???
-	//pid = ns.exec('buyserver.js', 'home', 1, 'loop');
-	//ns.tail(pid);
-
-	// TODO: Use starter instead if we're really low on ram?
-	//pid = ns.exec('controller.js', 'home', 1);
-	//ns.tail(pid);
-
 	while (true) {
+		const karma = ns.heart.break();
+
 		// Buy programs, run programs, nuke
-		await WaitPids(ns, ns.exec('breach.js', 'home'));
+		await TryRunScript(ns, 'breach.js', [true]);
 
 		// Solve contracts
-		await WaitPids(ns, ns.exec('cct.js', 'home'));
+		await TryRunScript(ns, 'cct.js', [true]);
 
 		// Save work reputation to it's faction
-		await WaitPids(ns, ns.exec('SaveRep.js', 'home'));
+		await TryRunScript(ns, 'SaveRep.js');
 
 		// Install backdoors
-		await WaitPids(ns, ns.exec('installBackdoor.js', 'home'));
+		await TryRunScript(ns, 'installBackdoor.js', [true]);
 
 		// Sleeve management
-		if (started < 60 * 5) { // First 2 minutes we deshock
-			await WaitPids(ns.exec('sleeves.js', 'home', 1, 'shock'));
-		}
-		else if (karma == 0) { // Start killing for karma
-			// We don't have gang karma, have sleeves grind karma for us
-			await WaitPids(ns.exec('sleeves.js', 'home', 1, 'homicide'));
-		}
+		await SleeveManagement(ns, karma);
 
 		// Start gangs if we have the karma for it
-		const karma = ns.heart.break();
-		if (karma <= -54000) ns.exec('gangman.js', 'home');
+		if (karma <= -54000) TryRunScript(ns, 'gangman.js');
+
+		// buy personal servers?
+		// upgrade home ram?
+		// start/stop basic hacking script
+		// start/stop manager
+		// start/stop controller
+		// start/stop stocks?
 
 		// Leave 1m for travels
 		// Auto join Tian
@@ -113,7 +90,42 @@ export async function main(ns) {
 	}
 }
 
-export async function TryRunScript(ns, script, params) {
-	//export async function RunScript(ns, scriptName, target, threads, delay, expectedTime, batchNumber, logColor, allowSpread, allowPartial) {
-		RunScript(ns, script, )
+async function SleeveManagement(ns, karma) {
+	let stats = ns.sleeve.getSleeveStats(0);
+
+	// If shock > 95% we force shock recovery
+	if (stats.shock > 0.95) {
+		await TryRunScript(ns, 'sleeves.js', ['shock', 0, 8, true]);
+		return;
+	}
+
+	// Mug for a bit if our stats are shit, getting us a tiny bit of income
+	if (stats.strengt < 30 || stats.defense < 30 || stats.dexterity < 30 || stats.agility < 15) {
+		await TryRunScript(ns, 'sleeves.js', ['mug', 0, 8, true]);
+		return;
+	}
+
+	// Homicide for karma
+	if (karma > -54000) {
+		await TryRunScript(ns, 'sleeves.js', ['homicide', 0, 8, true]);
+		return;
+	}
+
+	// Default action set to homicide for money
+	await TryRunScript(ns, 'sleeves.js', ['homicide', 0, 8, true]);
+
+	// Always have one sleeve on shock duty unless we're grinding gangs
+	if (stats.shock > 0) {
+		await TryRunScript(ns, 'sleeves.js', ['shock', 0, 1, true]);
+	}
+}
+
+export async function TryRunScript(ns, script, params = []) {
+	const pids = ns.run(script, 1, ...params);
+	await WaitPids(ns, pids);
+	if (pids.length == 0) {
+		ns.tprint('WARN: Not enough ram to run ' + script);
+	}
+	else
+		ns.print('INFO: Started ' + script + ' with params [' + params + ']');
 }

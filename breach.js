@@ -1,6 +1,8 @@
 export async function main(ns) {
 	ns.disableLog('ALL');
 
+	const [silent = false] = ns.args;
+
 	BuyPrograms(ns);
 
 	const servers = GetAllServers(ns);
@@ -13,14 +15,14 @@ export async function main(ns) {
 			rooted++;
 		}
 		else if (await Breach(ns, server) == true) {
-			ns.tprint('WARN: Rooted new server: ' + server);
+			ns.tprint('SUCCESS: Rooted new server: ' + server);
 			newlyRooted++;
 		}
 
 	}
 	if (newlyRooted > 0)
 		ns.tprint('SUCCESS: Successfully breached ' + newlyRooted + ' new servers (before: ' + rooted + ' after: ' + (rooted + newlyRooted) + ')');
-	else
+	else if (!silent)
 		ns.tprint('FAIL: No new servers rooted.');
 }
 
@@ -34,7 +36,7 @@ function BuyPrograms(ns) {
 		}
 		else {
 			if (ns.singularity.purchaseTor()) {
-				ns.print('INFO: Succesfully bought TOR router.');
+				ns.tprint('INFO: Succesfully bought TOR router.');
 			}
 			else {
 				ns.print('ERROR: Something went wrong buying the TOR router.');
@@ -46,31 +48,36 @@ function BuyPrograms(ns) {
 	// Buy BruteSSH.exe
 	if (!ns.fileExists('BruteSSH.exe')) {
 		ns.print('INFO: Checking if we can buy BruteSSH.exe.');
-		ns.singularity.purchaseProgram("BruteSSH.exe");
+		if (ns.singularity.purchaseProgram("BruteSSH.exe"))
+			ns.tprint('SUCCESS: Purchased BruteSSH.exe');
 	}
 
 	// Buy FTPCrack.exe
 	if (!ns.fileExists('FTPCrack.exe')) {
 		ns.print('INFO: Checking if we can buy FTPCrack.exe.');
-		ns.singularity.purchaseProgram("FTPCrack.exe");
+		if (ns.singularity.purchaseProgram("FTPCrack.exe"))
+			ns.tprint('SUCCESS: Purchased FTPCrack.exe');
 	}
 
 	// Buy relaySMTP.exe
 	if (!ns.fileExists('relaySMTP.exe')) {
 		ns.print('INFO: Checking if we can buy relaySMTP.exe.');
-		ns.singularity.purchaseProgram("relaySMTP.exe");
+		if (ns.singularity.purchaseProgram("relaySMTP.exe"))
+			ns.tprint('SUCCESS: Purchased relaySMTP.exe');
 	}
 
 	// Buy SQLInject.exe
 	if (!ns.fileExists('SQLInject.exe')) {
 		ns.print('INFO: Checking if we can buy SQLInject.exe.');
-		ns.singularity.purchaseProgram("SQLInject.exe");
+		if (ns.singularity.purchaseProgram("SQLInject.exe"))
+			ns.tprint('SUCCESS: Purchased SQLInject.exe');
 	}
 
 	// Buy HTTPWorm.exe 
 	if (!ns.fileExists('HTTPWorm.exe')) {
 		ns.print('INFO: Checking if we can buy HTTPWorm.exe.');
-		ns.singularity.purchaseProgram("HTTPWorm.exe");
+		if (ns.singularity.purchaseProgram("HTTPWorm.exe"))
+			ns.tprint('SUCCESS: Purchased HTTPWorm.exe');
 	}
 }
 

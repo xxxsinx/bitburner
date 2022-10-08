@@ -3,7 +3,9 @@ import { ColorPrint } from 'hack-once.js'
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	let [task, start = 0, count = 8] = ns.args;
+	ns.disableLog('ALL');
+
+	let [task, start = 0, count = 8, silent = false] = ns.args;
 
 	let getBest = task == undefined;
 
@@ -20,7 +22,8 @@ export async function main(ns) {
 		}
 
 		if (task == 'shock') {
-			ns.tprint('Setting sleeve ' + i + ' to Shock Recovery');
+			if (!silent)
+				ns.tprint('Setting sleeve ' + i + ' to Shock Recovery');
 			ns.sleeve.setToShockRecovery(i);
 			continue;
 		}
@@ -106,7 +109,8 @@ export async function main(ns) {
 					continue;
 			}
 
-			ns.tprint('Sleeve ' + i + ' is starting to study ' + course + ' at ' + uni);
+			if (!silent)
+				ns.tprint('Sleeve ' + i + ' is starting to study ' + course + ' at ' + uni);
 			ns.sleeve.setToUniversityCourse(i, uni, course);
 			continue;
 		}
@@ -127,13 +131,15 @@ export async function main(ns) {
 			const stats = ['Train Strength', 'Train Defense', 'Train Dexterity', 'Train Agility'];
 			const statIndex = i % 4;
 
-			ns.tprint('Sleeve ' + i + ' is starting to to ' + stats[statIndex] + ' at ' + 'Powerhouse Gym');
+			if (!silent)
+				ns.tprint('Sleeve ' + i + ' is starting to to ' + stats[statIndex] + ' at ' + 'Powerhouse Gym');
 			ns.sleeve.setToGymWorkout(i, 'Powerhouse Gym', stats[statIndex]);
 			continue;
 		}
 
 		// Default
-		ns.tprint('Setting sleeve ' + i + ' to ' + task);
+		if (!silent)
+			ns.tprint('Setting sleeve ' + i + ' to ' + task);
 		ns.sleeve.setToCommitCrime(i, task);
 		continue;
 	}

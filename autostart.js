@@ -1,4 +1,5 @@
 import { WaitPids } from "utils.js";
+import { Goal, Goals } from "goals.js"
 
 /*
 Brainstorm of what's needed for a "main brain" script
@@ -42,26 +43,63 @@ export async function main(ns) {
 
 	const started = performance.now();
 
+	const goals = new Goals(ns, 'autostart.txt', [
+		//new Goal(ns, 'Started', () => true),
+		new Goal(ns, '1h', function () {
+			const reached = performance.now() - started > 1000 * 60 * 10;
+			if (reached)
+				ns.tprint('INFO: Karma after 10m is ' + ns.heart.break());
+			return reached;
+		}),
+	]);
+
+	goals.ResetGoals();
+
 	while (true) {
-		const karma = ns.heart.break();
+		// Situation report script
+		await TryRunScript(ns, 'sitrep.js');
+		const sitrep = JSON.parse(ns.read('sitrep.txt'));
+		const karma = sitrep.karma;
 
-		// Buy programs, run programs, nuke
-		await TryRunScript(ns, 'breach.js', [true]);
+		if (sitrep.portCrackers < 5 || // Check if we need to buy more port crackers
+			sitrep.servers.some(s => s.ports.open < s.ports.open.required) || // Check if we have servers who need cracking
+			sitrep.servers.some(s => s.ports.nuked == false) // Check if we have servers that need nuking
+		) {
+			// Buy programs, run programs, nuke
+			await TryRunScript(ns, 'breach.js', [true]);
+		}
 
-		// Solve contracts
-		await TryRunScript(ns, 'cct.js', [true]);
+		if (sitrep.servers.some(s => s.contracts.length > 0)) {
+			// Solve contracts
+			await TryRunScript(ns, 'contractPrep.js', [true]);
+			await TryRunScript(ns, 'solver.js', [true]);
+		}
 
 		// Save work reputation to it's faction
 		await TryRunScript(ns, 'SaveRep.js');
 
-		// Install backdoors
-		await TryRunScript(ns, 'installBackdoor.js', [true]);
+		const BACKDOOR_TARGETS = [
+			'CSEC',
+			'I.I.I.I',
+			'avmnite-02h',
+			'run4theh111z',
+			'millenium-fitness',
+			'powerhouse-fitness',
+			'crush-fitness',
+			'snap-fitness'
+		];
+
+		if (sitrep.servers.some(s => BACKDOOR_TARGETS.includes(s.name) && s.ports.backdoored == false && s.difficulty.current >= s.difficulty.required)) {
+			// Install backdoors
+			await TryRunScript(ns, 'installBackdoor.js', [true]);
+		}
 
 		// Sleeve management
 		await SleeveManagement(ns, karma);
 
 		// Start gangs if we have the karma for it
-		if (karma <= -54000) TryRunScript(ns, 'gangman.js');
+		if (karma <= -54000) await TryRunScript(ns, 'gangman.js');
+		else ns.print('Current karma: ' + karma.toFixed(0));
 
 		// buy personal servers?
 		// upgrade home ram?
@@ -85,6 +123,8 @@ export async function main(ns) {
 		// Farm the rest by donations
 		// Run share when ram allows
 
+		goals.CheckGoals();
+
 		ns.print('');
 		await ns.sleep(10000);
 	}
@@ -95,7 +135,7 @@ async function SleeveManagement(ns, karma) {
 
 	// If shock > 95% we force shock recovery
 	if (stats.shock > 95) {
-		ns.print('Shock is ' + stats.shock)
+		//ns.print('Shock is ' + stats.shock)
 		await TryRunScript(ns, 'shock.js', [0, 8]);
 		return;
 	}

@@ -113,10 +113,11 @@ export async function main(ns) {
 				await TryRunScript(ns, '/gang/buy.js');
 
 				await TryRunScript(ns, 'gangman.js');
-				ns.print('Current karma: ' + karma.toFixed(0));
 			}
 		}
-
+		else {
+			ns.print('Current karma: ' + karma.toFixed(0));
+		}
 		// buy personal servers?
 		// upgrade home ram?
 		// start/stop basic hacking script

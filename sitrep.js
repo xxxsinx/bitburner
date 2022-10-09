@@ -20,7 +20,7 @@ export async function main(ns) {
 		servers: [],
 		portCrackers: 0,
 		karma: ns.heart.break(),
-		//inGang: ns.gang.inGang(),
+		hasGang: ns.gang.inGang()
 		//sleeveCount: ns.sleeve.getNumSleeves(),
 		//has4S: ns.stock.has4SDataTIXAPI(),
 	};
@@ -71,4 +71,8 @@ export async function main(ns) {
 
 	ns.write('sitrep.txt', JSON.stringify(report), 'w');
 	//ns.tprint(JSON.stringify(report));
+}
+
+export function GetSitRep(ns) {
+	return JSON.parse(ns.read('sitrep.txt'));
 }

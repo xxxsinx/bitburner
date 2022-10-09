@@ -1,3 +1,6 @@
+import { GetSitRep } from 'sitrep.js'
+import { GetMembers } from '/gang/members.js'
+
 const GANGSTER_NAMES = [
 	'Jeromy Gride',
 	'Scott Dourque',
@@ -35,56 +38,16 @@ let g_goals = undefined;
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	if (ns.args[0] == 'names') {
-		// //let names= Set.from(ns.gang.getMemberNames());
-		// let names = new Set();
-		// while ([...names].length < 12) {
-		// 	let index = Math.floor(Math.random() * GANGSTER_NAMES.length);
-		// 	let name = GANGSTER_NAMES[index];
-		// 	names.add(name);
-		// }
+	g_goals = new GangGoals(ns);
 
-		let names = GetNames(ns);
-
-		for (let name of names) {
-			ns.tprint(name);
-		}
-
+	const sitrep= GetSitRep(ns);
+	if (!sitrep.hasGang) {
+		ns.tprint('ERROR: Not in a gang, exiting');
+		ns.print('ERROR: Not in a gang, exiting');
 		return;
 	}
 
-	g_goals = new GangGoals(ns);
-
-	if (!ns.gang.inGang()) {
-		let karma = ns.heart.break();
-		const loop = ns.args[0] == 'loop';
-
-		while (karma > -54000) {
-			if (!loop) ns.tprint('ERROR: Not enough karma to create a gang yet' + karma);
-			ns.print('ERROR: Not enough karma to create a gang yet ' + karma);
-			if (loop) {
-				ns.tail();
-				await ns.sleep(5000);
-				karma = ns.heart.break();
-				continue;
-			}
-			return;
-		}
-
-		if (ns.singularity.checkFactionInvitations().includes('Slum Snakes'))
-			ns.singularity.joinFaction('Slum Snakes');
-
-		if (ns.getPlayer().factions.includes('Slum Snakes'))
-			ns.gang.createGang('Slum Snakes');
-
-		if (!ns.gang.inGang()) {
-			ns.tprint('ERROR: Not in a gang, could not create gang, exiting');
-			ns.print('ERROR: Not in a gang, could not create gang, exiting');
-			return;
-		}
-	}
-
-	ns.tail();
+	//ns.tail();
 
 	let otherGangsInfoPrevCycle = undefined;
 	let nextTick = undefined;
@@ -131,7 +94,6 @@ export async function main(ns) {
 		// *** Equipement stuff ***
 		if (allowUpgrades) {
 			UpgradeEquipement(ns);
-			//ns.print('');
 		}
 
 		// *** Territory warfaire ***

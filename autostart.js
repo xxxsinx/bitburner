@@ -44,11 +44,10 @@ export async function main(ns) {
 	const started = performance.now();
 
 	const goals = new Goals(ns, 'autostart.txt', [
-		//new Goal(ns, 'Started', () => true),
-		new Goal(ns, '1h', function () {
-			const reached = performance.now() - started > 1000 * 60 * 10;
+		new Goal(ns, '1H', function () {
+			const reached = performance.now() - started > 1000 * 60 * 60;
 			if (reached)
-				ns.tprint('INFO: Karma after 10m is ' + ns.heart.break());
+				ns.tprint('INFO: Karma after 1H is ' + ns.heart.break());
 			return reached;
 		}),
 	]);
@@ -58,8 +57,9 @@ export async function main(ns) {
 	while (true) {
 		// Situation report script
 		await TryRunScript(ns, 'sitrep.js');
-		const sitrep = JSON.parse(ns.read('sitrep.txt'));
-		const karma = sitrep.karma;
+		await TryRunScript(ns, 'sitrepSleeves.js');
+		let sitrep = JSON.parse(ns.read('sitrep.txt'));
+		let karma = sitrep.karma;
 
 		if (sitrep.portCrackers < 5 || // Check if we need to buy more port crackers
 			sitrep.servers.some(s => s.ports.open < s.ports.open.required) || // Check if we have servers who need cracking
@@ -98,8 +98,24 @@ export async function main(ns) {
 		await SleeveManagement(ns, karma);
 
 		// Start gangs if we have the karma for it
-		if (karma <= -54000) await TryRunScript(ns, 'gangman.js');
-		else ns.print('Current karma: ' + karma.toFixed(0));
+		if (karma <= -54000) {
+			if (!sitrep.hasGang) {
+				await TryRunScript(ns, '/gang/create.js');
+
+				// Situation report script
+				await TryRunScript(ns, 'sitrep.js');
+				sitrep = JSON.parse(ns.read('sitrep.txt'));
+				karma = sitrep.karma;
+			}
+			if (sitrep.hasGang) {
+				await TryRunScript(ns, '/gang/equipment.js');
+				await TryRunScript(ns, '/gang/members.js');
+				await TryRunScript(ns, '/gang/buy.js');
+
+				await TryRunScript(ns, 'gangman.js');
+				ns.print('Current karma: ' + karma.toFixed(0));
+			}
+		}
 
 		// buy personal servers?
 		// upgrade home ram?
@@ -133,27 +149,27 @@ export async function main(ns) {
 async function SleeveManagement(ns, karma) {
 	let stats = ns.sleeve.getSleeveStats(0);
 
-	// If shock > 95% we force shock recovery
-	if (stats.shock > 95) {
-		//ns.print('Shock is ' + stats.shock)
-		await TryRunScript(ns, 'shock.js', [0, 8]);
-		return;
-	}
+	// // If shock > 95% we force shock recovery
+	// if (stats.shock > 95) {
+	// 	//ns.print('Shock is ' + stats.shock)
+	// 	await TryRunScript(ns, 'shock.js', [0, 8]);
+	// 	return;
+	// }
 
-	// Mug for a bit if our stats are shit, getting us a tiny bit of income
-	if (stats.strengt < 30 || stats.defense < 30 || stats.dexterity < 30 || stats.agility < 15) {
-		await TryRunScript(ns, 'sleevecrime.js', ['mug', 0, 8]);
-		return;
-	}
+	// // Mug for a bit if our stats are shit, getting us a tiny bit of income
+	// if (stats.strengt < 30 || stats.defense < 30 || stats.dexterity < 30 || stats.agility < 15) {
+	// 	await TryRunScript(ns, 'sleeveCrime.js', ['mug', 0, 8]);
+	// 	return;
+	// }
 
 	// Homicide for karma
 	if (karma > -54000) {
-		await TryRunScript(ns, 'sleevecrime.js', ['Homicide', 0, 8]);
+		await TryRunScript(ns, 'sleeveCrime.js', ['Homicide', 0, 8]);
 		return;
 	}
 
 	// Default action set to homicide for money
-	await TryRunScript(ns, 'sleevecrime.js', ['Homicide', 0, 8]);
+	await TryRunScript(ns, 'sleeveCrime.js', ['Homicide', 0, 8]);
 
 	// Always have one sleeve on shock duty unless we're grinding gangs
 	if (stats.shock > 0) {

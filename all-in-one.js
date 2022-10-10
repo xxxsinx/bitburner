@@ -2,7 +2,7 @@
 export async function main(ns) {
 	if (false) ns.grow(); // bogus call to tell the static ram checker to allocate 150MB
 
-	let [operation, target]= ns.args[0];
+	let [operation, target]= ns.args;
 	switch (operation) {
 		case "H":
 			eval('await ns.hack(' + target + ')');

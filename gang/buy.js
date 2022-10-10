@@ -13,9 +13,11 @@ export async function main(ns) {
 
 function UpgradeEquipement(ns, budget, allowAugs) {
 	const allGear = GetEquipment(ns);
+	//ns.tprint('budget: ' + ns.nFormat(budget, '0.000a'));
 	if (budget < 0) return;
 
 	const members = GetMembers(ns);
+	//ns.tprint('members: ' + members.length);
 
 	for (const gear of allGear) {
 		if (gear.type == 'Augmentation' && !allowAugs)
@@ -36,7 +38,7 @@ function UpgradeEquipement(ns, budget, allowAugs) {
 		// Find which member(s) do not have that upgrade installed
 		const missing = [];
 		for (let member of members) {
-			if (!member.upgrades.includes(bling.name) && !member.augmentations.includes(bling.name)) {
+			if (!member.upgrades.includes(gear.name) && !member.augmentations.includes(gear.name)) {
 				missing.push(member.name);
 			}
 		}

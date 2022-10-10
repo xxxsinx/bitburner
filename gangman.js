@@ -1,3 +1,4 @@
+import { WaitPids } from "utils.js";
 import { GetSitRep } from 'sitrep.js'
 import { GetMembers } from '/gang/members.js'
 
@@ -26,25 +27,27 @@ const GANGSTER_NAMES = [
 	'Todd Bonzalez'
 ];
 
-const allowUpgrades = true;
 const allowAscension = true;
-const allowAugs = true;
 
-const EXTERNAL_FUNDING = 0; // A balance of zero means the gang will only spend what it makes on it's own. Anything over 0 is extra money that can be taken if/when available.
-
-let g_goals = undefined;
+//let g_goals = undefined;
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	g_goals = new GangGoals(ns);
+	//g_goals = new GangGoals(ns);
 
-	const sitrep= GetSitRep(ns);
+
+
+	let sitrep = GetSitRep(ns);
 	if (!sitrep.hasGang) {
-		ns.tprint('ERROR: Not in a gang, exiting');
-		ns.print('ERROR: Not in a gang, exiting');
-		return;
+		await TryRunScript(ns, '/gang/create.js');
+		sitrep = GetSitRep(ns);
+		if (!sitrep.hasGang) {
+			ns.tprint('ERROR: Not in a gang, exiting');
+			ns.print('ERROR: Not in a gang, exiting');
+			return;
+		}
 	}
 
 	//ns.tail();
@@ -52,18 +55,23 @@ export async function main(ns) {
 	let otherGangsInfoPrevCycle = undefined;
 	let nextTick = undefined;
 	let gangInfo = ns.gang.getGangInformation();
-	let members = ns.gang.getMemberNames();
+	let members = GetMembers(ns).map(s => s.name);
 
 	AssignTasks(ns, members, gangInfo);
 
 	while (true) {
+		await TryRunScript(ns, '/gang/members.js');
+		await TryRunScript(ns, '/gang/canClash.js');
+		//await TryRunScript(ns, '/gang/equipment.js');
+		//await TryRunScript(ns, '/gang/buy.js', [budget, true]);
+
 		gangInfo = ns.gang.getGangInformation();
 
 		// *** Recruitment ***
 		await RecruitMembers(ns);
 
 		// *** Get current gang member names and gangInfo ***
-		members = ns.gang.getMemberNames();
+		members = GetMembers(ns).map(s => s.name);
 		gangInfo = ns.gang.getGangInformation();
 		//GangReport(ns, gangInfo);
 
@@ -91,22 +99,14 @@ export async function main(ns) {
 				}
 			}
 		}
-		// *** Equipement stuff ***
-		if (allowUpgrades) {
-			UpgradeEquipement(ns);
-		}
 
 		// *** Territory warfaire ***
 		// Detect new tick
 		let otherGangsInfo = ns.gang.getOtherGangInformation();
 		let newTick = false;
-		let allowClash = true;
 		for (let i = 0; i < Object.keys(otherGangsInfo).length; i++) {
 			const gangName = Object.keys(otherGangsInfo)[i];
 			if (gangName == gangInfo.faction) continue;
-
-			if (ns.gang.getChanceToWinClash(gangName) < 0.55)
-				allowClash = false;
 
 			let gi = Object.values(otherGangsInfo)[i];
 			let ogi = otherGangsInfoPrevCycle ? Object.values(otherGangsInfoPrevCycle)[i] : gi;
@@ -144,55 +144,55 @@ export async function main(ns) {
 			//ns.print('INFO: Skipping territory warfare, we are at 100% territory! Focusing on $$$');
 		}
 
-		ns.gang.setTerritoryWarfare(allowClash && gangInfo.territory < 1);
+		ns.gang.setTerritoryWarfare(sitrep.canClash && gangInfo.territory < 1);
 
 		// ns.print('');
 		// ns.print('LOOP END');
 		// ns.print('');
-		g_goals.CheckGoals();
+		//g_goals.CheckGoals();
 		await ns.sleep(1000);
 	}
 }
 
-class GangGoals {
-	constructor(ns) {
-		this.ns = ns;
-		this.goals = [
-			{ name: 'Gang created', condition: () => ns.gang.inGang(), state: undefined },
-			{ name: '12th member recruited', condition: () => ns.gang.inGang() && ns.gang.getMemberNames().length == 12, state: undefined },
-			{ name: 'Faction rep capped', condition: () => ns.gang.inGang() && ns.getPlayer().factions.includes('Slum Snakes') && ns.singularity.getFactionRep('Slum Snakes') >= 1_875_000, state: undefined },
-			{ name: 'Enabled clashes', condition: () => ns.gang.inGang() && (ns.gang.getGangInformation().territoryWarfareEngaged || ns.gang.getGangInformation().territory > 0.15), state: undefined },
-			{ name: '100% territory', condition: () => ns.gang.inGang() && ns.gang.getGangInformation().territory >= 1, state: undefined }
-		];
-		this.CheckGoals();
-	}
+// class GangGoals {
+// 	constructor(ns) {
+// 		this.ns = ns;
+// 		this.goals = [
+// 			{ name: 'Gang created', condition: () => GetSitRep(ns).hasGang, state: undefined },
+// 			{ name: '12th member recruited', condition: () => GetSitRep(ns).hasGang && GetMembers(ns).length == 12, state: undefined },
+// 			{ name: 'Faction rep capped', condition: () => GetSitRep(ns).hasGang && ns.getPlayer().factions.includes('Slum Snakes') && ns.singularity.getFactionRep('Slum Snakes') >= 1_875_000, state: undefined },
+// 			{ name: 'Enabled clashes', condition: () => GetSitRep(ns).hasGang && (ns.gang.getGangInformation().territoryWarfareEngaged || ns.gang.getGangInformation().territory > 0.15), state: undefined },
+// 			{ name: '100% territory', condition: () => GetSitRep(ns).hasGang && ns.gang.getGangInformation().territory >= 1, state: undefined }
+// 		];
+// 		this.CheckGoals();
+// 	}
 
-	CheckGoals() {
-		for (const goal of this.goals)
-			this.CheckGoal(goal);
-	}
+// 	CheckGoals() {
+// 		for (const goal of this.goals)
+// 			this.CheckGoal(goal);
+// 	}
 
-	CheckGoal(goal) {
-		let currentValue = goal.condition();
+// 	CheckGoal(goal) {
+// 		let currentValue = goal.condition();
 
-		switch (goal.state) {
-			case undefined:
-				goal.state = goal.condition();
-				if (goal.state)
-					this.ns.tprint('WARN: Gang goals: Already achieved goal ' + goal.name + ' on script startup');
-				break;
-			case false:
-				if (currentValue) {
-					goal.state = true;
-					this.ns.tprint('FAIL: Gang goals: Achieved goal ' + goal.name);
-				}
-				break;
-			case true:
-				// Nothing to do here
-				break;
-		}
-	}
-}
+// 		switch (goal.state) {
+// 			case undefined:
+// 				goal.state = goal.condition();
+// 				if (goal.state)
+// 					this.ns.tprint('WARN: Gang goals: Already achieved goal ' + goal.name + ' on script startup');
+// 				break;
+// 			case false:
+// 				if (currentValue) {
+// 					goal.state = true;
+// 					this.ns.tprint('FAIL: Gang goals: Achieved goal ' + goal.name);
+// 				}
+// 				break;
+// 			case true:
+// 				// Nothing to do here
+// 				break;
+// 		}
+// 	}
+// }
 
 function GetNextMemberTime(ns, members, gangInfo) {
 	if (members.length == 12) return -1;
@@ -261,7 +261,7 @@ function MemberWeight(ns, member) {
 }
 
 function GetNames(ns) {
-	let names = new Set(ns.gang.inGang() ? ns.gang.getMemberNames() : []);
+	let names = new Set(GetMembers(ns).map(s => s.name));
 	while ([...names].length < 12) {
 		let index = Math.floor(Math.random() * GANGSTER_NAMES.length);
 		let name = GANGSTER_NAMES[index];
@@ -322,71 +322,22 @@ function CalculateAscendTreshold(ns, member) {
 	return 1.0591;
 }
 
-function UpgradeEquipement(ns) {
-	let budget = Math.min(GetGangBalance(ns) + EXTERNAL_FUNDING, ns.getPlayer().money);
-	if (budget < 0) return;
-
-	let allGear = ns.gang.getEquipmentNames();
-	allGear = allGear.sort((a, b) => ns.gang.getEquipmentCost(a) - ns.gang.getEquipmentCost(b));
-
-	const members = ns.gang.getMemberNames();
-
-	for (let gear of allGear) {
-		let type = ns.gang.getEquipmentType(gear);
-
-		if (type == 'Augmentation' && !allowAugs)
-			continue;
-
-		// const allowedHackingAugs= [
-		// 	'BitWire', 'DataJack', 'Neuralstimulator'
-		// ];		
-		// if (type == 'Augmentation' && !allowedHackingAugs.includes(gear))
-		// 	continue;
-
-		// if ((type == 'Weapon' || type == 'Armor' || type == 'Vehicle' || type == 'Rootkit') && budget < 5_000_000_000)
-		// 	continue;
-
-		// if (type == 'Rootkit' && budget < 5_000_000_000)
-		// 	continue;
-
-		// Find which member(s) do not have that upgrade installed
-		const missing = new Array();
-		for (let member of members) {
-			const memberInfo = ns.gang.getMemberInformation(member);
-			if (!memberInfo.upgrades.includes(gear) && !memberInfo.augmentations.includes(gear)) {
-				missing.push(member);
-			}
-		}
-
-		let cost = ns.gang.getEquipmentCost(gear);
-		for (let member of missing) {
-			if (cost < budget) {
-				//ns.print('Buying ' + gear + ' for ' + member);
-				//ns.enableLog('gang.purchaseEquipment');
-				ns.gang.purchaseEquipment(member, gear);
-				budget -= cost;
-			}
-		}
-	}
-}
-
-
-function GangReport(ns, gangInfo) {
-	ns.print('');
-	ns.print('Faction                :  ' + gangInfo.faction);
-	ns.print('Gang type              :  ' + (gangInfo.isHacking ? 'Hacking' : 'Combat'));
-	ns.print('Money gain rate        :  ' + gangInfo.moneyGainRate);
-	ns.print('Power                  :  ' + gangInfo.power);
-	ns.print('Respect                :  ' + gangInfo.respect);
-	ns.print('Respect gain rate      :  ' + gangInfo.respectGainRate);
-	ns.print('Territory              :  ' + gangInfo.territory);
-	ns.print('Territory clash chance :  ' + gangInfo.territoryClashChance);
-	ns.print('Territory war engaged  :  ' + gangInfo.territoryWarfareEngaged);
-	ns.print('Wanted level           :  ' + gangInfo.wantedLevel);
-	ns.print('Wanted level gain rate :  ' + gangInfo.wantedLevelGainRate);
-	ns.print('Wanted penalty         :  ' + gangInfo.wantedPenalty);
-	ns.print('');
-}
+// function GangReport(ns, gangInfo) {
+// 	ns.print('');
+// 	ns.print('Faction                :  ' + gangInfo.faction);
+// 	ns.print('Gang type              :  ' + (gangInfo.isHacking ? 'Hacking' : 'Combat'));
+// 	ns.print('Money gain rate        :  ' + gangInfo.moneyGainRate);
+// 	ns.print('Power                  :  ' + gangInfo.power);
+// 	ns.print('Respect                :  ' + gangInfo.respect);
+// 	ns.print('Respect gain rate      :  ' + gangInfo.respectGainRate);
+// 	ns.print('Territory              :  ' + gangInfo.territory);
+// 	ns.print('Territory clash chance :  ' + gangInfo.territoryClashChance);
+// 	ns.print('Territory war engaged  :  ' + gangInfo.territoryWarfareEngaged);
+// 	ns.print('Wanted level           :  ' + gangInfo.wantedLevel);
+// 	ns.print('Wanted level gain rate :  ' + gangInfo.wantedLevelGainRate);
+// 	ns.print('Wanted penalty         :  ' + gangInfo.wantedPenalty);
+// 	ns.print('');
+// }
 
 function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 	// Absolute priority, if we got wanted penalty goes too far we fix that shit, it cripples everything
@@ -487,17 +438,12 @@ function FindBestTask(ns, gangInfo, member, prioritizeMoney, carryOver) {
 	return [tasks[0].task, tasks[0].carryOver];
 }
 
-
-/** @param {NS} ns **/
-function GetGangBalance(ns) {
-	let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
-	let box = boxes.find(s => getProps(s)?.player);
-	if (!box) return 0;
-	let props = getProps(box);
-	if (!props) return 0;
-	return props.player.moneySourceA.gang;
-}
-
-function getProps(obj) {
-	return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1]?.children?.props;
+export async function TryRunScript(ns, script, params = []) {
+	const pids = ns.run(script, 1, ...params);
+	await WaitPids(ns, pids);
+	if (pids.length == 0) {
+		ns.tprint('WARN: Not enough ram to run ' + script);
+	}
+	else
+		ns.print('INFO: Started ' + script + ' with params [' + params + ']');
 }

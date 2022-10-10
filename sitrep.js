@@ -1,4 +1,5 @@
 import { GetAllServers, GetServerPath } from 'utils.js'
+import { UpdateBankCache } from 'bank.js'
 
 // sitrep.js: This script caches information on the current situation for use by other scripts
 // The main goal is to isolate the gathering of information ram cost.
@@ -16,14 +17,23 @@ import { GetAllServers, GetServerPath } from 'utils.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
+	const bank= UpdateBankCache(ns);
+
 	const report = {
 		servers: [],
 		portCrackers: 0,
 		karma: ns.heart.break(),
-		hasGang: ns.gang.inGang()
+		hasGang: ns.gang.inGang(),
+		money: ns.getServerMoneyAvailable('home'),
+		balance: {
+			install: bank.install,
+			node: bank.node
+		}
 		//sleeveCount: ns.sleeve.getNumSleeves(),
 		//has4S: ns.stock.has4SDataTIXAPI(),
 	};
+
+
 
 	const PROGRAMS = [
 		'BruteSSH',
@@ -69,7 +79,7 @@ export async function main(ns) {
 		report.servers.push(entry);
 	}
 
-	ns.write('sitrep.txt', JSON.stringify(report), 'w');
+	ns.write('sitrep.txt', JSON.stringify(report, null, 2), 'w');
 	//ns.tprint(JSON.stringify(report));
 }
 

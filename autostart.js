@@ -1,5 +1,5 @@
 import { WaitPids } from "utils.js";
-import { Goal, Goals } from "goals.js"
+import { Goal, Goals } from "goals.js";
 
 /*
 Brainstorm of what's needed for a "main brain" script
@@ -108,9 +108,15 @@ export async function main(ns) {
 				karma = sitrep.karma;
 			}
 			if (sitrep.hasGang) {
-				await TryRunScript(ns, '/gang/equipment.js');
 				await TryRunScript(ns, '/gang/members.js');
-				await TryRunScript(ns, '/gang/buy.js');
+				await TryRunScript(ns, '/gang/canClash.js');
+
+				const budget = Math.min(sitrep.balance.install.gang /*+ EXTERNAL_FUNDING*/, sitrep.money);
+				ns.print('INFO: Gang equipment budget is ' + ns.nFormat(budget, '0.000a'));
+				if (budget > 0) {
+					await TryRunScript(ns, '/gang/equipment.js');
+					await TryRunScript(ns, '/gang/buy.js', [budget, true]);
+				}
 
 				await TryRunScript(ns, 'gangman.js');
 			}

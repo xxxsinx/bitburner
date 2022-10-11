@@ -112,6 +112,8 @@ export async function main(ns) {
 				await TryRunScript(ns, '/gang/canClash.js');
 
 				const budget = Math.min(sitrep.balance.install.gang /*+ EXTERNAL_FUNDING*/, sitrep.money);
+				// ns.print('INFO: Gang balance is ' + sitrep.balance.install.gang);
+				// ns.print('INFO: Money is ' + sitrep.money);
 				ns.print('INFO: Gang equipment budget is ' + ns.nFormat(budget, '0.000a'));
 				if (budget > 0) {
 					await TryRunScript(ns, '/gang/equipment.js');

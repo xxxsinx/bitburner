@@ -17,13 +17,12 @@ import { UpdateBankCache } from 'bank.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
-	const bank= UpdateBankCache(ns);
+	const bank = UpdateBankCache(ns);
 
 	const report = {
 		servers: [],
 		portCrackers: 0,
 		karma: ns.heart.break(),
-		hasGang: ns.gang.inGang(),
 		money: ns.getServerMoneyAvailable('home'),
 		balance: {
 			install: bank.install,
@@ -33,7 +32,7 @@ export async function main(ns) {
 		//has4S: ns.stock.has4SDataTIXAPI(),
 	};
 
-
+	try { report.hasGang = ns.gang.inGang(); } catch { }
 
 	const PROGRAMS = [
 		'BruteSSH',

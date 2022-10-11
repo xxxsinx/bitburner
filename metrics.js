@@ -69,6 +69,7 @@ export function GetBestMetricsForServer(ns, server, minThreads, maxThreads, maxN
 }
 
 // Solve for number of growth threads required to get from money_lo to money_hi
+// base is ns.formulas.hacking.growPercent(serverObject, 1, playerObject, cores)
 function solveGrow(base, money_lo, money_hi) {
 	if (money_lo >= money_hi) { return 0; }
 

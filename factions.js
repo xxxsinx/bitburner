@@ -277,7 +277,7 @@ function AugColor(ns, aug) {
 	if (intersect(ns.getPlayer().factions, aug.factions).length == 0) return '#990000'
 	if (!MeetsRepRequirement(ns, aug)) return '#0080ff';
 	if (aug.price > ns.getServerMoneyAvailable('home')) return 'red'
-	if (aug.type == 'Physical' || aug.type == 'Charisma' || aug.type == 'Shit' || aug.type == 'Company') return '#555555'
+	if (aug.type == 'Physical' || aug.type == 'Charisma' || aug.type == 'Shit' || aug.type == 'Company') return 'Grey'
 	if (!MeetsPreReq(ns, aug)) return 'orange';
 
 	return 'white';
@@ -340,7 +340,7 @@ function TypeColor(type) {
 		case 'Shit':
 			return 'brown';
 		case 'BladeBurner':
-			return '#555555';
+			return 'Grey';
 		case 'Special':
 			return 'cyan';
 		case 'Faction':
@@ -350,13 +350,13 @@ function TypeColor(type) {
 		case 'Hacking':
 			return 'lime'
 		case 'Charisma':
-			return '#555555';
+			return 'Grey';
 		case 'Physical':
-			return '#555555';
+			return 'Grey';
 		case 'Company':
-			return '#555555';
+			return 'Grey';
 		case '???':
-			return '#555555';
+			return 'Grey';
 		default:
 			return 'red';
 	}

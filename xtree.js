@@ -97,7 +97,7 @@ export async function main(ns) {
 		let ramString = maxRam > 0 ? ns.nFormat(maxRam * 1000000000, '0.0b') : '';
 
 		let freeRam = ns.getServerMaxRam(server.name) - ns.getServerUsedRam(server.name);
-		let freeRamColor = freeRam > 0 ? 'white' : '#555555';
+		let freeRamColor = freeRam > 0 ? 'white' : 'Grey';
 		let freeRamString = maxRam > 0 ? ns.nFormat(freeRam * 1000000000, '0.0b') : '';
 
 		let ramPct = maxRam > 0 ? (freeRam / maxRam * 100).toFixed(0) + '%' : '';
@@ -145,18 +145,17 @@ export async function main(ns) {
 		let values = [
 			{ color: 'white', text: ' ' + (hackingOnly ? '' : prefix) + server.name },
 			{ color: 'white', text: server.sym ? ' ' + server.sym.padEnd(5) : ''.padStart(5) },
-			{ color: maxRam > 0 ? freeRamColor : '#555555', text: ' ' + freeRamString.padStart(7) + (maxRam == 0 ? ' ' : '/') + ramString.padStart(7) + ' ' + ramPct.padStart(4) },
-			{ color: moneyMax > 0 ? moneyColor : '#555555', text: moneyString + (moneyMax > 0 ? '/' : ' ') + maxMoneyString + moneyPct.padStart(5) },
+			{ color: maxRam > 0 ? freeRamColor : 'Grey', text: ' ' + freeRamString.padStart(7) + (maxRam == 0 ? ' ' : '/') + ramString.padStart(7) + ' ' + ramPct.padStart(4) },
+			{ color: moneyMax > 0 ? moneyColor : 'Grey', text: moneyString + (moneyMax > 0 ? '/' : ' ') + maxMoneyString + moneyPct.padStart(5) },
 			hackable ? { color: secColor, text: moneyMax > 0 ? (sec - minSec).toFixed(2).padStart(6) : ''.padEnd(6) } : '',
 			hackable ? { color: 'white', text: ' ' + Math.round(so.minDifficulty).toString().padStart(4) } : '',
 			{ color: hackReqColor, text: ' ' + so.requiredHackingSkill.toString().padStart(5) },
-			hackable ? { color: prepped ? 'lime' : '#555555', text: prepped ? '   Yes' : '    -' } : '',
+			hackable ? { color: prepped ? 'lime' : 'Grey', text: prepped ? '   Yes' : '    -' } : '',
 			weight ? { color: 'white', text: ' ' + (weight).toFixed(0) } : ''
 		];
 
 		if (HasFormulas(ns)) {
-			ns.tprint(so.hostname);
-			let xp= 0;
+			let xp = 0;
 			try {
 				xp = ns.formulas.hacking.hackExp(so, player) / weakTime * 100000;
 			} catch { }
@@ -199,9 +198,9 @@ function formatTime(time) {
 function pctColor(pct) {
 	if (pct >= 1) return 'Lime';
 	else if (pct >= 0.9) return 'Green';
-	else if (pct >= 0.75) return 'ForestGreen';
+	else if (pct >= 0.75) return 'DarkGreen';
 	else if (pct >= 0.6) return 'GreenYellow';
-	else if (pct >= 0.3) return 'Orange';
+	else if (pct >= 0.3) return 'Yellow';
 	else if (pct != 0) return 'DarkOrange';
 	return 'Red';
 }

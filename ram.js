@@ -111,14 +111,14 @@ function GetProcessDetails(ns, server) {
 }
 
 
+// Selects a color based on a 1-based percentage
 function pctColor(pct) {
 	if (pct >= 1) return 'Lime';
 	else if (pct >= 0.9) return 'Green';
-	else if (pct >= 0.75) return 'ForestGreen';
-	else if (pct >= 0.5) return 'GreenYellow';
-	else if (pct >= 0.25) return 'Orange';
-	else if (pct >= 0.1) return 'DarkOrange';
-	else if (pct > 0) return 'OrangeRed';
+	else if (pct >= 0.75) return 'DarkGreen';
+	else if (pct >= 0.6) return 'GreenYellow';
+	else if (pct >= 0.3) return 'Yellow';
+	else if (pct != 0) return 'DarkOrange';
 	return 'Red';
 }
 

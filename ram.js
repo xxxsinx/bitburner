@@ -160,10 +160,7 @@ export class MemoryMap {
 				block.coreBonus = 1 + (so.cpuCores - 1) / 16;
 
 				if (server == 'home') {
-					let minFree = 256;
-					//if (minFree > so.maxRam * 0.25) {
-					minFree = 45;//so.maxRam * 0.25;
-					//}
+					let minFree = 64;
 					if (free < minFree) {
 						minFree = free;
 					}

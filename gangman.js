@@ -64,6 +64,7 @@ export async function main(ns) {
 		await TryRunScript(ns, '/gang/canClash.js');
 		//await TryRunScript(ns, '/gang/equipment.js');
 		//await TryRunScript(ns, '/gang/buy.js', [budget, true]);
+		sitrep = GetSitRep(ns);
 
 		gangInfo = ns.gang.getGangInformation();
 
@@ -247,7 +248,9 @@ function AssignTasks(ns, members, gangInfo) {
 
 	for (let i = 0; i < sortedMembers.length; i++) {
 		let member = sortedMembers[i];
-		let [newTask, carry] = FindBestTask(ns, gangInfo, member, (i < sortedMembers.length / 2) || ns.gang.getGangInformation().territory == 1, carryOver);
+		let focusMoney = (i < sortedMembers.length / 2) || ns.singularity.getFactionRep('Slum Snakes') >= 1_875_000;
+		//(i < sortedMembers.length / 2) || ns.gang.getGangInformation().territory == 1
+		let [newTask, carry] = FindBestTask(ns, gangInfo, member, focusMoney, carryOver);
 		carryOver = carry;
 		ns.gang.setMemberTask(member, newTask);
 		//ns.print('WARN: Assigning task ' + newTask + ' to ' + member + ' forMoney: ' + focusMoney);

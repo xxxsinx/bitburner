@@ -1,5 +1,5 @@
 import { Weaken, Grow, Hack } from "prep.js";
-import { ServerReport } from "utils.js";
+import { AnalyzeAllServersSequential } from "metrics.js";
 
 // ns.args[0] = target server name
 // ns.args[1] = hack percent factor (0.1 to 1)
@@ -7,32 +7,33 @@ import { ServerReport } from "utils.js";
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	if (ns.args[0] == null) {
-		ns.print('ERROR: No server specified');
-		ns.exit();
+	while (true) {
+		const servers = AnalyzeAllServersSequential(ns, 1, false);
+		if (servers.length == 0) {
+			ns.tprint('FAIL: No hackable servers found, aborting!');
+			return;
+		}
+		await ManageServer(ns, servers[0]);
+		await ns.sleep(0);
 	}
-
-	var server = ns.args[0];
-
-	await ManageServer(ns, server, ns.args[1], ns.args[2]);
 }
 
-async function ManageServer(ns, server, pct, debug) {
-	if (pct == undefined || pct >= 1)
-		pct = 0.9;
+async function ManageServer(ns, metrics) {
+	const initialHackLevel = ns.getPlayer().skills.hacking;
 
-	for (; ;) {
-		ServerReport(ns, server);
-
-		const so = ns.getServer(server);
-
-		if (so.hackDifficulty > so.minDifficulty + 1)
-			await Weaken(ns, server, true, true);
-		else if (so.moneyAvailable < so.moneyMax * 0.85)
-			await Grow(ns, server, true, true);
+	while (true) {
+		metrics.Report(ns, ns.print);
+		const so = ns.getServer(metrics.server);
+		if (so.hackDifficulty > so.minDifficulty * 1.5)
+			await Weaken(ns, metrics.server, true, true);
+		else if (so.moneyAvailable < so.moneyMax * 0.9)
+			await Grow(ns, metrics.server, true, true);
 		else
-			await Hack(ns, server, pct, true, true);
+			await Hack(ns, metrics.server, metrics.pct, true, true);
 
-		await ns.sleep(200);
+		if (ns.getPlayer().skills.hacking - initialHackLevel > 20)
+			return;
+
+		await ns.sleep(0);
 	}
 }

@@ -35,8 +35,8 @@ export async function main(ns) {
 	await CreateScript(ns, 'grow');
 	await CreateScript(ns, 'weaken');
 
-	// Open the tail window, you can comment this if it bothers you
-	ns.tail();
+	// Open the tail window when the script starts
+	// ns.tail();
 
 	await Exploit(ns, target, pct, xpMode);
 }

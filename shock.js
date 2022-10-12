@@ -7,7 +7,7 @@ export async function main(ns) {
 	let [start = 0, count = 8] = ns.args;
 	for (let i = start; i < count; i++) {
 		const task = sitrep.sleeveTasks[i];
-		if (task.type != 'RECOVERY')
+		if (task?.type != 'RECOVERY')
 			ns.sleeve.setToShockRecovery(i);
 	}
 }

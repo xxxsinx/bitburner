@@ -17,17 +17,17 @@ import { UpdateBankCache } from 'bank.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
-	const bank = UpdateBankCache(ns);
+	//const bank = UpdateBankCache(ns);
 
 	const report = {
 		servers: [],
 		portCrackers: 0,
 		karma: ns.heart.break(),
 		money: ns.getServerMoneyAvailable('home'),
-		balance: {
-			install: bank.install,
-			node: bank.node
-		}
+		// balance: {
+		// 	install: bank.install,
+		// 	node: bank.node
+		// }
 		//sleeveCount: ns.sleeve.getNumSleeves(),
 		//has4S: ns.stock.has4SDataTIXAPI(),
 	};

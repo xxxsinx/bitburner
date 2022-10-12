@@ -64,6 +64,9 @@ export async function main(ns) {
 }
 
 export function PrintTable(ns, data, columns, style = DefaultStyle(), printfunc = ns.print) {
+	if (printfunc != ns.print)
+		printfunc = ns.tprint; // Temp fix until I get ansi colors working
+
 	// Create default columns if no definition were provided
 	let columnsProvided = true;
 	if (columns == undefined) {
@@ -152,7 +155,7 @@ export function CreateStyle(color, highlight) {
 }
 
 function PrintStack(ns, printStack, printfunc) {
-	if (printfunc == ns.tprint || printfunc == ns.print) {
+	if (printfunc == ns.tprint || printfunc == ns.print || printfunc == ns.tprintf) {
 		let str = '';
 		for (let i = 1; i < printStack.length; i += 2) {
 			str += printStack[i];

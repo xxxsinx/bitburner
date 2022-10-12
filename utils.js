@@ -1,6 +1,6 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-	ns.tprint(GetNextLevelXp(ns));
+	ns.tprint(GetServerPath(ns, 'run4theh111z'));
 
 	//ns.tprint(HasFormulas(ns));
 

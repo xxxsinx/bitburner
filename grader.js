@@ -1,6 +1,6 @@
 // --- CONFIG SECTION ---
-const testFile="manager.js"; //File to run to initiate testing
-const testFileArgs=['rho-construction', 1]; //Any arguments to be sent to the test file
+const testFile="geo.js"; //File to run to initiate testing
+const testFileArgs=[]; //Any arguments to be sent to the test file
 const testTimeLimit=1000*60*60; //Graded time, default is 1hr.
 // --- END CONFIG SECTION ---
 

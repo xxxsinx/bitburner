@@ -7,7 +7,8 @@ export async function main(ns) {
 
 	for (let i = start; i < count; i++) {
 		const task = sitrep.sleeveTasks[i];
-		if (task?.type != "CRIME" && task?.crimeType != crime.toUpperCase()) {
+		if (task == null || (task?.type != "CRIME" && task?.crimeType != crime.toUpperCase())) {
+			ns.tprint('INFO: Set sleeve ' + i + ' to crime ' + crime + '.');
 			ns.sleeve.setToCommitCrime(i, crime);
 		}
 	}

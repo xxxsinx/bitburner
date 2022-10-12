@@ -18,7 +18,6 @@ buyserver delete <name>		: Delete the specified server, a confirmation will be s
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	//const mults = ns.getBitNodeMultipliers();
 	MAX_SERVERS = ns.getPurchasedServerLimit();
 
 	// No parameter, we list the menu
@@ -26,15 +25,9 @@ export async function main(ns) {
 		for (var i = 1; i <= 20; i++) {
 			var ram = Math.pow(2, i);
 			var cost = ns.getPurchasedServerCost(ram);
-			ns.tprint(i + ': ' + ns.nFormat(ram * 1000000000, '0.00b') + (i <= 20 ? ' RAM = ' + ns.nFormat(cost, "$0.0a") : ''));
+			if (cost == Infinity) continue;
+			ns.tprint(i + ': ' + ns.nFormat(ram * 1000000000, '0.00b') + ' RAM ===> cost: ' + ns.nFormat(cost, "$0.0a"));
 		}
-
-		// for (var i = 1; i <= 30; i++) {
-		// 	var ram = Math.pow(2, i);
-		// 	var cost = ns.singularity.getUpgradeHomeRamCost(ram);
-		// 	ns.tprint(i + ': ' + ns.nFormat(ram * 1000000000, '0.00b') + ' RAM = ' + ns.nFormat(cost, "$0.0a"));
-		// }
-
 		return;
 	}
 
@@ -64,7 +57,8 @@ export async function main(ns) {
 
 	// Auto buy servers based on gain ratio
 	if (ns.args[0] == 'loop') {
-		await AutoBuyPersonalServers(ns);
+		const once = ns.args[1] ?? false;
+		await AutoBuyPersonalServers(ns, once);
 		return;
 	}
 
@@ -116,20 +110,9 @@ export async function main(ns) {
 	}
 }
 
-export async function AutoBuyPersonalServers(ns) {
+export async function AutoBuyPersonalServers(ns, once) {
 	let MAX_SERVER_POW = 20;
 	const MIN_GAIN_PCT = 0.24;
-
-	let mults;
-	try {
-		mults = ns.getBitNodeMultipliers();
-	}
-	catch {
-		mults = { PurchasedServerMaxRam: 1 }
-	}
-
-	while (Math.pow(2, MAX_SERVER_POW) > Math.pow(2, 20) * mults.PurchasedServerMaxRam)
-		MAX_SERVER_POW--;
 
 	while (true) {
 		let networkRam = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxRam(s) > 0).reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
@@ -137,11 +120,13 @@ export async function AutoBuyPersonalServers(ns) {
 
 		let existingServers = ns.getPurchasedServers();
 
+		let boughtAnything = false;
+
 		for (let pow = MAX_SERVER_POW; pow > 2; pow--) {
 			const serverRam = Math.pow(2, pow);
 			const serverCost = ns.getPurchasedServerCost(serverRam);
+			if (serverCost == Infinity) continue;
 			if (serverCost > money) {
-				ns.print('Can\'t affort shit, holding...');
 				continue;
 			}
 			const gainRatio = serverRam / networkRam;
@@ -149,9 +134,8 @@ export async function AutoBuyPersonalServers(ns) {
 				ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ' at a gain ratio of ' + Math.round(gainRatio * 100) + '%');
 
 			if (gainRatio >= MIN_GAIN_PCT || pow == MAX_SERVER_POW) {
-
-				ns.tprint('Buying a new personal server...');
-				ns.print('Buying a new personal server...');
+				// ns.tprint('Buying a new personal server...');
+				// ns.print('Buying a new personal server...');
 
 				// Delete smallest server if we have cash for a bigger one
 				if (existingServers.length >= MAX_SERVERS) {
@@ -160,11 +144,9 @@ export async function AutoBuyPersonalServers(ns) {
 					let smallestSize = ns.getServerMaxRam(toDelete);
 
 					if (smallestSize < serverRam) {
-						ns.tprint('INFO: Server limit of ' + MAX_SERVERS + ' has been reached');
-						ns.print('INFO: Server limit of ' + MAX_SERVERS + ' has been reached');
-
-						ns.tprint('WARN: Deleting ' + toDelete + ' (smallest server with ' + ns.nFormat(smallestSize * 1000000000, '0.00b') + ')');
-						ns.print('WARN: Deleting ' + toDelete + ' (smallest server with ' + ns.nFormat(smallestSize * 1000000000, '0.00b') + ')');
+						if (!once)
+							ns.tprint('WARN: Server limit of ' + MAX_SERVERS + ' has been reached, deleting ' + toDelete + ' (smallest server with ' + ns.nFormat(smallestSize * 1000000000, '0.00b') + ')');
+						ns.print('WARN: Server limit of ' + MAX_SERVERS + ' has been reached, deleting ' + toDelete + ' (smallest server with ' + ns.nFormat(smallestSize * 1000000000, '0.00b') + ')');
 
 						ns.killall(toDelete);
 						await ns.sleep(10);
@@ -174,7 +156,8 @@ export async function AutoBuyPersonalServers(ns) {
 						await ns.sleep(10);
 					}
 					else {
-						ns.tprint('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
+						if (!once)
+							ns.tprint('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
 						ns.print('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
 						return;
 					}
@@ -200,12 +183,17 @@ export async function AutoBuyPersonalServers(ns) {
 				ns.tprint('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
 				ns.print('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
 				ns.purchaseServer(serverName, serverRam);
+
+				boughtAnything = true;
 				break;
 			}
 
 			break;
 		}
 
-		await ns.sleep(500);
+		if (!boughtAnything && once)
+			return;
+
+		await ns.sleep(50);
 	}
 }

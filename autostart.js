@@ -54,6 +54,8 @@ export async function main(ns) {
 
 	goals.ResetGoals();
 
+	let v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
+
 	while (true) {
 		// Situation report script
 		await TryRunScript(ns, 'sitrep.js');
@@ -74,6 +76,9 @@ export async function main(ns) {
 			await TryRunScript(ns, 'contractPrep.js', [true]);
 			await TryRunScript(ns, 'solver.js', [true]);
 		}
+
+		// Buy personal server(s)
+		await TryRunScript(ns, 'buyserver.js', ['loop', true]);
 
 		// Save work reputation to it's faction
 		await TryRunScript(ns, 'SaveRep.js');
@@ -120,12 +125,31 @@ export async function main(ns) {
 					await TryRunScript(ns, '/gang/buy.js', [budget, true]);
 				}
 
-				await TryRunScript(ns, 'gangman.js');
+				ns.run('gangman.js');
 			}
 		}
 		else {
 			ns.print('Current karma: ' + karma.toFixed(0));
 		}
+
+		if (ns.getPlayer().skills.hacking < 100) {
+			v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
+			if (v1pid == undefined) {
+				ns.tprint('INFO: Started ' + 'v1.js' + ' with params [xp]');
+				v1pid = ns.run('v1.js', 1, 'xp');
+			}
+		}
+		else {
+			v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
+			if (v1pid != undefined) {
+				ns.tprint('INFO: XP goal reached, killing ' + 'v1.js' + ' with params [xp]');
+				ns.kill(v1pid.pid);
+				v1pid = undefined;
+			}
+			ns.run('controller.js');
+		}
+
+
 		// buy personal servers?
 		// upgrade home ram?
 		// start/stop basic hacking script
@@ -167,19 +191,18 @@ async function SleeveManagement(ns, karma) {
 
 	// // Mug for a bit if our stats are shit, getting us a tiny bit of income
 	// if (stats.strengt < 30 || stats.defense < 30 || stats.dexterity < 30 || stats.agility < 15) {
-	// 	await TryRunScript(ns, 'sleeveCrime.js', ['mug', 0, 8]);
+	// 	await TryRunScript(ns, 'sleevecrime.js', ['mug', 0, 8]);
 	// 	return;
 	// }
 
 	// Homicide for karma
 	if (karma > -54000) {
-		await TryRunScript(ns, 'sleeveCrime.js', ['Homicide', 0, 8]);
+		await TryRunScript(ns, 'sleevecrime.js', ['Homicide', 0, 8]);
 		return;
 	}
 
 	// Default action set to homicide for money
-	await TryRunScript(ns, 'sleeveCrime.js', ['Homicide', 0, 8]);
-
+	await TryRunScript(ns, 'sleevecrime.js', ['Homicide', stats.shock > 0 ? 1 : 0, 8]);
 	// Always have one sleeve on shock duty unless we're grinding gangs
 	if (stats.shock > 0) {
 		await TryRunScript(ns, 'shock.js', [0, 1]);

@@ -1,4 +1,4 @@
-import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 
 // Returns a weight that can be used to sort servers by hack desirability
 function Weight(ns, server) {
@@ -192,17 +192,6 @@ function formatTime(time) {
 	let minutes = Math.floor(time / 1000 / 60);
 	return (minutes > 0 ? minutes.toFixed(0) + ' minutes ' : '') + seconds.toFixed(0).padStart(2) + ' seconds';
 
-}
-
-// Selects a color based on a 1-based percentage
-function pctColor(pct) {
-	if (pct >= 1) return 'Lime';
-	else if (pct >= 0.9) return 'Green';
-	else if (pct >= 0.75) return 'DarkGreen';
-	else if (pct >= 0.6) return 'GreenYellow';
-	else if (pct >= 0.3) return 'Yellow';
-	else if (pct != 0) return 'DarkOrange';
-	return 'Red';
 }
 
 // Centers text in a padded string of "length" long

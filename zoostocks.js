@@ -1,4 +1,4 @@
-import { BatcherController } from "/libraryObjects.js";
+//import { BatcherController } from "/libraryObjects.js";
 
 
 const reportName = "Stockmarket";
@@ -33,7 +33,7 @@ export async function main(ns) {
 	allowedServers = [];
 	manipulatorHackPercent = 0.02;
 	manipulatorMaxScripts = 200;
-	let doc = eval("document");
+	//let doc = eval("document");
 	let stocks = [];
 	let hasAccess = ns.getPlayer().has4SDataTixApi;
 	for (const stockName of ns.stock.getSymbols()) {
@@ -56,7 +56,7 @@ export async function main(ns) {
 		s.forecast = getForecast(ns, s, hasAccess);
 		s.volatility = getVolatility(ns, s, hasAccess);
 	}
-	doc["log"].push(reportName + " " + (performance.now() - startTime));
+	//doc["log"].push(reportName + " " + (performance.now() - startTime));
 	await ns.sleep(1);
 	startTime = performance.now();
 	const trustClock = ns.args.length > 0 && ns.args[0];
@@ -86,32 +86,32 @@ export async function main(ns) {
 			updateStocksEstimation(ns, stocks, hasAccess, x === 75);
 			x %= 75;
 			updateStocks(ns, stocks, hasAccess);
-			doc["log"].push(reportName + " " + (performance.now() - startTime));
+			//doc["log"].push(reportName + " " + (performance.now() - startTime));
 			await ns.sleep(1);
 			startTime = performance.now();
 			if (x === 0) {
 				ns.clearLog();
 				listStocks(ns, stocks);
 				console.log("Stockvalue: " + totalStockValue(ns, stocks));
-				doc["log"].push(reportName + " " + (performance.now() - startTime));
+				//doc["log"].push(reportName + " " + (performance.now() - startTime));
 				await ns.sleep(100);
 				startTime = performance.now();
 			}
 			sellStocks(ns, stocks);
-			doc["log"].push(reportName + " " + (performance.now() - startTime));
+			//doc["log"].push(reportName + " " + (performance.now() - startTime));
 			await ns.sleep(100);
 			startTime = performance.now();
 			if (x <= 35) {
 				buyStocks(ns, stocks, ns.getServerMoneyAvailable("home"));
 			}
 
-			if (ns.args.length > 1 && ns.args[1]) {
-				stockManipulation(ns, stocks);
-			}
-			evaluateStockManipulation(ns, x, stocks);
+			// if (ns.args.length > 1 && ns.args[1]) {
+			// 	stockManipulation(ns, stocks);
+			// }
+			// evaluateStockManipulation(ns, x, stocks);
 			console.log(x);
 		}
-		doc["log"].push(reportName + " " + (performance.now() - startTime));
+		//doc["log"].push(reportName + " " + (performance.now() - startTime));
 		await ns.sleep(100);
 		startTime = performance.now();
 	}
@@ -125,96 +125,96 @@ function totalStockValue(ns, stocks) {
 	}, 0)
 }
 
-function stockManipulation(ns, stocks) {
-	let port = ns.getPortHandle(10);
-	while (!port.empty()) {
-		let v = port.read();
-		if (v === "clear") {
-			allowedServers = [];
-		}
-		else {
-			allowedServers.push(v);
-		}
-	}
-	port = ns.getPortHandle(11);
-	while (!port.empty()) {
-		manipulatorHackPercent = port.read();
-	}
-	port = ns.getPortHandle(12);
-	while (!port.empty()) {
-		manipulatorMaxScripts = port.read();
-	}
-	let player = ns.getPlayer();
-	let doc = eval("document");
-	if (!doc["batcherController"]) {
-		doc["batcherController"] = {};
-	}
-	for (const stock of stocks) {
-		let server = stockServers[stock.name];
-		if (!server || !stockManipulationEnabled(ns, server, stock)) {
-			continue;
-		}
-		if (!(ns.getServerRequiredHackingLevel(server) <= player.hacking
-			&& ns.hasRootAccess(server))) {
-			continue;
-		}
+// function stockManipulation(ns, stocks) {
+// 	let port = ns.getPortHandle(10);
+// 	while (!port.empty()) {
+// 		let v = port.read();
+// 		if (v === "clear") {
+// 			allowedServers = [];
+// 		}
+// 		else {
+// 			allowedServers.push(v);
+// 		}
+// 	}
+// 	port = ns.getPortHandle(11);
+// 	while (!port.empty()) {
+// 		manipulatorHackPercent = port.read();
+// 	}
+// 	port = ns.getPortHandle(12);
+// 	while (!port.empty()) {
+// 		manipulatorMaxScripts = port.read();
+// 	}
+// 	let player = ns.getPlayer();
+// 	let doc = eval("document");
+// 	if (!doc["batcherController"]) {
+// 		doc["batcherController"] = {};
+// 	}
+// 	for (const stock of stocks) {
+// 		let server = stockServers[stock.name];
+// 		if (!server || !stockManipulationEnabled(ns, server, stock)) {
+// 			continue;
+// 		}
+// 		if (!(ns.getServerRequiredHackingLevel(server) <= player.hacking
+// 			&& ns.hasRootAccess(server))) {
+// 			continue;
+// 		}
 
-		if (!ns.isRunning("testManager.js", "home", server)) {
-			let controller = new BatcherController(server, manipulatorHackPercent,
-				1.01, manipulatorMaxScripts,
-				stock.forecast > 0.5 ? "Grow" : "Hack");
-			controllers.push(controller);
-			doc["batcherController"][server] = controller;
-			ns.exec("testManager.js", "home", 1, server);
-		}
-		if (!stock.manipulationStarted && stock.allowed) {
-			for (const controller of controllers) {
-				if (controller.target === server) {
-					controller.stockMode = stock.forecast > 0.5 ? "Grow" : "Hack";
-					if (stock.stockMode !== "None") {
-						stock.manipulationStarted = true;
-					}
+// 		if (!ns.isRunning("testManager.js", "home", server)) {
+// 			let controller = new BatcherController(server, manipulatorHackPercent,
+// 				1.01, manipulatorMaxScripts,
+// 				stock.forecast > 0.5 ? "Grow" : "Hack");
+// 			controllers.push(controller);
+// 			doc["batcherController"][server] = controller;
+// 			ns.exec("testManager.js", "home", 1, server);
+// 		}
+// 		if (!stock.manipulationStarted && stock.allowed) {
+// 			for (const controller of controllers) {
+// 				if (controller.target === server) {
+// 					controller.stockMode = stock.forecast > 0.5 ? "Grow" : "Hack";
+// 					if (stock.stockMode !== "None") {
+// 						stock.manipulationStarted = true;
+// 					}
 
-				}
-			}
-		}
-	}
-}
+// 				}
+// 			}
+// 		}
+// 	}
+// }
 
-function stockManipulationEnabled(ns, server, stock) {
-	if (stock.forecast > 0.9 || stock.forecast < 0.1) {
-		return false;
-	}
-	let portsNeeded = ns.getServerNumPortsRequired(server);
-	let max = -1;
-	allowedServers.forEach(s => {
-		if (Number(s)) {
-			max = Math.max(Number(s), max);
-		}
-	})
-	return portsNeeded <= max || allowedServers.includes(server);
-}
+// function stockManipulationEnabled(ns, server, stock) {
+// 	if (stock.forecast > 0.9 || stock.forecast < 0.1) {
+// 		return false;
+// 	}
+// 	let portsNeeded = ns.getServerNumPortsRequired(server);
+// 	let max = -1;
+// 	allowedServers.forEach(s => {
+// 		if (Number(s)) {
+// 			max = Math.max(Number(s), max);
+// 		}
+// 	})
+// 	return portsNeeded <= max || allowedServers.includes(server);
+// }
 
-function evaluateStockManipulation(ns, period, stocks) {
-	for (const controller of controllers) {
-		let maxIndex = 73 - (controller.hackTime *
-			(controller.stockMode === "Grow" ? 3.2 : 1) / 6000);
-		if (period >= maxIndex) {
-			controller.stockMode = "None";
-		}
-		let stock;
-		for (const s of stocks) {
-			if (stockServers[s.name] === controller.target) {
-				stock = s;
-				break;
-			}
-		}
-		if (!stockManipulationEnabled(ns, controller.target, stock)) {
-			controller.kill = true;
-		}
-	}
-	controllers = controllers.filter(c => !c.kill);
-}
+// function evaluateStockManipulation(ns, period, stocks) {
+// 	for (const controller of controllers) {
+// 		let maxIndex = 73 - (controller.hackTime *
+// 			(controller.stockMode === "Grow" ? 3.2 : 1) / 6000);
+// 		if (period >= maxIndex) {
+// 			controller.stockMode = "None";
+// 		}
+// 		let stock;
+// 		for (const s of stocks) {
+// 			if (stockServers[s.name] === controller.target) {
+// 				stock = s;
+// 				break;
+// 			}
+// 		}
+// 		if (!stockManipulationEnabled(ns, controller.target, stock)) {
+// 			controller.kill = true;
+// 		}
+// 	}
+// 	controllers = controllers.filter(c => !c.kill);
+// }
 
 function getForecast(ns, stock, hasAccess) {
 	if (hasAccess) {

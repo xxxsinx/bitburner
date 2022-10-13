@@ -1,35 +1,37 @@
-import { BATCH_SPACER, Metrics } from 'metrics.js'
-import { FormatMoney, GetAllServers } from 'utils.js'
+import { AnalyzeAllServers } from 'metrics.js'
+import { FormatMoney } from 'utils.js'
 import { IsPrepped } from 'prep.js'
-//import { MemoryMap } from 'ram.js'
+import { PrintTable, DefaultStyle } from 'tables.js'
 
 const QmConfig = new Object({
-	MaxPreppingServers: 1,		// how many servers can be in prep simultaneously
+	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
 	MaxBatchingServers: 1,		// how many servers can be batching at the same time
-	MaxServers: 2,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
-	ListMaxServers: 30,			// how many servers are analyzed. More trivial servers are dropped from the list.
-	EvalDelay: 120 * 1000,		// frequency in ms that we re-evaluate the metrics on the server list
-	LoopDelay: 1000,			// delay in the main loop
-	MaxPrepingDepth: 30,		// This is how deep from the top of the server list we can allow prep
-	MaxBatchingDepth: 30		// This is how deep from the top of the server list we can allow batching
+	MaxServers: 4,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
+	ListMaxServers: 10,			// how many servers are analyzed. More trivial servers are dropped from the list.
+	EvalDelay: 10 * 60 * 1000,	// frequency in ms that we re-evaluate the metrics on the server list
+	LoopDelay: 5000,			// delay in the main loop
+	MaxPrepingDepth: 10,		// This is how deep from the top of the server list we can allow prep
+	MaxBatchingDepth: 10		// This is how deep from the top of the server list we can allow batching
 });
 
-
-const SERVER_STATES = Object.freeze({
-	UNPREPPED: "not ready",
+const SERVER_STATES = {
+	UNPREPPED: "UNPREPPED",
 	PREPARING: "PREPPING",
-	PREPPED: "ready",
+	PREPPED: "READY",
 	BATCHING: "BATCHING"
-});
+};
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
-	ns.tail();
+	//ns.tail();
+	//await ns.sleep(0);
+	//ns.resizeTail(1080, 600);
 	const qm = new QuarterMaster(ns, QmConfig.EvalDelay); // re-eval every 2 min
 	while (true) {
 		await qm.Dispatch();
-		ns.print('INFO: Loop over, sleeping ' + Math.round(QmConfig.LoopDelay / 1000) + ' second');
+		//ns.print('INFO: Loop over, sleeping ' + Math.round(QmConfig.LoopDelay / 1000) + ' second');
+		ns.print('');
 		await ns.sleep(QmConfig.LoopDelay);
 	}
 }
@@ -45,28 +47,10 @@ export class QuarterMaster {
 	async Dispatch() {
 		// Find top targets
 		if (this.lastRefresh == 0 || Date.now() - this.lastRefresh > this.refreshTime) {
-			this.ns.print('INFO: Re-evaluating top targets');
-			this.topServers = await this.GetTopServers(QmConfig.ListMaxServers, 1);
+			this.ns.print('INFO: Re-evaluating top targets!');
+			this.topServers = await this.GetTopServers(this.ns, QmConfig.ListMaxServers, 1);
 			this.lastRefresh = Date.now();
-
-			this.ns.print('INFO: Top targets given the current memory available are as follow: ');
-			for (let metrics of this.topServers) {
-				this.ns.print('WARN: x ' + metrics.cashPerSecond);
-				this.ns.print('WARN: x ' + metrics.batchMoney);
-				this.ns.print('WARN: x ' + metrics.maxRunnableBatches);
-				this.ns.print('WARN: x ' + metrics.batchTime);
-
-				this.ns.print('INFO: ' + metrics.server.toString().padEnd(25) +
-					(Math.round(metrics.pct * 100) + '%').padEnd(10) +
-					(FormatMoney(this.ns, metrics.cashPerSecond) + '/s').padEnd(20) +
-					this.ns.tFormat(metrics.batchTime).padEnd(30) +
-					this.ns.tFormat(metrics.currentStateWeakenTime).padEnd(30));
-			}
 		}
-
-		// TODO:
-		// ?? kill any manager & children not handling a top?
-		// ?? kill any prepper & children not handling a top?
 
 		// Determine the current state of all top servers
 		for (const metrics of this.topServers) {
@@ -89,13 +73,9 @@ export class QuarterMaster {
 		let nbPrepping = this.topServers.filter(p => p.prepping).length;
 		let nbBatching = this.topServers.filter(p => p.batching).length;
 
-		//this.ns.print('We had ' + nbPrepping + ' servers in prep and ' + nbBatching + ' servers batching');
-
 		// Assign tasks
 		let depth = 0;
 		for (let metrics of this.topServers) {
-			//if (metrics.server.startsWith('joes')) continue;
-
 			// Check if we need to prep the target
 			if (!metrics.batching && metrics.prepping == false && !IsPrepped(this.ns, metrics.server) && nbPrepping < QmConfig.MaxPreppingServers && nbPrepping + nbBatching < QmConfig.MaxServers && depth <= QmConfig.MaxPrepingDepth) {
 				this.ns.print('WARN: Launched prep for ' + metrics.server);
@@ -127,51 +107,96 @@ export class QuarterMaster {
 		}
 		//this.ns.print('We now have ' + nbPrepping + ' servers in prep and ' + nbBatching + ' servers batching');
 
-		// Display report
-		this.ns.print('INFO: Server name'.padEnd(30) +
-			'$'.padEnd(15) +
-			'Security'.padEnd(25) +
-			'State'.padEnd(15));
+		let tableData = [];
+		const columns = [
+			{ header: ' Server', width: 20 },
+			{ header: ' Hack %', width: 8 },
+			{ header: '   $/sec', width: 9 },
+			{ header: ' BatchTime', width: 25 },
+			{ header: ' Cash', width: 6 },
+			{ header: ' Sec', width: 5 },
+			{ header: ' State', width: 12 }
+		];
 
 		for (let metrics of this.topServers) {
 			let so = this.ns.getServer(metrics.server);
 
-			let prefix = 'WARN: ';
-			if (!IsPrepped(this.ns, metrics.server) && metrics.state != 'BATCHING')
-				prefix = 'FAIL: ';
+			let stateCol = 'white';
+			switch (metrics.state) {
+				case SERVER_STATES.UNPREPPED:
+					stateCol = 'red';
+					break;
+				case SERVER_STATES.PREPARING:
+					stateCol = 'yellow';
+					break;
+				case SERVER_STATES.PREPPED:
+					stateCol = 'lime';
+					break;
+				case SERVER_STATES.BATCHING:
+					stateCol = 'aqua';
+					break;
+			}
 
-			this.ns.print((prefix + metrics.server).padEnd(30) +
-				(Math.round(so.moneyAvailable / so.moneyMax * 100).toString()).padEnd(15) +
-				(Math.round(so.hackDifficulty - so.minDifficulty).toString()).padEnd(25) +
-				metrics.state);
+			tableData.push([
+				{ color: 'white', text: ' ' + metrics.server },
+				{ color: 'white', text: ((metrics.pct * 100).toFixed(2) + '%').padStart(7) },
+				{ color: 'white', text: this.ns.nFormat(metrics.cashPerSecond, '0.0a').padStart(8) },
+				{ color: 'white', text: ' ' + this.ns.tFormat(metrics.batchTime) },
+				{ color: 'white', text: (Math.round(so.moneyAvailable / so.moneyMax * 100).toString() + '%').padStart(5) },
+				{ color: 'white', text: (Math.round(so.hackDifficulty - so.minDifficulty).toString()).padStart(4) },
+				{ color: stateCol, text: ' ' + metrics.state },
+			]);
 		}
+
+		PrintTable(this.ns, tableData, columns, DefaultStyle(), this.ns.print);
+
+		// Display report
+		// this.ns.print('INFO: Server name'.padEnd(30) +
+		// 	'$'.padEnd(15) +
+		// 	'Security'.padEnd(25) +
+		// 	'State'.padEnd(15));
+
+		// for (let metrics of this.topServers) {
+		// 	let so = this.ns.getServer(metrics.server);
+
+		// 	let prefix = 'WARN: ';
+		// 	if (!IsPrepped(this.ns, metrics.server) && metrics.state != 'BATCHING')
+		// 		prefix = 'FAIL: ';
+
+		// 	this.ns.print((prefix + metrics.server).padEnd(30) +
+		// 		(Math.round(so.moneyAvailable / so.moneyMax * 100).toString()).padEnd(15) +
+		// 		(Math.round(so.hackDifficulty - so.minDifficulty).toString()).padEnd(25) +
+		// 		metrics.state);
+		// }
 	}
 
 	IsProcRunning(scriptName, argument = undefined) {
 		return this.ns.ps().find(p => p.filename == scriptName && (argument != undefined ? p.args.includes(argument) : true)) != undefined;
 	}
 
-	async GetTopServers(count = QmConfig.ListMaxServers, maxNetworkRamPct = 0.5) {
-		const data = new Array();
-		const servers = GetAllServers(this.ns).filter(s => this.ns.getServer(s).hasAdminRights && this.ns.getServer(s).moneyMax > 0);;
-		for (let server of servers) {
-			let subData = new Array();
-			for (let pct = 0.05; pct <= 0.95; pct += 0.05) {
-				const metrics = new Metrics(this.ns, server, Math.min(pct, 0.99), BATCH_SPACER, 1, maxNetworkRamPct)
-				// Skip stuff we can't hack
-				//if (metrics.hackChance >= 0.50)
-				if (metrics.cashPerSecond == undefined) continue;
-				subData.push(metrics);
-				await this.ns.sleep(0);
-			}
+	async GetTopServers(ns, count = QmConfig.ListMaxServers, maxNetworkRamPct = 0.5) {
+		var data = await AnalyzeAllServers(ns, maxNetworkRamPct, false);
+		return data.slice(0, Math.max(count, 0));
+		// const data = new Array();
+		// const servers = GetAllServers(this.ns).filter(s => this.ns.getServer(s).hasAdminRights && this.ns.getServer(s).moneyMax > 0);;
+		// for (let server of servers) {
+		// 	let subData = new Array();
+		// 	for (let pct = 0.05; pct <= 0.95; pct += 0.05) {
+		// 		const metrics = new Metrics(this.ns, server, Math.min(pct, 0.99), BATCH_SPACER, 1, maxNetworkRamPct)
+		// 		// Skip stuff we can't hack
+		// 		//if (metrics.hackChance >= 0.50)
+		// 		if (metrics.cashPerSecond == undefined) continue;
+		// 		subData.push(metrics);
+		// 		await this.ns.sleep(0);
+		// 	}
 
-			if (subData.length > 0) {
-				subData = subData.sort((a, b) => b.cashPerSecond - a.cashPerSecond);
-				data.push(subData[0]);
-			}
-		}
+		// 	if (subData.length > 0) {
+		// 		subData = subData.sort((a, b) => b.cashPerSecond - a.cashPerSecond);
+		// 		data.push(subData[0]);
+		// 	}
+		// }
 
-		let sorted = data.sort((a, b) => b.cashPerSecond - a.cashPerSecond);
-		return sorted.slice(0, count);
+		// let sorted = data.sort((a, b) => b.cashPerSecond - a.cashPerSecond);
+		// return sorted.slice(0, count);
 	}
 }

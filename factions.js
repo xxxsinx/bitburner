@@ -1,4 +1,5 @@
-import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { GetSitRep } from 'sitrep.js'
 
 const FactionNames = {
 	CyberSec: "CyberSec",
@@ -37,10 +38,44 @@ const FactionNames = {
 	ShadowsOfAnarchy: "Shadows of Anarchy"
 };
 
+const MilestoneFactions = [
+	"CyberSec",
+	"NiteSec",
+	"The Black Hand",
+	"BitRunners",
+	"Daedalus",
+	"Tian Di Hui"
+]
+
+function PlanedAugsFilter(ns, aug) {
+	// Filter out augs with a rep level too high for our hacking level
+	//if (aug.rep > ns.getHackingLevel() * 1000) return false;
+
+	// Add gang to the milestones factions if we got one
+	if (sitRep.hasGang && !MilestoneFactions.includes('Slum Snakes'))
+		MilestoneFactions.push('Slum Snakes');
+
+	//Filter out stuff not offered by the milestone factions (and tian/gang)
+	if (!aug.factions.some(s => MilestoneFactions.includes(s))) {
+		//ns.tprint('Rejecting ' + aug.factions + ' != ' + MilestoneFactions)
+		return false;
+	}
+
+	return true;
+}
+
+let sitRep = undefined;
+
 /** @param {NS} ns **/
 export async function main(ns) {
-	let masterlist = GetMasterList(ns, ns.args.includes('rep'));
+	sitRep = GetSitRep(ns);
+
+	let masterlist = GetMasterList(ns, ns.args.includes('rep') || ns.args.includes('plan'));
 	const ownedAugs = ns.singularity.getOwnedAugmentations(true);
+
+	if (ns.args.includes('plan')) {
+		masterlist = masterlist.filter(s => PlanedAugsFilter(ns, s));
+	}
 
 	const columns = [
 		{ header: ' Augmentation', width: 56 },
@@ -93,6 +128,44 @@ export async function main(ns) {
 	let owned = masterlist.filter(s => ownedAugs.includes(s.name) && !s.name.startsWith('NeuroFlux'));
 	let balance = masterlist.filter(s => !desired.includes(s) && !owned.includes(s));
 
+	if (ns.args.includes('plan')) {
+		const targetFactions = new Set();
+		const worstFactions = new Set();
+		for (let i = balance.length - 1; i >= 0; i--) {
+			const aug = balance[i];
+			if (aug.name.startsWith('NeuroFlux')) continue;
+			for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
+				const mile = MilestoneFactions[j];
+				if (aug.factions.includes(mile)) {
+					targetFactions.add(mile);
+					break;
+				}
+			}
+			for (let j = 0; j < MilestoneFactions.length - 1; j++) {
+				const mile = MilestoneFactions[j];
+				if (aug.factions.includes(mile)) {
+					worstFactions.add(mile);
+					break;
+				}
+			}
+		}
+
+		if (targetFactions.has('Slum Snakes')) targetFactions.delete('Slum Snakes');
+		if (worstFactions.has('Slum Snakes')) worstFactions.delete('Slum Snakes');
+		for (let i = 5; i >= 1; i--) {
+			if (targetFactions.has(MilestoneFactions[i]) && worstFactions.has(MilestoneFactions[i - 1]))
+				targetFactions.add(MilestoneFactions[i - 1]);
+		}
+
+		// ns.tprint('targets: ' + [...targetFactions]);
+		// ns.tprint('worst: ' + [...worstFactions]);
+
+		sitRep = GetSitRep(ns);
+		sitRep.targetFactions = [...targetFactions];
+		ns.write('sitrep.txt', JSON.stringify(sitRep), 'w');
+		return;
+	}
+
 	let desiredData = ToColumnData(ns, desired, ' No desirable augmentations found!');
 	let suggestedData = ToColumnData(ns, suggested, ' No suggested augmentations found!');
 	let balanceData = ToColumnData(ns, balance, ' No interesting augmentations found!');
@@ -138,47 +211,52 @@ function SuggestedAugs(ns, desired) {
 	let neuro = desired.find(s => s.name.startsWith('NeuroFlux'));
 	desired = desired.filter(s => !s.name.startsWith('NeuroFlux'));
 	let mult = 1.9 * [1, .96, .94, .93][ns.singularity.getOwnedSourceFiles().filter(obj => { return obj.n === 11 })[0].lvl];
+	let budget = ns.getPlayer().money;
+	let augs = undefined;
+	let currentMult = 1;
 
 	for (let i = 0; i < desired.length; i++) {
-		let budget = ns.getPlayer().money;
-		let augs = desired.slice(i);
+		budget = ns.getPlayer().money;
+		augs = desired.slice(i);
 
 		let price = 0;
-		let currentMult = 1;
+		currentMult = 1;
 		for (let j = 0; j < augs.length; j++) {
 			price += augs[j].price * currentMult;
 			currentMult *= mult;
 		}
 		if (price <= budget) {
 			budget -= price;
-
-			// Fill with NeuroFlux
-			if (neuro != undefined && budget > neuro.price * currentMult) {
-				augs.push(neuro);
-				budget -= neuro.price * currentMult;
-				currentMult *= mult;
-			}
-
-			const ret = [];
-			currentMult = 1;
-			for (let j = 0; j < augs.length; j++) {
-				let price = augs[j].price * currentMult;
-				currentMult *= mult;
-				let entry = {
-					name: augs[j].name,
-					factions: augs[j].factions,
-					price: price,
-					rep: augs[j].rep,
-					prereq: augs[j].prereq,
-					type: augs[j].type
-				};
-				ret.push(entry);
-			}
-			return ret;
+			break;
 		}
 	}
 
-	return [];
+	let ret = [];
+	if (augs == undefined) augs = [];
+
+	// Fill with NeuroFlux
+	if (neuro != undefined && budget > neuro.price * currentMult) {
+		augs.push(neuro);
+		budget -= neuro.price * currentMult;
+		currentMult *= mult;
+	}
+
+	currentMult = 1;
+	for (let j = 0; j < augs.length; j++) {
+		let price = augs[j].price * currentMult;
+		currentMult *= mult;
+		let entry = {
+			name: augs[j].name,
+			factions: augs[j].factions,
+			price: price,
+			rep: augs[j].rep,
+			prereq: augs[j].prereq,
+			type: augs[j].type
+		};
+		ret.push(entry);
+	}
+
+	return ret;
 }
 
 function GetMasterList(ns, sortByRep) {
@@ -238,7 +316,7 @@ function ToColumnData(ns, list, emptyDesc) {
 function ReqRepColor(ns, s) {
 	if (MeetsRepRequirement(ns, s)) return 'lime';
 	if (BestRep(ns, s) == 0) return 'red'
-	return 'orange';
+	return 'yellow';
 }
 
 function FilterDesiredAugs(ns, s) {

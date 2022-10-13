@@ -42,12 +42,12 @@ export async function main(ns) {
 		HGW_MODE = HGW;
 
 	if (server == undefined) {
-		await AnalyzeAllServers(ns, maxNetworkRamPct);
+		AnalyzeAllServers(ns, maxNetworkRamPct);
 		ns.tprint('Executed in ' + Math.ceil(performance.now() - start) + ' milliseconds');
 		return;
 	}
 	else if (server == 'seq') {
-		await AnalyzeAllServersSequential(ns, maxNetworkRamPct);
+		AnalyzeAllServersSequential(ns, maxNetworkRamPct);
 
 		// let metrics = GetBestSequentialMetricsForServer(ns, 'foodnstuff', 1, MaxHackForServer(ns, 'foodnstuff'), maxNetworkRamPct);
 		// if (metrics) metrics.Report(ns, ns.tprint);
@@ -170,7 +170,7 @@ export function GetBestPctForServer(ns, server, spacer = BATCH_SPACER, minPct = 
 	return best;
 }
 
-async function AnalyzeAllServers(ns, maxNetworkRamPct, verbose = true) {
+export function AnalyzeAllServers(ns, maxNetworkRamPct, verbose = true) {
 	const data = new Array();
 	const servers = GetAllServers(ns).filter(s => ns.getServer(s).hasAdminRights && ns.getServer(s).moneyMax > 0);
 

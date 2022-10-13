@@ -60,13 +60,21 @@ export async function main(ns) {
 		// Situation report script
 		await TryRunScript(ns, 'sitrep.js');
 		await TryRunScript(ns, 'sitrepSleeves.js');
+		await TryRunScript(ns, 'factions.js', ['plan']);
+		await TryRunScript(ns, 'acceptFactions.js');
+		await TryRunScript(ns, 'workFaction.js');
+		await TryRunScript(ns, 'joinTian.js');
 		let sitrep = JSON.parse(ns.read('sitrep.txt'));
 		let karma = sitrep.karma;
 
-		if (sitrep.portCrackers < 5 || // Check if we need to buy more port crackers
-			sitrep.servers.some(s => s.ports.open < s.ports.open.required) || // Check if we have servers who need cracking
-			sitrep.servers.some(s => s.ports.nuked == false) // Check if we have servers that need nuking
-		) {
+		// Check if we need to buy more port crackers
+		if (sitrep.portCrackers < 5) {
+			// Buy programs, run programs, nuke
+			await TryRunScript(ns, 'programs.js', [true]);
+		}
+
+		if (sitrep.servers.some(s => s.ports.open < s.ports.open.required) || // Check if we have servers who need cracking
+			sitrep.servers.some(s => s.ports.nuked == false)) { // Check if we have servers that need nuking
 			// Buy programs, run programs, nuke
 			await TryRunScript(ns, 'breach.js', [true]);
 		}
@@ -81,7 +89,7 @@ export async function main(ns) {
 		await TryRunScript(ns, 'buyserver.js', ['loop', true]);
 
 		// Save work reputation to it's faction
-		await TryRunScript(ns, 'SaveRep.js');
+		//await TryRunScript(ns, 'SaveRep.js');
 
 		const BACKDOOR_TARGETS = [
 			'CSEC',

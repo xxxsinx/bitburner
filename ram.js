@@ -1,5 +1,5 @@
 import { GetAllServers } from "utils.js";
-import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -108,18 +108,6 @@ function GetProcessDetails(ns, server) {
 	ret.push({ category: 'Other', percent: pct, ram: ram });
 
 	return [ret, procs.length];
-}
-
-
-// Selects a color based on a 1-based percentage
-function pctColor(pct) {
-	if (pct >= 1) return 'Lime';
-	else if (pct >= 0.9) return 'Green';
-	else if (pct >= 0.75) return 'DarkGreen';
-	else if (pct >= 0.6) return 'GreenYellow';
-	else if (pct >= 0.3) return 'Yellow';
-	else if (pct != 0) return 'DarkOrange';
-	return 'Red';
 }
 
 export class MemoryMap {

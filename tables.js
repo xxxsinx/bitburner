@@ -142,24 +142,31 @@ export function CreateStyle(color, highlight) {
 
 function PrintStack(ns, printStack, printfunc) {
 	if (printfunc == ns.tprint || printfunc == ns.print || printfunc == ns.tprintf) {
-		let str = '';
-		for (let i = 1; i < printStack.length; i += 2) {
-			str += printStack[i];
-		}
-		printfunc(str);
+		ColorPrint(ns, printStack, false);
 	}
 	else {
-		printfunc(ns, ...printStack);
+		printfunc(ns, printStack, true);
 	}
 }
 
-// Usage: ColorPrint('red', 'This is some red text', '#FFFFFF', ' This is some white text);
-export function ColorPrint(ns) {
+// Selects a color based on a 1-based percentage
+export function pctColor(pct) {
+	if (pct >= 1) return 'Lime';
+	else if (pct >= 0.9) return 'Green';
+	else if (pct >= 0.75) return 'DarkGreen';
+	else if (pct >= 0.6) return 'GreenYellow';
+	else if (pct >= 0.3) return 'Yellow';
+	else if (pct != 0) return 'DarkOrange';
+	return 'Red';
+}
+
+// Usage: ColorPrint(ns, ['red', 'This is some red text', '#FFFFFF', ' This is some white text], true);
+export function ColorPrint(ns, stack, toTerminal = true) {
 	let out = '';
-	for (let i = 1; i < arguments.length; i += 2) {
-		let style = arguments[i];
+	for (let i = 0; i < stack.length; i += 2) {
+		let style = stack[i];
 		if (style.style == undefined) {
-			style = { style: { color: arguments[i], backgroundColor: '#000000' } };
+			style = { style: { color: stack[i], backgroundColor: '#000000' } };
 		}
 
 		let color = style;
@@ -171,11 +178,14 @@ export function ColorPrint(ns) {
 		if (match) color = '\x1b[38;5;' + match.ansi + 'm';
 		else ns.tprint('FAIL: unsupported color: ' + color);
 
-		let text = arguments[i + 1].replace('%', '%%');
+		let text = stack[i + 1].replace('%', '%%');
 		out = out + color + text;
 	}
 
-	ns.tprintf(out);
+	if (toTerminal)
+		ns.tprintf(out);
+	else
+		ns.printf(out);
 }
 
 // ANSI colors supported by the game are 256 colors, HTML color is RGB

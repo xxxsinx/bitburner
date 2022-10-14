@@ -42,7 +42,7 @@ export async function main(ns) {
 		HGW_MODE = HGW;
 
 	if (server == undefined) {
-		AnalyzeAllServers(ns, maxNetworkRamPct);
+		AnalyzeAllServers(ns, maxNetworkRamPct, true);
 		ns.tprint('Executed in ' + Math.ceil(performance.now() - start) + ' milliseconds');
 		return;
 	}
@@ -204,7 +204,7 @@ export function AnalyzeAllServers(ns, maxNetworkRamPct, verbose = true) {
 			]);
 		}
 
-		PrintTable(ns, tableData, columns, DefaultStyle(), ColorPrint);
+		PrintTable(ns, tableData, columns, DefaultStyle(), ns.tprint);
 	}
 	return sorted;
 }

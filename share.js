@@ -1,13 +1,20 @@
 import { GetAllServers } from "utils.js";
-import { RunScript } from "ram.js";
+import { RunScript, MemoryMap } from "ram.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	const [pct = 0.95] = ns.args;
+	let [pct = 0.95] = ns.args;
 
-	if (pct == 'stop') {
+	if (ns.args.includes('auto')) {
+		const ram = new MemoryMap(ns, true);
+		if (ram.total < 5000)
+			return;
+		pct = 0.2;
+	}
+
+	if (ns.args.includes('stop')) {
 		const data = FindInstances(ns)
 		// Kill all existing instances of share-forever.js
 		for (const proc of data.shares) {

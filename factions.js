@@ -48,15 +48,17 @@ const MilestoneFactions = [
 ]
 
 function PlanedAugsFilter(ns, aug) {
+	const factions = [...MilestoneFactions];
+
+	// Add gang to the milestones factions if we got one
+	if (sitRep.hasGang)
+		factions.push('Slum Snakes');
+
 	// Filter out augs with a rep level too high for our hacking level
 	//if (aug.rep > ns.getHackingLevel() * 1000) return false;
 
-	// Add gang to the milestones factions if we got one
-	if (sitRep.hasGang && !MilestoneFactions.includes('Slum Snakes'))
-		MilestoneFactions.push('Slum Snakes');
-
 	//Filter out stuff not offered by the milestone factions (and tian/gang)
-	if (!aug.factions.some(s => MilestoneFactions.includes(s))) {
+	if (!aug.factions.some(s => factions.includes(s))) {
 		//ns.tprint('Rejecting ' + aug.factions + ' != ' + MilestoneFactions)
 		return false;
 	}
@@ -65,146 +67,281 @@ function PlanedAugsFilter(ns, aug) {
 }
 
 let sitRep = undefined;
+let masterlist = undefined;
+
+
+function PrioritizeFactions(ns, balance, suggested) {
+	const targetFactions = new Set(); // Best faction order to get what we need
+	for (let i = balance.length - 1; i >= 0; i--) {
+		const aug = balance[i];
+		if (aug.name.startsWith('NeuroFlux')) continue;
+		for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
+			if (aug.factions.includes(MilestoneFactions[j])) {
+				targetFactions.add(MilestoneFactions[j]);
+			}
+		}
+	}
+
+	// let nextUnique = undefined;
+	// for (let i = balance.length - 1; i >= 0; i--) {
+	// 	const aug = balance[i];
+	// 	if (aug.name.startsWith('NeuroFlux')) continue;
+	// 	if (aug.factions.filter(s => s != 'Slum Snakes').length == 1) {
+	// 		if (aug.factions[0] == 'Tian Di Hui') continue;
+	// 		nextUnique = aug.factions[0];
+	// 		break;
+	// 	}
+	// }
+
+	// const worstFactions = new Set(); // Worst faction order to get what we need (see use later)
+
+	// if (nextUnique != undefined)
+	// 	targetFactions.add(nextUnique);
+
+	// for (let i = balance.length - 1; i >= 0; i--) {
+	// 	const aug = balance[i];
+	// 	if (aug.name.startsWith('NeuroFlux')) continue;
+
+	// 	// We note which faction is the best to grind for this aug
+	// 	for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
+	// 		const mile = MilestoneFactions[j];
+	// 		if (aug.factions.includes(mile)) {
+	// 			targetFactions.add(mile);
+	// 			break;
+	// 		}
+	// 	}
+
+	// 	// We note which faction is the worst to grind for this aug
+	// 	for (let j = 0; j < MilestoneFactions.length - 1; j++) {
+	// 		const mile = MilestoneFactions[j];
+	// 		if (aug.factions.includes(mile)) {
+	// 			worstFactions.add(mile);
+	// 			break;
+	// 		}
+	// 	}
+	// }
+
+	// // We don't want to grind gang faction rep, our gang does it for us
+	// if (targetFactions.has('Slum Snakes')) targetFactions.delete('Slum Snakes');
+	// if (worstFactions.has('Slum Snakes')) worstFactions.delete('Slum Snakes');
+
+	// // Add the worse factions at the end of the list. If we don't have the requirements for the
+	// // best ones, we can at least join and grind those in the meantime, it's better than doing nothing
+	// for (let i = 5; i >= 1; i--) {
+	// 	if (targetFactions.has(MilestoneFactions[i]) && worstFactions.has(MilestoneFactions[i - 1]))
+	// 		targetFactions.add(MilestoneFactions[i - 1]);
+	// }
+
+	// //ns.tprint('targets: ' + [...targetFactions]);
+	// // ns.tprint('worst: ' + [...worstFactions]);
+
+	// // This will happen at the end once we've got the Red Pill. This bit of code
+	// // simply adds the milestone factions, ordered by favor, so we can grind them for NFGs.
+	// if ([...targetFactions].length == 0) {
+	// 	let candidates = MilestoneFactions.map(s => s).filter(s => s != 'Slum Snakes');
+	// 	if (candidates.length > 0) {
+	// 		candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
+	// 		targetFactions.add(candidates[0]);
+	// 	}
+	// }
+
+	// //ns.tprint(JSON.stringify(suggested, null, 2));
+
+	sitRep = GetSitRep(ns);
+	sitRep.targetFactions = [...targetFactions];
+	sitRep.suggestedAugs = suggested;
+	ns.write('sitrep.txt', JSON.stringify(sitRep), 'w');
+
+	if (!ns.args.includes('silent')) 
+		ns.tprint('WARN: Faction priority is ' + [...targetFactions]);
+}
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	sitRep = GetSitRep(ns);
-
-	let masterlist = GetMasterList(ns, ns.args.includes('rep') || ns.args.includes('plan'));
-	const ownedAugs = ns.singularity.getOwnedAugmentations(true);
-
-	if (ns.args.includes('plan')) {
-		masterlist = masterlist.filter(s => PlanedAugsFilter(ns, s));
-	}
-
-	const columns = [
-		{ header: ' Augmentation', width: 56 },
-		{ header: ' Factions', width: 30 },
-		{ header: ' Price', width: 8 },
-		{ header: ' Req.Rep', width: 19 },
-		{ header: ' Pre.Req', width: 40 },
-		{ header: ' Type', width: 13 }
-	];
-
-	if (ns.args[0] != undefined && ns.args[0].startsWith('mil')) {
-		for (let i = 0; i < 5; i++) {
-			let faction = Object.values(FactionNames)[i];
-			let list = masterlist.filter(s => s.factions.includes(faction));
-			let data = ToColumnData(ns, list, ' No ' + faction + ' augmentations found!');
-
-			let extra = '';
-			if (faction == FactionNames.CyberSec)
-				extra = ns.getServerRequiredHackingLevel('CSEC').toString();
-			else if (faction == FactionNames.NiteSec)
-				extra = ns.getServerRequiredHackingLevel('avmnite-02h').toString();
-			else if (faction == FactionNames.TheBlackHand)
-				extra = ns.getServerRequiredHackingLevel('I.I.I.I').toString();
-			else if (faction == FactionNames.BitRunners)
-				extra = ns.getServerRequiredHackingLevel('run4theh111z').toString();
-
-			columns[0].header = ' ' + faction + ' ' + extra;
-
-			PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
-		}
-
-		return;
-	}
-	if (ns.args[0] != 'all') {
-		// Remove some stuff we don't want to see unless special run
-		masterlist = masterlist.filter(s => s.type != 'Physical');
-		masterlist = masterlist.filter(s => s.type != 'Charisma');
-		masterlist = masterlist.filter(s => s.type != 'Company');
-		masterlist = masterlist.filter(s => s.type != 'Shit');
-		masterlist = masterlist.filter(s => s.type != 'Hacknet');
-		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Shadows'));
-		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Netburn'));
-		if (!ns.getPlayer().factions.includes('Church of the Machine God'))
-			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Church'));
-		masterlist = masterlist.filter(s => !s.factions[0].startsWith('Bladeburner'));
-	}
-
-	let desired = masterlist.filter(s => FilterDesiredAugs(ns, s));
-	let suggested = SuggestedAugs(ns, desired);
-	let owned = masterlist.filter(s => ownedAugs.includes(s.name) && !s.name.startsWith('NeuroFlux'));
-	let balance = masterlist.filter(s => !desired.includes(s) && !owned.includes(s));
-
-	if (ns.args.includes('plan')) {
-		const targetFactions = new Set();
-		const worstFactions = new Set();
-		for (let i = balance.length - 1; i >= 0; i--) {
-			const aug = balance[i];
-			if (aug.name.startsWith('NeuroFlux')) continue;
-			for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
-				const mile = MilestoneFactions[j];
-				if (aug.factions.includes(mile)) {
-					targetFactions.add(mile);
-					break;
-				}
-			}
-			for (let j = 0; j < MilestoneFactions.length - 1; j++) {
-				const mile = MilestoneFactions[j];
-				if (aug.factions.includes(mile)) {
-					worstFactions.add(mile);
-					break;
-				}
-			}
-		}
-
-		if (targetFactions.has('Slum Snakes')) targetFactions.delete('Slum Snakes');
-		if (worstFactions.has('Slum Snakes')) worstFactions.delete('Slum Snakes');
-		for (let i = 5; i >= 1; i--) {
-			if (targetFactions.has(MilestoneFactions[i]) && worstFactions.has(MilestoneFactions[i - 1]))
-				targetFactions.add(MilestoneFactions[i - 1]);
-		}
-
-		// ns.tprint('targets: ' + [...targetFactions]);
-		// ns.tprint('worst: ' + [...worstFactions]);
-
+	do {
 		sitRep = GetSitRep(ns);
-		sitRep.targetFactions = [...targetFactions];
-		ns.write('sitrep.txt', JSON.stringify(sitRep), 'w');
-		return;
-	}
 
-	let desiredData = ToColumnData(ns, desired, ' No desirable augmentations found!');
-	let suggestedData = ToColumnData(ns, suggested, ' No suggested augmentations found!');
-	let balanceData = ToColumnData(ns, balance, ' No interesting augmentations found!');
-	let ownedData = ToColumnData(ns, owned, ' No augmentations installed yet!');
+		masterlist = GetMasterList(ns, ns.args.includes('rep') || ns.args.includes('plan'));
+		const ownedAugs = ns.singularity.getOwnedAugmentations(true);
 
-	if (ns.args[0] != undefined && ns.args[0].startsWith('ins')) {
-		let hasNeufo = ns.singularity.getOwnedAugmentations(true).find(s => s.startsWith('NeuroFlux'));
-		columns[0].header = ' Installed Augmentations (' + (owned.length + (hasNeufo ? 1 : 0)) + ')';
-		PrintTable(ns, ownedData, columns, DefaultStyle(), ColorPrint);
-	}
-	else {
-		columns[0].header = ' Suggested Buy Order';
-		PrintTable(ns, suggestedData, columns, DefaultStyle(), ColorPrint);
+		if (ns.args.includes('plan')) {
+			masterlist = masterlist.filter(s => PlanedAugsFilter(ns, s));
+		}
 
-		columns[0].header = ' Buyable';
-		PrintTable(ns, desiredData, columns, DefaultStyle(), ColorPrint);
+		const columns = [
+			{ header: ' Augmentation', width: 56 },
+			{ header: ' Factions', width: 30 },
+			{ header: ' Price', width: 8 },
+			{ header: ' Req.Rep', width: 19 },
+			{ header: ' Pre.Req', width: 40 },
+			{ header: ' Type', width: 13 }
+		];
 
-		columns[0].header = ' Wanted but locked (by faction/prereq/$/rep)';
-		PrintTable(ns, balanceData, columns, DefaultStyle(), ColorPrint);
-	}
+		if (ns.args[0] != undefined && ns.args[0].startsWith('mil')) {
+			for (let i = 0; i < 5; i++) {
+				let faction = Object.values(FactionNames)[i];
+				let list = masterlist.filter(s => s.factions.includes(faction));
+				let data = ToColumnData(ns, list, ' No ' + faction + ' augmentations found!');
 
-	if (ns.args[0] == 'buy') {
-		if (suggested.length < 1) {
-			ns.tprint('FAIL: Cannot buy any augmentation right now');
+				let extra = '';
+				if (faction == FactionNames.CyberSec)
+					extra = ns.getServerRequiredHackingLevel('CSEC').toString();
+				else if (faction == FactionNames.NiteSec)
+					extra = ns.getServerRequiredHackingLevel('avmnite-02h').toString();
+				else if (faction == FactionNames.TheBlackHand)
+					extra = ns.getServerRequiredHackingLevel('I.I.I.I').toString();
+				else if (faction == FactionNames.BitRunners)
+					extra = ns.getServerRequiredHackingLevel('run4theh111z').toString();
+
+				columns[0].header = ' ' + faction + ' ' + extra;
+
+				PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
+			}
+
 			return;
 		}
+		if (ns.args[0] != 'all') {
+			// Remove some stuff we don't want to see unless special run
+			masterlist = masterlist.filter(s => s.type != 'Physical');
+			masterlist = masterlist.filter(s => s.type != 'Charisma');
+			masterlist = masterlist.filter(s => s.type != 'Company');
+			masterlist = masterlist.filter(s => s.type != 'Shit');
+			masterlist = masterlist.filter(s => s.type != 'Hacknet');
+			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Shadows'));
+			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Netburn'));
+			if (!ns.getPlayer().factions.includes('Church of the Machine God'))
+				masterlist = masterlist.filter(s => !s.factions[0].startsWith('Church'));
+			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Bladeburner'));
+		}
 
-		for (let aug of suggested) {
-			let faction = MeetsRepRequirement(ns, aug);
-			if (ns.singularity.purchaseAugmentation(faction, aug.name))
-				ns.tprint('SUCCES: Bought ' + aug.name + ' from ' + faction);
-			else
-				ns.tprint('FAIL: Cannot buy ' + aug.name + ' from ' + faction + ' ?!' +
-					' estimated cost: ' + ns.nFormat(aug.price, '0.00a') +
-					' actual cost: ' + ns.nFormat(ns.singularity.getAugmentationPrice(aug.name), '0.00a') +
-					' money: ' + ns.nFormat(ns.getPlayer().money, '0.00a'));
-			break;
+		let desired = masterlist.filter(s => FilterDesiredAugs(ns, s));
+		FixOrderForPreReqs(ns, desired);
+		let suggested = SuggestedAugs(ns, desired);
+		let owned = masterlist.filter(s => ownedAugs.includes(s.name) && !s.name.startsWith('NeuroFlux'));
+		let balance = masterlist.filter(s => !desired.includes(s) && !owned.includes(s));
+
+		// Plan mode identifies what augs we're shooting for and more specifically which factions
+		// we need to target
+		if (ns.args.includes('plan')) {
+			PrioritizeFactions(ns, balance, suggested);
+			// let nextUnique = undefined;
+			// for (let i = balance.length - 1; i >= 0; i--) {
+			// 	const aug = balance[i];
+			// 	if (aug.name.startsWith('NeuroFlux')) continue;
+			// 	if (aug.factions.filter(s => s != 'Slum Snakes').length == 1) {
+			// 		if (aug.factions[0] == 'Tian Di Hui') continue;
+			// 		nextUnique = aug.factions[0];
+			// 		break;
+			// 	}
+			// }
+
+			// const targetFactions = new Set(); // Best faction order to get what we need
+			// const worstFactions = new Set(); // Worst faction order to get what we need (see use later)
+
+			// if (nextUnique != undefined)
+			// 	targetFactions.add(nextUnique);
+
+			// for (let i = balance.length - 1; i >= 0; i--) {
+			// 	const aug = balance[i];
+			// 	if (aug.name.startsWith('NeuroFlux')) continue;
+
+			// 	// We note which faction is the best to grind for this aug
+			// 	for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
+			// 		const mile = MilestoneFactions[j];
+			// 		if (aug.factions.includes(mile)) {
+			// 			targetFactions.add(mile);
+			// 			break;
+			// 		}
+			// 	}
+
+			// 	// We note which faction is the worst to grind for this aug
+			// 	for (let j = 0; j < MilestoneFactions.length - 1; j++) {
+			// 		const mile = MilestoneFactions[j];
+			// 		if (aug.factions.includes(mile)) {
+			// 			worstFactions.add(mile);
+			// 			break;
+			// 		}
+			// 	}
+			// }
+
+			// // We don't want to grind gang faction rep, our gang does it for us
+			// if (targetFactions.has('Slum Snakes')) targetFactions.delete('Slum Snakes');
+			// if (worstFactions.has('Slum Snakes')) worstFactions.delete('Slum Snakes');
+
+			// // Add the worse factions at the end of the list. If we don't have the requirements for the
+			// // best ones, we can at least join and grind those in the meantime, it's better than doing nothing
+			// for (let i = 5; i >= 1; i--) {
+			// 	if (targetFactions.has(MilestoneFactions[i]) && worstFactions.has(MilestoneFactions[i - 1]))
+			// 		targetFactions.add(MilestoneFactions[i - 1]);
+			// }
+
+			// //ns.tprint('targets: ' + [...targetFactions]);
+			// // ns.tprint('worst: ' + [...worstFactions]);
+
+			// // This will happen at the end once we've got the Red Pill. This bit of code
+			// // simply adds the milestone factions, ordered by favor, so we can grind them for NFGs.
+			// if ([...targetFactions].length == 0) {
+			// 	let candidates = MilestoneFactions.map(s => s).filter(s => s != 'Slum Snakes');
+			// 	if (candidates.length > 0) {
+			// 		candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
+			// 		targetFactions.add(candidates[0]);
+			// 	}
+			// }
+
+			// //ns.tprint(JSON.stringify(suggested, null, 2));
+
+			// sitRep = GetSitRep(ns);
+			// sitRep.targetFactions = [...targetFactions];
+			// sitRep.suggestedAugs = suggested;
+			// ns.write('sitrep.txt', JSON.stringify(sitRep), 'w');
+			if (ns.args.includes('silent')) return;
+		}
+
+		let desiredData = ToColumnData(ns, desired, ' No desirable augmentations found!');
+		let suggestedData = ToColumnData(ns, suggested, ' No suggested augmentations found!');
+		let balanceData = ToColumnData(ns, balance, ' No interesting augmentations found!');
+		let ownedData = ToColumnData(ns, owned, ' No augmentations installed yet!');
+
+		if (ns.args[0] != undefined && ns.args[0].startsWith('ins')) {
+			let hasNeufo = ns.singularity.getOwnedAugmentations(true).find(s => s.startsWith('NeuroFlux'));
+			columns[0].header = ' Installed Augmentations (' + (owned.length + (hasNeufo ? 1 : 0)) + ')';
+			PrintTable(ns, ownedData, columns, DefaultStyle(), ColorPrint);
+		}
+		else if (!ns.args.includes('silent')) {
+			columns[0].header = ' Suggested Buy Order';
+			PrintTable(ns, suggestedData, columns, DefaultStyle(), ColorPrint);
+
+			columns[0].header = ' Buyable';
+			PrintTable(ns, desiredData, columns, DefaultStyle(), ColorPrint);
+
+			columns[0].header = ' Wanted but locked (by faction/prereq/$/rep)';
+			PrintTable(ns, balanceData, columns, DefaultStyle(), ColorPrint);
+		}
+
+		if (ns.args.includes('buy')) {
+			if (suggested.length < 1) {
+				if (!ns.args.includes('silent'))
+					ns.tprint('FAIL: Cannot buy any augmentation right now');
+				return;
+			}
+
+			for (let aug of suggested) {
+				let faction = MeetsRepRequirement(ns, aug);
+				if (ns.singularity.purchaseAugmentation(faction, aug.name))
+					ns.tprint('SUCCES: Bought ' + aug.name + ' from ' + faction);
+				else
+					ns.tprint('FAIL: Cannot buy ' + aug.name + ' from ' + faction + ' ?!' +
+						' estimated cost: ' + ns.nFormat(aug.price, '0.00a') +
+						' actual cost: ' + ns.nFormat(ns.singularity.getAugmentationPrice(aug.name), '0.00a') +
+						' money: ' + ns.nFormat(ns.getPlayer().money, '0.00a'));
+				break;
+			}
+
+			//ns.tprint('INFO: Sleeping between buys!');
+			await ns.sleep(0);
 		}
 	}
+	while (ns.args.includes('buy'))
 }
 
 function SuggestedAugs(ns, desired) {
@@ -259,6 +396,24 @@ function SuggestedAugs(ns, desired) {
 	return ret;
 }
 
+function FixOrderForPreReqs(ns, list) {
+	for (let i = 0; i < list.length;) {
+		const aug = list[i];
+		if (aug.prereq.length > 0) {
+			for (let prereq of aug.prereq) {
+				let pos = list.findIndex(s => s.name == prereq);
+				if (pos != -1 && pos > i) {
+					//ns.tprint(aug.name + ' needs to be moved after ' + prereq);
+					list.splice(i, 1);
+					list.splice(pos, 0, aug);
+					continue;
+				}
+			}
+		}
+		i++;
+	}
+}
+
 function GetMasterList(ns, sortByRep) {
 	const masterlist = [];
 	for (const faction of Object.values(FactionNames)) {
@@ -282,7 +437,7 @@ function GetMasterList(ns, sortByRep) {
 		}
 	}
 	if (sortByRep)
-		masterlist.sort((a, b) => b.rep - a.rep);
+		masterlist.sort((a, b) => (b.rep - BestRep(ns, b)) - (a.rep - BestRep(ns, a)));
 	else
 		masterlist.sort((a, b) => b.price - a.price);
 	return masterlist;
@@ -356,7 +511,7 @@ function AugColor(ns, aug) {
 	if (!MeetsRepRequirement(ns, aug)) return '#0080ff';
 	if (aug.price > ns.getServerMoneyAvailable('home')) return 'red'
 	if (aug.type == 'Physical' || aug.type == 'Charisma' || aug.type == 'Shit' || aug.type == 'Company') return 'Grey'
-	if (!MeetsPreReq(ns, aug)) return 'orange';
+	if (!MeetsPreReq(ns, aug)) return 'darkorange';
 
 	return 'white';
 }
@@ -386,7 +541,11 @@ function MeetsRepRequirement(ns, aug) {
 function MeetsPreReq(ns, aug) {
 	const owned = ns.singularity.getOwnedAugmentations(true);
 	for (let req of aug.prereq) {
-		if (!owned.includes(req)) return false;
+		if (!owned.includes(req) /*&& !MeetsPreReq(ns, req)*/) {
+			let preReqAug = masterlist.find(s => s.name == req);
+			if (!MeetsPreReq(ns, preReqAug))
+				return false;
+		}
 	}
 	return true;
 }
@@ -414,13 +573,13 @@ function AugType(ns, aug) {
 function TypeColor(type) {
 	switch (type) {
 		case 'NeuroFlux':
-			return 'cyan';
+			return 'aqua';
 		case 'Shit':
 			return 'brown';
 		case 'BladeBurner':
 			return 'Grey';
 		case 'Special':
-			return 'cyan';
+			return 'aqua';
 		case 'Faction':
 			return 'yellow'
 		case 'Hacknet':

@@ -60,12 +60,34 @@ export async function main(ns) {
 		// Situation report script
 		await TryRunScript(ns, 'sitrep.js');
 		await TryRunScript(ns, 'sitrepSleeves.js');
-		await TryRunScript(ns, 'factions.js', ['plan']);
+		await TryRunScript(ns, 'factions.js', ['plan', 'silent']);
 		await TryRunScript(ns, 'acceptFactions.js');
 		await TryRunScript(ns, 'workFaction.js');
-		await TryRunScript(ns, 'joinTian.js');
+		await TryRunScript(ns, 'joinTian.js', ['silent']);
+		await TryRunScript(ns, 'favorStatus.js');
+		await TryRunScript(ns, 'shouldInstall.js');
+		ns.run('share.js', 1, 'auto');
 		let sitrep = JSON.parse(ns.read('sitrep.txt'));
 		let karma = sitrep.karma;
+
+		// Check if we're ready to install
+		if (sitrep.favorInstall || sitrep.shouldInstall) {
+			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
+			await TryRunScript(ns, 'dumpMoney.js');
+			ns.tprint('WARN: About to install/soft reset! You got 10 seconds...');
+			await ns.sleep(5000);
+			ns.tprint('WARN: About to install/soft reset! You got 5 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 4 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 3 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 2 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 1 seconds...');
+			await ns.sleep(1000);
+			await TryRunScript(ns, 'install.js');
+		}
 
 		// Check if we need to buy more port crackers
 		if (sitrep.portCrackers < 5) {
@@ -96,10 +118,11 @@ export async function main(ns) {
 			'I.I.I.I',
 			'avmnite-02h',
 			'run4theh111z',
-			'millenium-fitness',
-			'powerhouse-fitness',
-			'crush-fitness',
-			'snap-fitness'
+			//'w0r1d_d43m0n',
+			// 'millenium-fitness',
+			// 'powerhouse-fitness',
+			// 'crush-fitness',
+			// 'snap-fitness'
 		];
 
 		if (sitrep.servers.some(s => BACKDOOR_TARGETS.includes(s.name) && s.ports.backdoored == false && s.difficulty.current >= s.difficulty.required)) {
@@ -157,6 +180,7 @@ export async function main(ns) {
 			ns.run('controller.js');
 		}
 
+		await TryRunScript(ns, 'demon.js', ['silent']);
 
 		// buy personal servers?
 		// upgrade home ram?

@@ -10,10 +10,11 @@ export async function main(ns) {
 		'I.I.I.I',
 		'avmnite-02h',
 		'run4theh111z',
-		'millenium-fitness',
-		'powerhouse-fitness',
-		'crush-fitness',
-		'snap-fitness'
+		//'w0r1d_d43m0n',
+		// 'millenium-fitness',
+		// 'powerhouse-fitness',
+		// 'crush-fitness',
+		// 'snap-fitness'
 	];
 
 	let count = 0;

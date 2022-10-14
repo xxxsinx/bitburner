@@ -55,34 +55,6 @@ export function GetServerPath(ns, server) {
 	return path;
 }
 
-// Prints colored text to console. Arguments must be passed in pairs
-// Usage: ColorPrint('red', 'This is some red text', '#FFFFFF', ' This is some white text);
-export function ColorPrint(/* pass pairs of color, text */) {
-	let findProp = propName => {
-		for (let div of eval("document").querySelectorAll("div")) {
-			let propKey = Object.keys(div)[1];
-			if (!propKey) continue;
-			let props = div[propKey];
-			if (props.children?.props && props.children.props[propName]) return props.children.props[propName];
-			if (props.children instanceof Array) for (let child of props.children) if (child?.props && child.props[propName]) return child.props[propName];
-		}
-	};
-	let term = findProp("terminal");
-
-	let out = [];
-	for (let i = 0; i < arguments.length; i += 2) {
-		let style = arguments[i];
-		if (style.style == undefined) {
-			style = { style: { color: arguments[i], backgroundColor: '#000000' } };
-		}
-		out.push(React.createElement("span", style, arguments[i + 1]))
-	}
-	try {
-		term.printRaw(out);
-	}
-	catch { }
-}
-
 export function ServerReport(ns, server, metrics = undefined, printfunc = ns.print) {
 	// Get server object for this server
 	var so = ns.getServer(server);

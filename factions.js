@@ -69,17 +69,46 @@ function PlanedAugsFilter(ns, aug) {
 let sitRep = undefined;
 let masterlist = undefined;
 
+function GotAllUniques(ns, faction, balance) {
+	const uniques = balance.filter(s => s.factions.includes(faction) && s.factions.filter(s => s != 'Aevum').length == 1);
+	return uniques.length == 0;
+}
 
 function PrioritizeFactions(ns, balance, suggested) {
 	const targetFactions = new Set(); // Best faction order to get what we need
 	for (let i = balance.length - 1; i >= 0; i--) {
 		const aug = balance[i];
 		if (aug.name.startsWith('NeuroFlux')) continue;
-		for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
-			if (aug.factions.includes(MilestoneFactions[j])) {
-				targetFactions.add(MilestoneFactions[j]);
+
+		let choices = MilestoneFactions.filter(s => aug.factions.includes(s) && !GotAllUniques(ns, s, balance)).map(s => {
+			return {
+				name: s,
+				rep: ns.singularity.getFactionRep(s),
+				joined: ns.getPlayer().factions.includes(s)
 			}
+		});
+
+		choices.sort(function (a, b) {
+			if (a.joined && !b.joined) return -1;
+			if (!a.joined && b.joined) return 1;
+			return b.rep - a.rep;
+		});
+
+		if (choices.length == 0) {
+			if (aug.factions.includes('Slum Snakes') && sitRep.hasGang) {
+				targetFactions.add('Slum Snakes');
+			}
+			else
+				ns.tprint('FAIL: No choice for ' + aug.name);
 		}
+		else
+			targetFactions.add(choices[0].name);
+
+		// for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
+		// 	if (aug.factions.includes(MilestoneFactions[j])) {
+		// 		targetFactions.add(MilestoneFactions[j]);
+		// 	}
+		// }
 	}
 
 	// let nextUnique = undefined;
@@ -135,24 +164,25 @@ function PrioritizeFactions(ns, balance, suggested) {
 	// //ns.tprint('targets: ' + [...targetFactions]);
 	// // ns.tprint('worst: ' + [...worstFactions]);
 
-	// // This will happen at the end once we've got the Red Pill. This bit of code
-	// // simply adds the milestone factions, ordered by favor, so we can grind them for NFGs.
-	// if ([...targetFactions].length == 0) {
-	// 	let candidates = MilestoneFactions.map(s => s).filter(s => s != 'Slum Snakes');
-	// 	if (candidates.length > 0) {
-	// 		candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
-	// 		targetFactions.add(candidates[0]);
-	// 	}
-	// }
+	// This will happen at the end once we've got the Red Pill. This bit of code
+	// simply adds the milestone factions, ordered by favor, so we can grind them for NFGs.
+	if ([...targetFactions].length == 0) {
+		let candidates = [...MilestoneFactions];
+		if (candidates.length > 0) {
+			candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
+			targetFactions.add(candidates[0]);
+		}
+	}
 
 	// //ns.tprint(JSON.stringify(suggested, null, 2));
 
 	sitRep = GetSitRep(ns);
 	sitRep.targetFactions = [...targetFactions];
 	sitRep.suggestedAugs = suggested;
+	sitRep.futureAugs = balance;
 	ns.write('sitrep.txt', JSON.stringify(sitRep), 'w');
 
-	if (!ns.args.includes('silent')) 
+	if (!ns.args.includes('silent'))
 		ns.tprint('WARN: Faction priority is ' + [...targetFactions]);
 }
 

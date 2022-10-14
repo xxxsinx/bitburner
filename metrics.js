@@ -1,6 +1,6 @@
 import { MemoryMap } from "ram.js";
-import { HasFormulas, FormatMoney, GetAllServers, ColorPrint, GetNextLevelXp } from "utils.js";
-import { PrintTable, DefaultStyle } from 'tables.js'
+import { HasFormulas, FormatMoney, GetAllServers, GetNextLevelXp } from "utils.js";
+import { ColorPrint, PrintTable, DefaultStyle } from 'tables.js'
 
 export const H = 0;		// Index of HACK data
 export const W1 = 1;	// Index of first WEAKEN data
@@ -204,7 +204,10 @@ export function AnalyzeAllServers(ns, maxNetworkRamPct, verbose = true) {
 			]);
 		}
 
-		PrintTable(ns, tableData, columns, DefaultStyle(), ns.tprint);
+		ns.tprint('Something should show.');
+		ns.tprint('tableData.length: ' + tableData.length);
+		ns.tprint('columns.length: ' + columns.length);
+		PrintTable(ns, tableData, columns, DefaultStyle(), ColorPrint);
 	}
 	return sorted;
 }

@@ -74,6 +74,9 @@ export async function main(ns) {
 		if (sitrep.favorInstall || sitrep.shouldInstall) {
 			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
 			await TryRunScript(ns, 'dumpMoney.js');
+
+			ns.killall('home', true);
+
 			ns.tprint('WARN: About to install/soft reset! You got 10 seconds...');
 			await ns.sleep(5000);
 			ns.tprint('WARN: About to install/soft reset! You got 5 seconds...');
@@ -180,6 +183,7 @@ export async function main(ns) {
 			ns.run('controller.js');
 		}
 
+		await TryRunScript(ns, 'donate.js');
 		await TryRunScript(ns, 'demon.js', ['silent']);
 
 		// buy personal servers?

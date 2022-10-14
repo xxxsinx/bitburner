@@ -5,7 +5,7 @@ export async function main(ns) {
 	let shouldInstall = false;
 	let sitrep = GetSitRep(ns);
 
-	if (sitrep.suggestedAugs?.length >= 10) {
+	if (sitrep.suggestedAugs?.length >= 8) {
 		shouldInstall = true;
 	}
 
@@ -16,11 +16,11 @@ export async function main(ns) {
 	if (!ns.singularity.getOwnedAugmentations().includes('The Red Pill')) {
 		//ns.tprint('Red pill check');
 		if (ns.singularity.getOwnedAugmentations(true).includes('The Red Pill')) {
-			//ns.tprint('Red pill is in queue lets go!');
+			ns.tprint('Red pill is in queue lets go!');
 			shouldInstall = true;
 		}
 
-		if (sitrep.suggestedAugs != undefined && sitrep.suggestedAugs.includes(s => s.name == 'The Red Pill')) {
+		if (sitrep.suggestedAugs != undefined && sitrep.suggestedAugs.some(s => s.name == 'The Red Pill')) {
 			ns.tprint('Red pill is available!');
 			shouldInstall = true;
 		}

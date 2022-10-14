@@ -6,6 +6,7 @@ export async function main(ns) {
 	if (sitrep.targetFactions == undefined || sitrep.targetFactions.length == 0) return;
 
 	for (const faction of sitrep.targetFactions) {
+		if (faction == 'Slum Snakes') continue;
 		if (ns.getPlayer().factions.includes(faction)) {
 			//ns.tprint('INFO: Initiating Hacking Contracts work for ' + faction)
 			ns.singularity.workForFaction(faction, 'Hacking Contracts', false);

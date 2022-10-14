@@ -67,6 +67,7 @@ export async function main(ns) {
 		await TryRunScript(ns, 'favorStatus.js');
 		await TryRunScript(ns, 'shouldInstall.js');
 		ns.run('share.js', 1, 'auto');
+		ns.run('stanek.js', 1, 0.2);
 		let sitrep = JSON.parse(ns.read('sitrep.txt'));
 		let karma = sitrep.karma;
 

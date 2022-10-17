@@ -5,7 +5,7 @@ export async function main(ns) {
 	let shouldInstall = false;
 	let sitrep = GetSitRep(ns);
 
-	if (sitrep.suggestedAugs?.length >= 8) {
+	if (sitrep.suggestedAugs?.length >= 15) {
 		shouldInstall = true;
 	}
 

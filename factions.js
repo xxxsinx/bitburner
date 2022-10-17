@@ -382,6 +382,9 @@ function SuggestedAugs(ns, desired) {
 	let augs = undefined;
 	let currentMult = 1;
 
+	desired.sort((a, b) => b.price - a.price);
+	FixOrderForPreReqs(ns, desired);
+
 	for (let i = 0; i < desired.length; i++) {
 		budget = ns.getPlayer().money;
 		augs = desired.slice(i);
@@ -402,10 +405,11 @@ function SuggestedAugs(ns, desired) {
 	if (augs == undefined) augs = [];
 
 	// Fill with NeuroFlux
-	if (neuro != undefined && budget > neuro.price * currentMult) {
+	while (neuro != undefined && budget > neuro.price * currentMult) {
 		augs.push(neuro);
 		budget -= neuro.price * currentMult;
 		currentMult *= mult;
+		neuro.price *= 1.14;
 	}
 
 	currentMult = 1;

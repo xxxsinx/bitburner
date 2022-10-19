@@ -89,6 +89,11 @@ export function FormatMoney(ns, value, decimals = 3) {
 	return '$' + (Math.sign(value) < 0 ? "-" : "") + Math.abs(value).toFixed(decimals);
 }
 
+export function FormatRam(ns, value, decimals = 1) {
+	const zero= 0;
+	return ns.nFormat(value * 1000000000, (zero.toFixed(decimals) + 'b'));
+}
+
 export async function WaitPids(ns, pids) {
 	if (!Array.isArray(pids)) pids = [pids];
 	while (pids.some(p => ns.getRunningScript(p) != undefined)) { await ns.sleep(5); }

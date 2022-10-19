@@ -87,6 +87,15 @@ function PrioritizeFactions(ns, balance, suggested) {
 				joined: ns.getPlayer().factions.includes(s)
 			}
 		});
+		if (choices.length == 0) {
+			choices = MilestoneFactions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance)) || aug.factions.some(a => ns.getPlayer().factions.includes(a))).map(s => {
+				return {
+					name: s,
+					rep: ns.singularity.getFactionRep(s),
+					joined: ns.getPlayer().factions.includes(s)
+				}
+			});
+		}
 
 		choices.sort(function (a, b) {
 			if (a.joined && !b.joined) return -1;

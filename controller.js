@@ -4,14 +4,14 @@ import { IsPrepped } from 'prep.js'
 import { PrintTable, DefaultStyle } from 'tables.js'
 
 const QmConfig = new Object({
-	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
-	MaxBatchingServers: 3,		// how many servers can be batching at the same time
-	MaxServers: 5,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
-	ListMaxServers: 20,			// how many servers are analyzed. More trivial servers are dropped from the list.
+	MaxPreppingServers: 9,		// how many servers can be in prep simultaneously
+	MaxBatchingServers: 9,		// how many servers can be batching at the same time
+	MaxServers: 18,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
+	ListMaxServers: 25,			// how many servers are analyzed. More trivial servers are dropped from the list.
 	EvalDelay: 10 * 60 * 1000,	// frequency in ms that we re-evaluate the metrics on the server list
 	LoopDelay: 5000,			// delay in the main loop
-	MaxPrepingDepth: 15,		// This is how deep from the top of the server list we can allow prep
-	MaxBatchingDepth: 15		// This is how deep from the top of the server list we can allow batching
+	MaxPrepingDepth: 25,		// This is how deep from the top of the server list we can allow prep
+	MaxBatchingDepth: 25		// This is how deep from the top of the server list we can allow batching
 });
 
 const SERVER_STATES = {

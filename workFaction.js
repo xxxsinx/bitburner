@@ -13,4 +13,12 @@ export async function main(ns) {
 			return;
 		}
 	}
+
+	for (const faction of sitrep.nfgFactions) {
+		if (ns.getPlayer().factions.includes(faction)) {
+			//ns.tprint('INFO: Initiating Hacking Contracts work for ' + faction)
+			ns.singularity.workForFaction(faction, 'Hacking Contracts', false);
+			return;
+		}
+	}
 }

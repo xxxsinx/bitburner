@@ -8,6 +8,7 @@ export async function main(ns) {
 		money: ns.getServerMoneyAvailable('home'),
 		level: ns.getHackingLevel()
 	}
+
 	const sitrep = GetSitRep(ns);
 	sitrep.flightStatus = status;
 	ns.write('sitrep.txt', JSON.stringify(sitrep), 'w');

@@ -14,6 +14,11 @@ export async function main(ns) {
 			ns.tprint('WARN: Hacking level (' + ns.getHackingLevel() + ') isn\'t high enough to destroy ' + WD);
 		return;
 	}
+	if (!server.hasAdminRights) {
+		if (!ns.args.includes('silent'))
+			ns.tprint('WARN: We do not have root access to ' + WD);
+		return;
+	}
 
 	const path = GetServerPath(ns, WD);
 
@@ -26,7 +31,7 @@ export async function main(ns) {
 		}
 	}
 
-	ns.tprint('INFO: Installing backdoor on ' + server.name);
+	ns.tprint('INFO: Installing backdoor on ' + WD);
 	try {
 		await ns.singularity.installBackdoor();
 	}

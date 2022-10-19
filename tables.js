@@ -274,7 +274,7 @@ let addHtmlWithColor = (tag, data, color) => {
 	return "<" + tag + " style='color:" + color + "'>" + data + "</" + tag + ">";
 }
 
-let COLORS = [
+export let COLORS = [
 	{
 		"ansi": 0,
 		"desc": "Grey",

@@ -1,6 +1,33 @@
+import { COLORS, pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { FormatMoney } from 'utils.js'
+
 /** @param {NS} ns */
 export async function main(ns) {
-    //UpdateBankCache(ns);
+    const money = ns.getMoneySources();
+
+    const columns = [
+        { header: ' Source', width: 20 },
+        { header: ' $ install', width: 11 },
+        { header: ' $ overall', width: 11 }
+    ];
+
+    const data = [];
+    for (const key of Object.keys(money.sinceInstall)) {
+        const install = money.sinceInstall[key];
+        const start = money.sinceStart[key];
+        if (install == 0 && start == 0) continue;
+        if (key == 'total') continue;
+        data.push([' ' + key, FormatMoney(ns, install, 1).padStart(10), FormatMoney(ns, start, 1).padStart(10)]);
+    }
+
+    data.push(null);
+    data.push([' Total', FormatMoney(ns, money.sinceInstall['total'], 1).padStart(10), FormatMoney(ns, money.sinceStart['total'], 1).padStart(10)]);
+
+    PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
+
+    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since install : ' + ns.tFormat(ns.getTimeSinceLastAug()));
+    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since start   : ' + ns.tFormat(ns.getPlayer().playtimeSinceLastBitnode));
+    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Karma              : ' + ns.heart.break().toFixed(0));
 }
 
 // export function GetBank(ns) {
@@ -8,36 +35,9 @@ export async function main(ns) {
 // }
 
 export function UpdateBankCache(ns) {
-    let boxes = Array.from(eval("document").querySelectorAll("[class*=MuiBox-root]"));
-    let box = boxes.find(s => getProps(s)?.player);
-    if (!box) return;
-    let props = getProps(box);
-    if (!props) return;
-
-    const output = {
-        install: {},
-        node: {}
-    };
-
-    //ns.tprint('WARN: Income since last install:');
-    for (let entry of Object.entries(props.player.moneySourceA)) {
-        output.install[entry[0]] = entry[1];
-        //ns.tprint(entry[0] + ' : ' + entry[1]);
-    }
-    //ns.tprint('WARN: Income since start of node:');
-    for (let entry of Object.entries(props.player.moneySourceB)) {
-        output.node[entry[0]] = entry[1];
-        //ns.tprint(entry[0] + ' : ' + entry[1]);
-    }
-
     //ns.write('bank.txt', JSON.stringify(output), 'w');
-    return output;
+    // return output;
 }
-
-function getProps(obj) {
-    return Object.entries(obj).find(entry => entry[0].startsWith("__reactProps"))[1].children.props;
-}
-
 
 // export function GetTotalWorth(ns) {
 // 	let money = ns.getServerMoneyAvailable('home');

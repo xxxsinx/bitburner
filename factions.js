@@ -70,7 +70,7 @@ let sitRep = undefined;
 let masterlist = undefined;
 
 function GotAllUniques(ns, faction, balance) {
-	const uniques = balance.filter(s => s.factions.includes(faction) && s.factions.filter(s => s != 'Aevum').length == 1);
+	const uniques = balance.filter(s => s.factions.includes(faction) && s.factions.filter(s => s != 'Aevum' && s != 'Slum Snakes').length == 1);
 	return uniques.length == 0;
 }
 
@@ -94,6 +94,8 @@ function PrioritizeFactions(ns, balance, suggested) {
 			return b.rep - a.rep;
 		});
 
+		//ns.tprint(choices);
+
 		if (choices.length == 0) {
 			if (aug.factions.includes('Slum Snakes') && sitRep.hasGang) {
 				targetFactions.add('Slum Snakes');
@@ -101,8 +103,17 @@ function PrioritizeFactions(ns, balance, suggested) {
 			else
 				ns.tprint('FAIL: No choice for ' + aug.name);
 		}
-		else
-			targetFactions.add(choices[0].name);
+		else {
+			for (let j = 0; j < choices.length; j++) {
+				//ns.tprint(choices[j].name);
+				if (ns.getPlayer().factions.includes(choices[j].name) || ns.singularity.checkFactionInvitations().includes(choices[j].name)) {
+					targetFactions.add(choices[j].name);
+					break;
+				}
+			}
+			if (targetFactions.length == 0)
+				targetFactions.add(choices[0].name);
+		}
 
 		// for (let j = MilestoneFactions.length - 1; j >= 0; j--) {
 		// 	if (aug.factions.includes(MilestoneFactions[j])) {
@@ -166,12 +177,11 @@ function PrioritizeFactions(ns, balance, suggested) {
 
 	// This will happen at the end once we've got the Red Pill. This bit of code
 	// simply adds the milestone factions, ordered by favor, so we can grind them for NFGs.
-	if ([...targetFactions].length == 0) {
-		let candidates = [...MilestoneFactions];
-		if (candidates.length > 0) {
-			candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
-			targetFactions.add(candidates[0]);
-		}
+	const nfgFactions = [];
+	let candidates = [...MilestoneFactions];
+	if (candidates.length > 0) {
+		candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
+		nfgFactions.push(...candidates);
 	}
 
 	// //ns.tprint(JSON.stringify(suggested, null, 2));
@@ -180,10 +190,13 @@ function PrioritizeFactions(ns, balance, suggested) {
 	sitRep.targetFactions = [...targetFactions];
 	sitRep.suggestedAugs = suggested;
 	sitRep.futureAugs = balance;
+	sitRep.nfgFactions = nfgFactions;
 	ns.write('sitrep.txt', JSON.stringify(sitRep), 'w');
 
-	if (!ns.args.includes('silent'))
+	if (!ns.args.includes('silent')) {
 		ns.tprint('WARN: Faction priority is ' + [...targetFactions]);
+		ns.tprint('WARN: NFG grind priority is ' + [...nfgFactions]);
+	}
 }
 
 /** @param {NS} ns **/
@@ -357,14 +370,17 @@ export async function main(ns) {
 
 			for (let aug of suggested) {
 				let faction = MeetsRepRequirement(ns, aug);
-				if (ns.singularity.purchaseAugmentation(faction, aug.name))
+				if (faction && ns.singularity.purchaseAugmentation(faction, aug.name)) {
 					ns.tprint('SUCCES: Bought ' + aug.name + ' from ' + faction);
-				else
+					break;
+				}
+				else {
 					ns.tprint('FAIL: Cannot buy ' + aug.name + ' from ' + faction + ' ?!' +
 						' estimated cost: ' + ns.nFormat(aug.price, '0.00a') +
 						' actual cost: ' + ns.nFormat(ns.singularity.getAugmentationPrice(aug.name), '0.00a') +
 						' money: ' + ns.nFormat(ns.getPlayer().money, '0.00a'));
-				break;
+					continue;
+				}
 			}
 
 			//ns.tprint('INFO: Sleeping between buys!');
@@ -405,11 +421,12 @@ function SuggestedAugs(ns, desired) {
 	if (augs == undefined) augs = [];
 
 	// Fill with NeuroFlux
-	while (neuro != undefined && budget > neuro.price * currentMult) {
+	while (neuro != undefined && budget > neuro.price * currentMult && BestRep(ns, neuro) >= neuro.rep) {
 		augs.push(neuro);
 		budget -= neuro.price * currentMult;
 		currentMult *= mult;
 		neuro.price *= 1.14;
+		neuro.rep *= 1.14;
 	}
 
 	currentMult = 1;
@@ -567,7 +584,7 @@ function BestRep(ns, aug) {
 function MeetsRepRequirement(ns, aug) {
 	for (let faction of aug.factions) {
 		let rep = ns.singularity.getFactionRep(faction);
-		if (rep >= aug.rep) return faction;
+		if (rep >= ns.singularity.getAugmentationRepReq(aug.name)) return faction;
 	}
 	return false;
 }

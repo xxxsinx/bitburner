@@ -92,7 +92,9 @@ export async function main(ns) {
 			await ns.sleep(1000);
 			ns.tprint('WARN: About to install/soft reset! You got 1 seconds...');
 			await ns.sleep(1000);
-			await TryRunScript(ns, 'install.js');
+
+			ns.spawn('install.js');
+			return;
 		}
 
 		// Check if we need to buy more port crackers
@@ -112,6 +114,9 @@ export async function main(ns) {
 			await TryRunScript(ns, 'contractPrep.js', [true]);
 			await TryRunScript(ns, 'solver.js', [true]);
 		}
+
+		// Donate money
+		await TryRunScript(ns, 'donate.js');
 
 		// Buy personal server(s)
 		await TryRunScript(ns, 'buyserver.js', ['loop', true]);
@@ -186,7 +191,6 @@ export async function main(ns) {
 			ns.run('controller.js');
 		}
 
-		await TryRunScript(ns, 'donate.js');
 		await TryRunScript(ns, 'demon.js', ['silent']);
 
 		// buy personal servers?

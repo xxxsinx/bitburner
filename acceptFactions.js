@@ -11,4 +11,12 @@ export async function main(ns) {
 			ns.singularity.joinFaction(faction);
 		}
 	}
+
+	// Make sure we join our best NFG faction for default work
+	for (const faction of sitrep.nfgFactions) {
+		if (ns.getPlayer().factions.includes(faction)) continue;
+		if (!invites.includes(faction)) continue;
+		ns.tprint('INFO: Joining faction ' + faction + ' for NFG access/grind');
+		ns.singularity.joinFaction(faction);
+	}
 }

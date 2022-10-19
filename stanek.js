@@ -7,7 +7,7 @@ export async function main(ns) {
 
 	let fragments = ns.stanek.activeFragments().filter(p => p.limit < 5);
 	const [ramPct = 1] = ns.args;
-	ns.tprint('INFO: Running share... pct:' + ramPct);
+	ns.tprint('INFO: Running charge... pct: ' + ramPct);
 
 	for (; ;) {
 		for (let fragment of fragments) {

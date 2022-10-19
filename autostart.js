@@ -69,6 +69,7 @@ export async function main(ns) {
 		await TryRunScript(ns, 'acceptStanek.js');
 		await TryRunScript(ns, 'loadStanek.js');
 		ns.run('share.js', 1, 'auto');
+		//ns.run('casino.js', 1, 'silent');
 		ns.run('stanek.js', 1, 0.2);
 		let sitrep = JSON.parse(ns.read('sitrep.txt'));
 		let karma = sitrep.karma;
@@ -174,7 +175,7 @@ export async function main(ns) {
 			ns.print('Current karma: ' + karma.toFixed(0));
 		}
 
-		if (ns.getPlayer().skills.hacking < 100) {
+		if (ns.getPlayer().skills.hacking < 200) {
 			v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
 			if (v1pid == undefined) {
 				ns.tprint('INFO: Started ' + 'v1.js' + ' with params [xp]');

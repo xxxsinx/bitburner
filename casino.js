@@ -2,21 +2,27 @@
 export async function main(ns) {
 	ns.disableLog('ALL');
 
+	if (ns.getMoneySources().sinceInstall.casino >= 10_000_000_000) {
+		if (!ns.args.includes('silent')) ns.tprint('ERROR: Already banned from the casino!');
+		return;
+	}
+
 	// Go to Aevum if we aren't already there
 	if (ns.getPlayer().city != 'Aevum') {
 		if (ns.getPlayer().money < 200_000) {
-			ns.tprint('ERROR: Sorry, you need at least 200k to travel to Aevum.');
+			if (!ns.args.includes('silent')) ns.tprint('ERROR: Sorry, you need at least 200k to travel to Aevum.');
 			return;
 		}
 		if (!ns.singularity.travelToCity('Aevum')) {
 			ns.tprint('ERROR: Failed to travel to Aevum.');
 			return;
 		}
-		ns.tprint('INFO: Traveled to Aevum.');
+		ns.tprint('INFO: Traveled to Aevum for the casino.');
 	}
 
 	if (!ns.singularity.goToLocation('Iker Molina Casino')) {
-		ns.tprint('ERROR: Failed to travel to the casino.');
+		if (!ns.args.includes('silent')) ns.tprint('ERROR: Failed to travel to the casino.');
+		return;
 	}
 
 	let doc = eval("document");
@@ -24,7 +30,7 @@ export async function main(ns) {
 	// Step 2 Try to start the coin flip game
 	const coinflip = find(doc, "//button[contains(text(), 'coin flip')]");
 	if (!coinflip) {
-		ns.tprint('Could not enter the coin flip game!');
+		ns.tprint('FAIL: Could not enter the coin flip game!');
 		return;
 	}
 	await click(coinflip);
@@ -52,34 +58,33 @@ export async function main(ns) {
 		}
 		await ns.sleep(0);
 	}
-
 	ns.print('Sequence: ' + log.join(''));
 
-	// // Step 5: Validate sequence
-	// for (let i = 0; i < 1024; i++) {
-	// 	if (log[i] == 'T') {
-	// 		await click(tails);
-	// 		const isTails = find(doc, "//p[text() = 'T']");
-	// 		if (!isTails) {
-	// 			ns.print('FAIL: Something went wrong, aborting sequence!');
-	// 			return;
-	// 		}
-	// 	}
-	// 	else if (log[i] == 'H') {
-	// 		await click(heads);
-	// 		const isHeads = find(doc, "//p[text() = 'H']");
-	// 		if (!isHeads) {
-	// 			ns.print('FAIL: Something went wrong, aborting sequence!');
-	// 			return;
-	// 		}
-	// 	}
-	// 	else {
-	// 		ns.print('FAIL: Something went wrong, aborting sequence!');
-	// 		return;
-	// 	}
+	// Step 5: Validate sequence
+	for (let i = 0; i < 1024; i++) {
+		if (log[i] == 'T') {
+			await click(tails);
+			const isTails = find(doc, "//p[text() = 'T']");
+			if (!isTails) {
+				ns.tprint('FAIL: Something went wrong, aborting sequence!');
+				return;
+			}
+		}
+		else if (log[i] == 'H') {
+			await click(heads);
+			const isHeads = find(doc, "//p[text() = 'H']");
+			if (!isHeads) {
+				ns.tprint('FAIL: Something went wrong, aborting sequence!');
+				return;
+			}
+		}
+		else {
+			ns.tprint('FAIL: Something went wrong, aborting sequence!');
+			return;
+		}
 
-	// 	await ns.sleep(0);
-	// }
+		await ns.sleep(0);
+	}
 
 	const input = await find(doc, "//input[@type='number']");
 	if (!input) {
@@ -119,6 +124,8 @@ export async function main(ns) {
 				await ns.sleep(0);
 
 			loops++;
+
+			if (ns.getMoneySources().sinceInstall.casino >= 10_000_000_000) return;
 		}
 		catch (e) {
 			ns.tprint('FAIL: ' + e);

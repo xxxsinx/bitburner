@@ -4,9 +4,9 @@ import { IsPrepped } from 'prep.js'
 import { PrintTable, DefaultStyle } from 'tables.js'
 
 const QmConfig = new Object({
-	MaxPreppingServers: 25,		// how many servers can be in prep simultaneously
-	MaxBatchingServers: 25,		// how many servers can be batching at the same time
-	MaxServers: 25,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
+	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
+	MaxBatchingServers: 2,		// how many servers can be batching at the same time
+	MaxServers: 4,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
 	ListMaxServers: 25,			// how many servers are analyzed. More trivial servers are dropped from the list.
 	EvalDelay: 10 * 60 * 1000,	// frequency in ms that we re-evaluate the metrics on the server list
 	LoopDelay: 5000,			// delay in the main loop

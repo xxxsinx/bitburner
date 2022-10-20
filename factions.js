@@ -74,11 +74,13 @@ function GotAllUniques(ns, faction, balance) {
 	return uniques.length == 0;
 }
 
-function PrioritizeFactions(ns, balance, suggested) {
+function PrioritizeFactions(ns, fullbalance, suggested) {
+	const balance = fullbalance;//.filter(s=> s.rep < BestRep(ns, s));
 	const targetFactions = new Set(); // Best faction order to get what we need
 	for (let i = balance.length - 1; i >= 0; i--) {
 		const aug = balance[i];
 		if (aug.name.startsWith('NeuroFlux')) continue;
+		//if (aug.rep >= BestRep(ns, aug)) continue;
 
 		let choices = MilestoneFactions.filter(s => aug.factions.includes(s) && !GotAllUniques(ns, s, balance)).map(s => {
 			return {
@@ -115,7 +117,7 @@ function PrioritizeFactions(ns, balance, suggested) {
 		else {
 			for (let j = 0; j < choices.length; j++) {
 				//ns.tprint(choices[j].name);
-				if (ns.getPlayer().factions.includes(choices[j].name) || ns.singularity.checkFactionInvitations().includes(choices[j].name)) {
+				if (ns.getPlayer().factions.includes(choices[j].name) || ns.singularity.checkFactionInvitations().includes(choices[j].name) || choices[j].name == 'Tian Di Hui') {
 					targetFactions.add(choices[j].name);
 					break;
 				}

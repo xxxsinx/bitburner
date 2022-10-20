@@ -288,8 +288,8 @@ function ReportCurrentSnapshot(ns, stonks) {
 		line.push({ color: 'white', text: ' ' + forecast });
 		line.push(ForecastToGraph(stonk.forecast));
 		line.push({ color: 'white', text: ns.nFormat(stonk.nbShares + stonk.nbShorts, "0.0a").padStart(9) });
-		line.push({ color: 'white', text: ns.nFormat(stonk.GetValue(), "0.0a").padStart(9) });
 		line.push({ color: 'white', text: ns.nFormat(stonk.GetPricePaid(), "0.0a").padStart(9) });
+		line.push({ color: 'white', text: ns.nFormat(stonk.GetValue(), "0.0a").padStart(9) });
 		line.push({ color: 'white', text: ns.nFormat(stonk.GetProfit(), "0.0a").padStart(9) });
 
 		let pct = stonk.GetProfit() / stonk.GetPricePaid() * 100;

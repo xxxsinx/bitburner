@@ -54,7 +54,7 @@ export async function main(ns) {
 
 	goals.ResetGoals();
 
-	let v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
+	//let pid = ns.getRunningScript('v1.js', 'home', 'xp');
 
 	while (true) {
 		// Situation report script
@@ -68,11 +68,17 @@ export async function main(ns) {
 		await TryRunScript(ns, 'shouldInstall.js');
 		await TryRunScript(ns, 'acceptStanek.js');
 		await TryRunScript(ns, 'loadStanek.js');
+		await TryRunScript(ns, 'hashes.js');
 		ns.run('share.js', 1, 'auto');
 		//ns.run('casino.js', 1, 'silent');
 		ns.run('stanek.js', 1, 0.2);
 		let sitrep = JSON.parse(ns.read('sitrep.txt'));
 		let karma = sitrep.karma;
+
+		// if (sitrep.money >= 150_000_000_000) {
+		// 	ns.tprint('WARN: We got 150b! ' + ns.tFormat(ns.getPlayer().playtimeSinceLastBitnode));
+		// 	return;
+		// }
 
 		// Check if we're ready to install
 		if (sitrep.favorInstall || sitrep.shouldInstall) {
@@ -175,22 +181,72 @@ export async function main(ns) {
 			ns.print('Current karma: ' + karma.toFixed(0));
 		}
 
-		if (ns.getPlayer().skills.hacking < 200) {
-			v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
-			if (v1pid == undefined) {
-				ns.tprint('INFO: Started ' + 'v1.js' + ' with params [xp]');
-				v1pid = ns.run('v1.js', 1, 'xp');
+		// Farm XP for a bit
+		if (ns.getPlayer().skills.hacking < 100) {
+			await TryRunScript(ns, 'study.js');
+		}
+
+		// 	let pid = ns.getRunningScript('v1.js', 'home', 'xp');
+		// 	if (pid == undefined) {
+		// 		ns.tprint('INFO: Starting v1.js with params [xp]');
+		// 		pid = ns.run('v1.js', 1, 'xp');
+		// 		if (pid == undefined) {
+		// 			ns.tprint('FAIL: Failed to start v1.js with params [xp]');
+		// 		}
+		// 	}
+		// }
+		// else {
+		// 	// Kill XP farming script
+		// 	let pid = ns.getRunningScript('v1.js', 'home', 'xp');
+		// 	if (pid != undefined) {
+		// 		ns.tprint('INFO: XP goal reached, killing v1.js with params [xp]');
+		// 		ns.kill(pid.pid);
+		// 		pid = undefined;
+		// 	}
+
+		// Run manager on joesguns until we have all ports open
+		if ((sitrep.servers.some(s => s.ports.nuked == false) || sitrep.ram.total < 5000) && sitrep.canHackJoe) {
+			let pid = ns.getRunningScript('manager.js', 'home', 'joesguns', 1, 420);
+			if (pid == undefined) {
+				ns.tprint('INFO: Starting manager.js with params [joesguns, 1]');
+				let pid = ns.run('manager.js', 1, 'joesguns', 1, 420);
+				if (pid == undefined) {
+					ns.tprint('FAIL: Failed to start manager.js with params [joesguns, 1]');
+				}
 			}
 		}
 		else {
-			v1pid = ns.getRunningScript('v1.js', 'home', 'xp');
-			if (v1pid != undefined) {
-				ns.tprint('INFO: XP goal reached, killing ' + 'v1.js' + ' with params [xp]');
-				ns.kill(v1pid.pid);
-				v1pid = undefined;
+			// Kill XP farming script
+			let pid = ns.getRunningScript('manager.js', 'home', 'joesguns', 1, 420);
+			if (pid != undefined) {
+				ns.tprint('INFO: We now have all 5 port crackers available and enough ram to start controller mode. Killing manager.js on joesguns');
+				ns.kill(pid.pid);
+				pid = undefined;
 			}
-			ns.run('controller.js');
+
+			const processInfo = ns.ps().find(p => p.filename == 'controller.js');
+			const overrides = GetControllerOverrides(ns, sitrep);
+
+			let parametersChanged = false;
+			for (let i = 0; i < overrides.length; i++) {
+				if (processInfo != null && processInfo.args[i] != overrides[i]) {
+					parametersChanged = true;
+					break;
+				};
+			}
+			if (processInfo == null || parametersChanged) {
+				if (processInfo != null) {
+					ns.tprint('WARN: Killing controller.js ' + processInfo.args);
+					ns.kill(processInfo.pid);
+				}
+				ns.tprint('INFO: Starting controller.js with params ' + overrides);
+				pid = ns.run('controller.js', 1, ...overrides);
+				if (pid == undefined) {
+					ns.tprint('FAIL: Failed to start controller.js ' + overrides);
+				}
+			}
 		}
+		//}
 
 		await TryRunScript(ns, 'demon.js', ['silent']);
 
@@ -220,6 +276,27 @@ export async function main(ns) {
 
 		ns.print('');
 		await ns.sleep(10000);
+	}
+}
+
+function GetControllerOverrides(ns, sitrep) {
+	if (sitrep.ram.total < Math.pow(2, 18)) {
+		return [1, 1, 1];
+	}
+	else if (sitrep.ram.total < Math.pow(2, 21)) {
+		return [2, 2, 3];
+	}
+	else if (sitrep.ram.total < Math.pow(2, 22)) {
+		return [3, 3, 5];
+	}
+	else if (sitrep.ram.total < Math.pow(2, 23)) {
+		return [6, 5, 8];
+	}
+	else if (sitrep.ram.total < Math.pow(2, 24)) {
+		return [12, 5, 8];
+	}
+	else {
+		return [12, 5, 8];
 	}
 }
 

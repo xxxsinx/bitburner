@@ -1,5 +1,6 @@
 import { GetAllServers, GetServerPath } from 'utils.js'
 import { UpdateBankCache } from 'bank.js'
+import { MemoryMap } from 'ram.js'
 
 // sitrep.js: This script caches information on the current situation for use by other scripts
 // The main goal is to isolate the gathering of information ram cost.
@@ -32,6 +33,10 @@ export async function main(ns) {
 		//has4S: ns.stock.has4SDataTIXAPI(),
 	};
 
+	const joes = ns.getServer('joesguns');
+	joes.hackDifficulty = joes.minDifficulty;
+	report.canHackJoe = ns.formulas.hacking.weakenTime(joes, ns.getPlayer()) >= 120;
+
 	try { report.hasGang = ns.gang.inGang(); } catch { }
 
 	const PROGRAMS = [
@@ -45,6 +50,8 @@ export async function main(ns) {
 	const MAX_PORTS = PROGRAMS.filter(s => ns.fileExists(s + '.exe')).length;
 	report.portCrackers = MAX_PORTS;
 	//ns.tprint('INFO: We have access to ' + MAX_PORTS + ' port crackers.');
+
+	report.ram = { ...new MemoryMap(ns, true) };
 
 	const servers = GetAllServers(ns);
 	for (const server of servers) {

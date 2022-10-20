@@ -32,10 +32,6 @@ async function Breach(ns, server) {
 	try { ns.sqlinject(server); } catch { }
 	try { ns.nuke(server); } catch { }
 
-	if (server == 'w0r1d_d43m0n') {
-		ns.tprint('derp' + ns.hasRootAccess(server))
-	}
-
 	return ns.hasRootAccess(server);
 }
 

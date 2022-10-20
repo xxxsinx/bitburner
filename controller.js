@@ -3,7 +3,7 @@ import { FormatMoney } from 'utils.js'
 import { IsPrepped } from 'prep.js'
 import { PrintTable, DefaultStyle } from 'tables.js'
 
-const QmConfig = new Object({
+const QmConfig = {
 	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
 	MaxBatchingServers: 2,		// how many servers can be batching at the same time
 	MaxServers: 4,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
@@ -12,7 +12,7 @@ const QmConfig = new Object({
 	LoopDelay: 5000,			// delay in the main loop
 	MaxPrepingDepth: 25,		// This is how deep from the top of the server list we can allow prep
 	MaxBatchingDepth: 25		// This is how deep from the top of the server list we can allow batching
-});
+};
 
 const SERVER_STATES = {
 	UNPREPPED: "UNPREPPED",
@@ -28,8 +28,16 @@ export async function main(ns) {
 	//await ns.sleep(0);
 	//ns.resizeTail(1080, 600);
 	const qm = new QuarterMaster(ns, QmConfig.EvalDelay); // re-eval every 2 min
+
+	// Config overrides
+	const [prep, batch, max] = ns.args;
+	QmConfig.MaxPreppingServers = prep;
+	QmConfig.MaxBatchingServers = batch;
+	QmConfig.MaxServers = max;
+
 	while (true) {
 		await qm.Dispatch();
+		//ns.print('WARN: config: ' + JSON.stringify(QmConfig));
 		//ns.print('INFO: Loop over, sleeping ' + Math.round(QmConfig.LoopDelay / 1000) + ' second');
 		ns.print('');
 		await ns.sleep(QmConfig.LoopDelay);
@@ -76,15 +84,6 @@ export class QuarterMaster {
 		// Assign tasks
 		let depth = 0;
 		for (let metrics of this.topServers) {
-			// Check if we need to prep the target
-			if (!metrics.batching && metrics.prepping == false && !IsPrepped(this.ns, metrics.server) && nbPrepping < QmConfig.MaxPreppingServers && nbPrepping + nbBatching < QmConfig.MaxServers && depth <= QmConfig.MaxPrepingDepth) {
-				this.ns.print('WARN: Launched prep for ' + metrics.server);
-				this.ns.exec('prep.js', 'home', 1, metrics.server);
-				metrics.state = SERVER_STATES.PREPARING;
-				nbPrepping++;
-				continue;
-			}
-
 			if (depth > QmConfig.MaxBatchingDepth) break;
 
 			// Check if we can launch a batch cycle for this target
@@ -104,6 +103,34 @@ export class QuarterMaster {
 			}
 
 			depth++;
+		}
+		depth = 0;
+		for (let metrics of this.topServers) {
+			if (depth > QmConfig.MaxPrepingDepth) continue;
+			depth++;
+
+			if (metrics.batching) continue;
+			if (metrics.prepping) continue;
+			if (IsPrepped(this.ns, metrics.server)) continue;
+
+			// Opportunistic prep: if the server is almost prepped, we dedicate a bit of resources to prepping it opportunistically
+			const so = this.ns.getServer(metrics.server);
+			const opportunisticPrep = so.hackDifficulty - so.minDifficulty < 5 && so.moneyAvailable / so.moneyMax >= 0.8;
+
+			if (!opportunisticPrep) {
+				if (nbPrepping >= QmConfig.MaxPreppingServers) continue;
+				if (nbPrepping + nbBatching >= QmConfig.MaxServers) continue;
+			}
+
+			if (!opportunisticPrep)
+				this.ns.print('WARN: Launched prep for ' + metrics.server);
+			else
+				this.ns.print('WARN: Launched opportunistic prep for ' + metrics.server);
+			this.ns.exec('prep.js', 'home', 1, metrics.server);
+			metrics.state = SERVER_STATES.PREPARING;
+
+			if (!opportunisticPrep)
+				nbPrepping++;
 		}
 		//this.ns.print('We now have ' + nbPrepping + ' servers in prep and ' + nbBatching + ' servers batching');
 

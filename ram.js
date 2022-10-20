@@ -87,8 +87,8 @@ function GetProcessDetails(ns, server) {
 		{ script: 'weaken', header: 'Weaken' },
 		{ script: 'grow', header: 'Grow' },
 		{ script: 'hack', header: 'Hack' },
-		{ script: 'share-forever.js', header: 'Share' },
-		{ script: 'charge.js', header: 'Charge' }
+		{ script: 'share-', header: 'Share' },
+		{ script: 'charge', header: 'Charge' }
 	];
 
 	let procs = ns.ps(server);
@@ -102,7 +102,7 @@ function GetProcessDetails(ns, server) {
 	});
 
 	// Other category
-	let matches = procs.filter(p => !categories.map(s => s.script).includes(p.filename));
+	let matches = procs.filter(p => !categories.some(c => p.filename.startsWith(c.script)));
 	let ram = matches.reduce((a, s) => a += s.threads * ns.getScriptRam(s.filename, server), 0);
 	let pct = Math.round(ram / serverRam * 100);
 	ret.push({ category: 'Other', percent: pct, ram: ram });

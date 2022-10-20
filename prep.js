@@ -1,5 +1,6 @@
 import { ServerReport, WaitPids } from "utils.js";
 import { RunScript } from 'ram.js';
+import { calculateGrowThreads } from 'metrics.js'
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -62,15 +63,47 @@ export async function Hack(ns, server, pct, allowSpread = false, allowPartial = 
 	return [threads, estTime];
 }
 
+async function BatchPrep(ns, server) {
+	const so = ns.getServer(server);
+
+	let security = so.hackDifficulty - so.minDifficulty;
+
+	const gthreads = calculateGrowThreads(ns, so, ns.getPlayer(), 1);
+	const gtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
+
+	security += gthreads * 0.004;
+
+	const wthreads = Math.ceil(security / 0.05);
+	const wtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4;
+
+	const allPids = [];
+
+	if (wthreads > 0) {
+		ns.print('INFO: Security is over minimum, starting ' + wthreads + ' threads to floor it');
+		const pids = await RunScript(ns, 'weaken-once.js', wthreads, [server, 0, wtime, 0, 0], true, true);
+		allPids.push(...pids);
+	}
+
+	if (gthreads > 0) {
+		ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
+		const pids = await RunScript(ns, 'grow-once.js', gthreads, [server, 0, gtime, 0, 0], true, true);
+		allPids.push(...pids);
+	}
+
+	await WaitPids(ns, allPids);
+}
+
 export async function Prep(ns, server, metrics) {
 	while (!IsPrepped(ns, server)) {
 		let so = ns.getServer(server);
 		ServerReport(ns, server, metrics);
 
-		if (so.hackDifficulty > so.minDifficulty)
-			await Weaken(ns, server, true, true);
-		else if (so.moneyAvailable < so.moneyMax)
-			await Grow(ns, server, false, true);
+		await BatchPrep(ns, server);
+
+		// if (so.hackDifficulty > so.minDifficulty)
+		// 	await Weaken(ns, server, true, true);
+		// else if (so.moneyAvailable < so.moneyMax)
+		// 	await Grow(ns, server, false, true);
 
 		await ns.sleep(200);
 	}

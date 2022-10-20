@@ -76,6 +76,7 @@ async function ManageServer(ns, server, maxPctTotalRam, loop) {
 			cycle = 0; // reset cycle
 			hackLevel = ns.getPlayer().skills.hacking;
 			ServerReport(ns, server, metrics);
+			continue;
 		}
 		cycle++;
 

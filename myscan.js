@@ -7,8 +7,19 @@ export async function main(ns) {
 
 	for (const server of servers) {
 		if (target != null) {
-			if (server.name.search(target) != -1)
+			if (server.name.search(target) != -1) {
 				ns.tprint(server.route);
+
+				// Exploit to enter and run the command on the terminal, must be on the terminal tab to work
+				try {
+					const terminalInput = eval('document').getElementById("terminal-input");
+					terminalInput.value = server.route;
+					const handler = Object.keys(terminalInput)[1];
+					terminalInput[handler].onChange({ target: terminalInput });
+					terminalInput[handler].onKeyDown({ key: 'Enter', preventDefault: () => null });
+				}
+				catch { }
+			}
 		}
 		else
 			ns.tprint(server.route);

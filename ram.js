@@ -164,6 +164,13 @@ export class MemoryMap {
 		}
 		this.blocks.sort(BlockSort(this.total, this.other));
 
+		// let homeBlock= this.HomeBlock();
+		// if (this.total > 3000) {
+		// 	let reserved= this.homeBlock / 2;
+		// 	const maxReserved= 256;
+		// 	homeBlock.reserved= Math.min(reserved, maxReserved);
+		// }
+
 		function BlockSort(total, other) {
 			return function (a, b) {
 				// home is always last unless we have to use other servers

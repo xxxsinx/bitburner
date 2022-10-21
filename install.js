@@ -1,7 +1,13 @@
-import { GetAllServers } from 'utils.js'
+import { WaitPids, GetAllServers } from 'utils.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
+	// await WaitPids(ns, ns.run('bank.js'));
+	// await WaitPids(ns, ns.run('factions.js', 1, 'plan'));
+
+	// ns.tprint('FAIL: Aborting install for benching purposes!');
+	// return;
+
 	for (var server of GetAllServers(ns)) {
 		ns.killall(server, true);
 	}

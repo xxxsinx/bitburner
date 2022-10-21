@@ -5,7 +5,11 @@ export async function main(ns) {
 	let shouldInstall = false;
 	let sitrep = GetSitRep(ns);
 
-	if (sitrep.suggestedAugs?.length >= 15) {
+	let firstCycle= ns.singularity.getOwnedAugmentations().length < 3;
+	let nonNFGaugs= sitrep?.suggestedAugs.filter(a => !a.name.startsWith('NeuroFlux')) ?? [];
+	let suggestedAugs= sitrep?.suggestedAugs ?? [];
+
+	if (suggestedAugs.length >= 15 && (!firstCycle || nonNFGaugs.length >= 8)) {
 		shouldInstall = true;
 	}
 

@@ -280,10 +280,10 @@ export async function main(ns) {
 }
 
 function GetControllerOverrides(ns, sitrep) {
-	if (sitrep.ram.total < Math.pow(2, 18)) {
+	if (sitrep.ram.total < Math.pow(2, 18) || sitrep.ram.home <= 128) {
 		return [1, 1, 1];
 	}
-	else if (sitrep.ram.total < Math.pow(2, 21)) {
+	else if (sitrep.ram.total < Math.pow(2, 21) || sitrep.ram.home <= 256) {
 		return [2, 2, 3];
 	}
 	else if (sitrep.ram.total < Math.pow(2, 22)) {

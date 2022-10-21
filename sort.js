@@ -16,7 +16,7 @@ export async function main(ns) {
 		ns.tprint('WARNING: NOT using formulas for hack % (showing current %)');
 
 	ns.tprint('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
-	ns.tprint('│  Server            │  $$$      │  HackReq │  MinSec │  Prepped  │  Chance  |  Weaken Time                   │');
+	ns.tprint('│  Server            |  $$$      │  HackReq │  MinSec │  Prepped  │  Chance  |  Weaken Time                   │');
 	ns.tprint('├─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤');
 
 	let cut = false;

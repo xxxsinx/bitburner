@@ -40,10 +40,12 @@ export async function main(ns) {
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since install : ' + ns.tFormat(ns.getTimeSinceLastAug()));
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since start   : ' + ns.tFormat(ns.getPlayer().playtimeSinceLastBitnode));
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Karma              : ' + ns.heart.break().toFixed(0));
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Augmentations      : ' + sitrep.flightStatus.augs + ' / ' + sitrep.flightStatus.augsNeeded);
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Money              : ' + FormatMoney(ns,sitrep.flightStatus.money) + ' / ' + FormatMoney(ns, 100_000_000_000));
+    if (sitrep?.flightStatus?.augs != undefined) {
+        ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Augmentations      : ' + sitrep.flightStatus.augs + ' / ' + sitrep.flightStatus.augsNeeded);
+        ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Money              : ' + FormatMoney(ns,sitrep.flightStatus.money) + ' / ' + FormatMoney(ns, 100_000_000_000));
+    }
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Hacking skill      : ' + ns.getHackingLevel() + ' / 2500');
-
+    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'World daemon       : ' + ns.getHackingLevel() + ' / ' + (ns.getBitNodeMultipliers().WorldDaemonDifficulty * 3000));
 }
 
 // export function GetBank(ns) {

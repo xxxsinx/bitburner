@@ -121,6 +121,7 @@ export class MemoryMap {
 		this.purchased = 0;
 		this.home = 0;
 		this.other = 0;
+		this.reserved= 0;
 
 		for (var server of servers) {
 			var so = ns.getServer(server);
@@ -153,6 +154,7 @@ export class MemoryMap {
 						minFree = free;
 					}
 					block.reserved = minFree;
+					this.reserved += minFree;
 				}
 				else
 					block.reserved = 0;

@@ -127,7 +127,7 @@ export async function main(ns) {
 		await TryRunScript(ns, 'donate.js');
 
 		// Buy personal server(s)
-		await TryRunScript(ns, 'buyserver.js', ['loop', true]);
+		await TryRunScript(ns, 'buyserver.js', ['upgrade', 'silent']);
 
 		// Save work reputation to it's faction
 		//await TryRunScript(ns, 'SaveRep.js');
@@ -185,7 +185,7 @@ export async function main(ns) {
 
 		// Farm XP for a bit
 		if (ns.getPlayer().skills.hacking < 100) {
-			await TryRunScript(ns, 'study.js');
+			await TryRunScript(ns, 'study.js', ['silent']);
 		}
 
 		// 	let pid = ns.getRunningScript('v1.js', 'home', 'xp');

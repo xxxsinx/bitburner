@@ -1,4 +1,5 @@
 import { GetAllServers, FormatMoney, FormatRam, LogMessage } from "utils.js";
+import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 
 let MAX_SERVERS = 25;
 
@@ -22,23 +23,45 @@ export async function main(ns) {
 
 	// No parameter, we list the menu
 	if (ns.args[0] == null && ns.args[1] == null) {
-		for (var i = 1; i <= 20; i++) {
-			var ram = Math.pow(2, i);
-			var cost = ns.getPurchasedServerCost(ram);
-			if (cost == Infinity) continue;
-			ns.tprint(i + ': ' + ns.nFormat(ram * 1000000000, '0.00b') + ' RAM ===> cost: ' + ns.nFormat(cost, "$0.0a"));
+		const data = [];
+		const columns = [
+			{ header: '   RAM', width: 10 },
+			{ header: '  Price', width: 10 },
+			{ header: '   $/GB', width: 10 }
+		];
+
+		const softcap = GetSoftcap(ns);
+		if (softcap != 1) {
+			data.push([
+				{ color: 'yellow', text: ' Softcap' },
+				{ color: 'yellow', text: softcap.toString().padStart(9) },
+				{ color: '', text: 'N/A'.padStart(9) }
+			]);
+			data.push(null);
 		}
+
+		for (let i = 1; i <= 20; i++) {
+			const ram = Math.pow(2, i);
+			const cost = ns.getPurchasedServerCost(ram);
+			if (cost == Infinity) continue;
+
+			const color = softcap > 1 && i > 6 ? 'yellow' : 'white'
+			data.push([
+				{ color: color, text: FormatRam(ns, ram, 0).padStart(9) },
+				{ color: color, text: FormatMoney(ns, cost, 1).padStart(9) },
+				{ color: color, text: FormatMoney(ns, cost / ram, 0).padStart(9) },
+			]);
+
+			if (i == 6 && softcap > 1)
+				data.push(null);
+		}
+		PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
+
 		return;
 	}
 
 	if (ns.args[0] == 'upgrade') {
-		const toUpgrade = GetBestUpgrade(ns);
-		if (toUpgrade != undefined) {
-			ns.tprint('Upgrading ' + toUpgrade.server + ' from ' + FormatRam(ns, toUpgrade.currentRam) + ' to ' + FormatRam(ns, toUpgrade.newRam) + ' would cost ' + FormatMoney(ns, toUpgrade.cost));
-		}
-		else {
-			ns.tprint('No possible upgrades');
-		}
+		SpendBudgetOnServers(ns, ns.getPlayer().money / 2);
 		return;
 	}
 
@@ -60,9 +83,22 @@ export async function main(ns) {
 	// User wants the list of owned servers
 	if (ns.args[0] == 'list') {
 		var servers = ns.getPurchasedServers();
+
+		const data = [];
+		const columns = [
+			{ header: ' Name', width: 25 },
+			{ header: ' RAM', width: 10 }
+		];
+
 		for (var server of servers) {
-			ns.tprint(server + ' ' + ns.nFormat(ns.getServerMaxRam(server) * 1000000000, '0.00b'));
+			data.push([
+				{ color: 'white', text: ' ' + server },
+				{ color: 'white', text: FormatRam(ns, ns.getServerMaxRam(server)).padStart(9) }
+			]);
 		}
+
+		PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
+
 		return;
 	}
 
@@ -119,6 +155,106 @@ export async function main(ns) {
 		ns.tprint('Confirming transaction');
 		ns.purchaseServer(ns.args[0], gb);
 	}
+}
+
+function GetSoftcap(ns) {
+	const price6 = ns.getPurchasedServerCost(2 ** 6);
+	const price7 = ns.getPurchasedServerCost(2 ** 7);
+	const ratio = price7 / price6 / 2;
+	return ratio;
+}
+
+function PowerFromRam(ns, ram) {
+	return Math.log(ram) / Math.log(2);
+}
+
+function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
+	while (true) {
+		const options = GetAvailableOptions(ns, budget);
+		if (options.length == 0) {
+			//ns.tprint('INFO: No valid buy/upgrade options currently available!');
+			return;
+		}
+		const option = options.pop();
+		if (option.action == 'buy') {
+			const serverName = GetNewServerName(ns);
+			if (serverName == undefined) continue;
+			ns.purchaseServer(serverName, option.size);
+			ns.tprint('Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+			ns.print('Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+			LogMessage(ns, 'Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+		}
+		else {
+			const serverName= option.server;
+			ns.upgradePurchasedServer(serverName, option.size);
+			ns.tprint('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+			ns.print('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+			LogMessage(ns, 'Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+		}
+		budget -= option.cost;
+	}
+}
+
+// Priotities: Upgrade to softcap, buy to softcap, upgrade lowest
+function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
+	let networkRam = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxRam(s) > 0).reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
+	const servers = ns.getPurchasedServers();
+	const softcap = GetSoftcap(ns);
+	const options = [];
+	for (let i = 0; i < ns.getPurchasedServerLimit(); i++) {
+		const server = servers[i];
+		const currentSize = !server ? 0 : ns.getServerMaxRam(servers[i]);
+		if (currentSize == ns.getPurchasedServerMaxRam()) continue;
+		const softcapSize = softcap > 1 ? 2 ** 6 : PowerFromRam(ns.getPurchasedServerLimit());
+		if (currentSize < 2 ** softcapSize) {
+			// favor upgrade or buy to softcap
+			if (currentSize == 0) {
+				const affordable = _.range(softcapSize, 1, -1).find(s => ns.getPurchasedServerCost(2 ** s) <= budget);
+				if (affordable > 0) {
+					options.push({
+						index: i,
+						server: 'N/A',
+						action: 'buy',
+						size: 2 ** affordable,
+						oldSize: 0,
+						cost: ns.getPurchasedServerCost(2 ** affordable),
+						costPerGb: ns.getPurchasedServerCost(2 ** affordable) / (2 ** affordable)
+					});
+				}
+			}
+			else {
+				const affordable = _.range(softcapSize, 1, -1).find(s => ns.getPurchasedServerUpgradeCost(server, 2 ** s) <= budget);
+				if (affordable > PowerFromRam(ns, currentSize)) {
+					options.push({
+						index: i,
+						server: server,
+						action: 'upgrade',
+						size: 2 ** affordable,
+						oldSize: currentSize,
+						cost: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable),
+						costPerGb: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable) / (2 ** affordable)
+					});
+				}
+			}
+		}
+		else {
+			const gainRatio = currentSize * 2 / networkRam;
+			if (gainRatio > 0.24) {
+				options.push({
+					index: i,
+					server: server,
+					action: 'upgrade',
+					size: currentSize * 2,
+					oldSize: currentSize,
+					cost: ns.getPurchasedServerUpgradeCost(server, currentSize * 2),
+					costPerGb: ns.getPurchasedServerUpgradeCost(server, currentSize * 2) / currentSize
+				});
+			}
+		}
+	}
+	options.sort((a, b) => a.costPerGb - b.costPerGb);
+	//ns.tprint(JSON.stringify(options, null, 2));
+	return options;
 }
 
 function GetBestUpgrade(ns) {
@@ -215,21 +351,8 @@ export async function AutoBuyPersonalServers(ns, once) {
 				}
 
 				// Find a name				
-				var found = false;
-				var serverName = undefined;
-				for (var i = 1; i <= MAX_SERVERS; i++) {
-					if (!existingServers.find(p => p == 'crusher-' + i)) {
-						serverName = 'crusher-' + i;
-						found = true;
-						break;
-					}
-				}
-
-				if (!found) {
-					ns.tprint('Could not find suitable name, aborting.');
-					ns.print('Could not find suitable name, aborting.');
-					break;
-				}
+				var serverName = GetNewServerName(ns);
+				if (!serverName) break;
 
 				ns.tprint('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
 				ns.print('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
@@ -248,4 +371,15 @@ export async function AutoBuyPersonalServers(ns, once) {
 
 		await ns.sleep(50);
 	}
+}
+
+function GetNewServerName(ns) {
+	// Find a name				
+	for (var i = 1; i <= MAX_SERVERS; i++) {
+		if (!ns.getPurchasedServers().find(p => p == 'crusher-' + i))
+			return 'crusher-' + i;
+	}
+	ns.tprint('ERROR: Could not find suitable name, aborting.');
+	ns.print('ERROR: Could not find suitable name, aborting.');
+	return undefined;
 }

@@ -17,10 +17,12 @@ export async function main(ns) {
 
 		if (current < 75 && current + gain >= 75) {
 			LogMessage(ns, 'INFO: Ready to trigger an install for favor on ' + faction + ' current: ' + current + ' after install: ' + (current + gain));
+			ns.tprint('INFO: Ready to trigger an install for favor on ' + faction + ' current: ' + current + ' after install: ' + (current + gain));
 			favorInstall = true;
 		}
 		if (current < 150 && current + gain >= 150) {
 			LogMessage(ns, 'INFO: Ready to trigger an install for favor on ' + faction + ' current: ' + current + ' after install: ' + (current + gain));
+			ns.tprint('INFO: Ready to trigger an install for favor on ' + faction + ' current: ' + current + ' after install: ' + (current + gain));
 			favorInstall = true;
 		}
 	}

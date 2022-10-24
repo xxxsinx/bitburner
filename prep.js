@@ -1,5 +1,5 @@
 import { ServerReport, WaitPids } from "utils.js";
-import { RunScript } from 'ram.js';
+import { RunScript, MemoryMap } from 'ram.js';
 import { calculateGrowThreads } from 'metrics.js'
 
 /** @param {NS} ns **/
@@ -68,25 +68,45 @@ async function BatchPrep(ns, server) {
 
 	let security = so.hackDifficulty - so.minDifficulty;
 
-	const gthreads = calculateGrowThreads(ns, so, ns.getPlayer(), 1);
+	let gthreads = calculateGrowThreads(ns, so, ns.getPlayer(), 1);
 	const gtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
 
-	security += gthreads * 0.004;
+	//security += gthreads * 0.004;
 
-	const wthreads = Math.ceil(security / 0.05);
+	let w1threads = Math.ceil(security / 0.05);
 	const wtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4;
+
+	let w2threads = Math.ceil((gthreads * 0.004) / 0.05);
+
+	//const ram= new MemoryMap(ns);
+	// let maxThreads = Math.floor((ram.available - ram.reserved) / 1.75);
+	// //ns.tprint('WARN: Max threads = ' + maxThreads);
+	// if (wthreads > maxThreads) {
+	// 	wthreads = Math.floor(maxThreads / 2);
+	// }
+	// // if (gthreads > maxThreads) {
+	// // 	gthreads = Math.floor(maxThreads / 2);
+	// // }
 
 	const allPids = [];
 
-	if (wthreads > 0) {
-		ns.print('INFO: Security is over minimum, starting ' + wthreads + ' threads to floor it');
-		const pids = await RunScript(ns, 'weaken-once.js', wthreads, [server, 0, wtime, 0, 0], true, true);
+	if (w1threads > 0) {
+		ns.print('INFO: Security is over minimum, starting ' + w1threads + ' threads to floor it');
+		const pids = await RunScript(ns, 'weaken-once.js', w1threads, [server, 0, wtime, performance.now(), 0], true, true);
 		allPids.push(...pids);
 	}
 
 	if (gthreads > 0) {
+		await ns.sleep(30);
 		ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
-		const pids = await RunScript(ns, 'grow-once.js', gthreads, [server, 0, gtime, 0, 0], true, true);
+		const pids = await RunScript(ns, 'grow-once.js', gthreads, [server, 0, gtime, performance.now(), 0], true, true);
+		allPids.push(...pids);
+	}
+
+	if (w2threads > 0) {
+		await ns.sleep(30);
+		ns.print('INFO: We launched grow threads, starting ' + w2threads + ' weaken threads to cancel them it');
+		const pids = await RunScript(ns, 'weaken-once.js', w2threads, [server, 0, wtime, performance.now(), 0], true, true);
 		allPids.push(...pids);
 	}
 

@@ -86,7 +86,7 @@ function GotAllUniques(ns, faction, balance) {
 }
 
 function PrioritizeFactions(ns, fullbalance, suggested) {
-	const factions= MilestoneFactions;
+	const factions = MilestoneFactions;
 	if (DaemonMode(ns)) ns.getPlayer().factions.forEach(f => { if (!factions.includes(f)) factions.push(f) });
 
 	const balance = fullbalance;//.filter(s=> s.rep < BestRep(ns, s));
@@ -226,6 +226,8 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 
 /** @param {NS} ns **/
 export async function main(ns) {
+	let blacklist = [];
+
 	do {
 		sitRep = GetSitRep(ns);
 
@@ -387,13 +389,13 @@ export async function main(ns) {
 		}
 
 		if (ns.args.includes('buy')) {
-			if (suggested.length < 1) {
+			if (suggested.filter(s => !blacklist.includes(s.name)).length < 1) {
 				if (!ns.args.includes('silent'))
 					ns.tprint('FAIL: Cannot buy any augmentation right now');
 				return;
 			}
 
-			for (let aug of suggested) {
+			for (let aug of suggested.filter(s => !blacklist.includes(s.name))) {
 				let faction = MeetsRepRequirement(ns, aug);
 				if (faction && ns.singularity.purchaseAugmentation(faction, aug.name)) {
 					ns.tprint('SUCCES: Bought ' + aug.name + ' from ' + faction);
@@ -405,6 +407,7 @@ export async function main(ns) {
 						' estimated cost: ' + ns.nFormat(aug.price, '0.00a') +
 						' actual cost: ' + ns.nFormat(ns.singularity.getAugmentationPrice(aug.name), '0.00a') +
 						' money: ' + ns.nFormat(ns.getPlayer().money, '0.00a'));
+					blacklist.push(aug.name);
 					continue;
 				}
 			}
@@ -622,6 +625,9 @@ function MeetsPreReq(ns, aug) {
 	for (let req of aug.prereq) {
 		if (!owned.includes(req) /*&& !MeetsPreReq(ns, req)*/) {
 			let preReqAug = masterlist.find(s => s.name == req);
+			if (preReqAug == undefined) {
+				return false;
+			}
 			if (!MeetsPreReq(ns, preReqAug))
 				return false;
 		}

@@ -90,7 +90,7 @@ export function FormatMoney(ns, value, decimals = 3) {
 }
 
 export function FormatRam(ns, value, decimals = 1) {
-	const zero= 0;
+	const zero = 0;
 	return ns.nFormat(value * 1000000000, (zero.toFixed(decimals) + 'b'));
 }
 
@@ -123,4 +123,11 @@ export function GetNextLevelXp(ns, skill = 'hacking') {
 		remaining: remaining,
 		pct: pct
 	}
+}
+
+export function LogMessage(ns, message) {
+	let time = new Date().toLocaleTimeString();
+	let date = new Date().toLocaleDateString();
+	let log = '[' + date.padStart(10) + ' ' + time.padStart(11) + '] ' + message + '\n';
+	ns.write('nodelog.txt', log, 'a');
 }

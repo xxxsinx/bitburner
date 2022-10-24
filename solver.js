@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 export async function main(ns) {
 	const [silent = false] = ns.args;
 
@@ -27,12 +29,16 @@ export async function main(ns) {
 		// }
 
 		try { didSolve = await solve(contract.type, contract.data, contract.server, contract.file, ns); } catch { }
-		if (didSolve)
+		if (didSolve) {
 			ns.tprint(`INFO: Solved ` + contract.type + ' (' + didSolve + ')');
-		else
+			LogMessage(ns, `INFO: Solved ` + contract.type + ' (' + didSolve + ')')
+		}
+		else {
 			ns.tprint(`FAIL: ${contract.server} - ${contract.file} - ${contract.type} - ${didSolve || "FAILED!"}`);
+			LogMessage(ns, `FAIL: ${contract.server} - ${contract.file} - ${contract.type} - ${didSolve || "FAILED!"}`)
+		}
 
-		await ns.sleep(100);
+		await ns.sleep(10);
 	}
 
 	if (found > 0 && !silent)

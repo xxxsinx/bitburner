@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 /** @param {NS} ns */
 export async function main(ns) {
 	if (ns.gang.inGang()) {
@@ -20,10 +22,12 @@ export async function main(ns) {
 	if (!ns.gang.inGang()) {
 		ns.tprint('ERROR: Not in a gang, could not create gang, exiting');
 		ns.print('ERROR: Not in a gang, could not create gang, exiting');
+		LogMessage(ns, 'ERROR: Not in a gang, could not create gang, exiting');
 		return;
 	}
 	else {
 		ns.tprint('SUCCESS: Created a gang with Slum Snakes!');
 		ns.print('SUCCESS: Created a gang with Slum Snakes!');
+		LogMessage(ns, 'SUCCESS: Created a gang with Slum Snakes!');
 	}
 }

@@ -1,4 +1,5 @@
 import { GetSitRep } from 'sitrep.js'
+import { LogMessage } from 'utils.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -34,4 +35,5 @@ export async function main(ns) {
 	if (!ns.args.includes('silent'))
 		ns.tprint('WARN: Joining faction Tian Di Hui');
 	ns.singularity.joinFaction('Tian Di Hui');
+	LogMessage(ns, 'WARN: Joining faction Tian Di Hui');
 }

@@ -25,6 +25,8 @@ export async function main(ns) {
 		portCrackers: 0,
 		karma: ns.heart.break(),
 		money: ns.getServerMoneyAvailable('home'),
+		daemonSkill: 3000 * ns.getBitNodeMultipliers().WorldDaemonDifficulty,
+		hackSkill: ns.getHackingLevel(),
 		// balance: {
 		// 	install: bank.install,
 		// 	node: bank.node

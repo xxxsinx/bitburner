@@ -1,4 +1,4 @@
-import { WaitPids, GetAllServers } from 'utils.js'
+import { LogMessage, WaitPids, GetAllServers } from 'utils.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -13,9 +13,13 @@ export async function main(ns) {
 	}
 	await ns.sleep(0);
 
-	if (ns.singularity.getOwnedAugmentations().length != ns.singularity.getOwnedAugmentations(true).length) {
+	let count= ns.singularity.getOwnedAugmentations(true).length - ns.singularity.getOwnedAugmentations().length;
+	if (count > 0) {
+		LogMessage(ns, 'WARN: !!! Installing ' + count + ' augmentations...');
 		ns.singularity.installAugmentations('autostart.js');
 	}
-	else
+	else {
+		LogMessage(ns, 'WARN: !!! Soft resetting...');
 		ns.singularity.softReset('autostart.js');
+	}
 }

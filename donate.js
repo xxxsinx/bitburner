@@ -1,5 +1,5 @@
 import { GetSitRep } from 'sitrep.js'
-import { FormatMoney } from 'utils.js'
+import { FormatMoney, LogMessage } from 'utils.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -34,7 +34,8 @@ export async function main(ns) {
 			let cost = (tobuy * (10 ** 6)) / ns.getPlayer().mults.faction_rep;
 			ns.tprint('INFO: We need ' + ns.nFormat(tobuy, '0.000a') + ' rep for ' + faction + '. Cost would be : ', ns.nFormat(cost, '0.000a'));
 			if (cost * 1.25 < ns.getServerMoneyAvailable('home')) {
-				ns.tprint('INFO: Donated to ' + faction);
+				ns.tprint('INFO: Donated ' + FormatMoney(ns, cost) + 'to ' + faction);
+				LogMessage(ns, 'INFO: Donated ' + FormatMoney(ns, cost) + 'to ' + faction);
 				ns.singularity.donateToFaction(faction, cost);
 			}
 		}

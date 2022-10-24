@@ -6,7 +6,6 @@ import { FormatMoney, WaitPids } from 'utils.js'
 export async function main(ns) {
     const money = ns.getMoneySources();
 
-    await WaitPids(ns, ns.run('flightStatus.js'));
     
     const columns = [
         { header: ' Source', width: 20 },
@@ -35,6 +34,7 @@ export async function main(ns) {
 	// 	level: ns.getHackingLevel()
 	// }
 
+    await WaitPids(ns, ns.run('flightStatus.js'));
 	const sitrep = JSON.parse(ns.read('sitrep.txt'));
 
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since install : ' + ns.tFormat(ns.getTimeSinceLastAug()));

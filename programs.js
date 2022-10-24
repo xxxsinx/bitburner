@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 /** @param {NS} ns */
 export async function main(ns) {
 	BuyPrograms(ns);
@@ -13,6 +15,7 @@ export function BuyPrograms(ns) {
 		else {
 			if (ns.singularity.purchaseTor()) {
 				ns.tprint('INFO: Succesfully bought TOR router.');
+				LogMessage(ns, 'INFO: Succesfully bought TOR router.');
 			}
 			else {
 				ns.print('ERROR: Something went wrong buying the TOR router.');
@@ -35,6 +38,7 @@ export function BuyPrograms(ns) {
 			ns.print('INFO: Checking if we can buy ' + program + '.');
 			if (ns.singularity.purchaseProgram(program)) {
 				ns.tprint('SUCCESS: Purchased ' + program);
+				LogMessage(ns, 'SUCCESS: Purchased ' + program);
 			}
 			else {
 				if (ns.singularity.getCurrentWork() == null) {

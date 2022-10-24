@@ -1,4 +1,4 @@
-import { GetServerPath } from 'utils.js';
+import { LogMessage, GetServerPath, GetAllServers } from 'utils.js';
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -27,13 +27,23 @@ export async function main(ns) {
 			ns.tprint('ERROR: Could not connect to ' + node);
 		}
 		else {
-			ns.tprint('INFO: Connected to ' + node);
+			if (!ns.args.includes('silent'))
+				ns.tprint('INFO: Connected to ' + node);
 		}
 	}
 
-	ns.tprint('INFO: Installing backdoor on ' + WD);
 	try {
 		await ns.singularity.installBackdoor();
+
+		if (ns.getServer(WD).backdoorInstalled) {
+			ns.tprint('INFO: Installed backdoor on ' + WD);
+			LogMessage(ns, 'INFO: Installed backdoor on ' + WD);
+			for (let server of GetAllServers(ns)) {
+				ns.killall(server, true);
+			}
+		}
 	}
 	catch { }
+
+	ns.singularity.connect('home');
 }

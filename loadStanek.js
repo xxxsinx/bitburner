@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 //load.js
 export async function main(ns) {
 	const file = "/stanek/" + ns.stanek.giftWidth() + "x" + ns.stanek.giftHeight() + ".txt";
@@ -14,7 +16,8 @@ export async function main(ns) {
 	let tetris = JSON.parse(ns.read(file));
 	ns.stanek.clearGift();
 	for (const p of tetris) {
-		ns.stanek.placeFragment(p.x, p.y, p.rotation, p.id)
+		ns.stanek.placeFragment(p.x, p.y, p.rotation, p.id);
 	}
-	ns.tprint("SUCCESS: Stanek tetris " + file + " loaded.")
+	ns.tprint("SUCCESS: Stanek tetris " + file + " loaded.");
+	LogMessage(ns, "SUCCESS: Stanek tetris " + file + " loaded.");
 }

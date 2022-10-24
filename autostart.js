@@ -1,4 +1,4 @@
-import { WaitPids } from "utils.js";
+import { WaitPids, LogMessage } from "utils.js";
 import { Goal, Goals } from "goals.js";
 
 /*
@@ -44,12 +44,12 @@ export async function main(ns) {
 	const started = performance.now();
 
 	const goals = new Goals(ns, 'autostart.txt', [
-		new Goal(ns, '1H', function () {
-			const reached = performance.now() - started > 1000 * 60 * 60;
-			if (reached)
-				ns.tprint('INFO: Karma after 1H is ' + ns.heart.break());
-			return reached;
-		}),
+		// new Goal(ns, '1H', function () {
+		// 	const reached = performance.now() - started > 1000 * 60 * 60;
+		// 	if (reached)
+		// 		ns.tprint('INFO: Karma after 1H is ' + ns.heart.break());
+		// 	return reached;
+		// }),
 	]);
 
 	goals.ResetGoals();
@@ -71,7 +71,7 @@ export async function main(ns) {
 		await TryRunScript(ns, 'hashes.js');
 		ns.run('share.js', 1, 'auto');
 		//ns.run('casino.js', 1, 'silent');
-		ns.run('stanek.js', 1, 0.2);
+		ns.run('stanek.js', 1, 0.3);
 		let sitrep = JSON.parse(ns.read('sitrep.txt'));
 		let karma = sitrep.karma;
 
@@ -85,6 +85,7 @@ export async function main(ns) {
 			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
 			await TryRunScript(ns, 'dumpMoney.js');
 
+			LogMessage(ns, 'INFO: autostart.js: killing all other scripts on home ');
 			ns.killall('home', true);
 
 			ns.tprint('WARN: About to install/soft reset! You got 10 seconds...');
@@ -154,6 +155,7 @@ export async function main(ns) {
 		// Start gangs if we have the karma for it
 		if (karma <= -54000) {
 			if (!sitrep.hasGang) {
+				LogMessage(ns, 'INFO: Creating gang');
 				await TryRunScript(ns, '/gang/create.js');
 
 				// Situation report script
@@ -209,6 +211,7 @@ export async function main(ns) {
 			let pid = ns.getRunningScript('manager.js', 'home', 'joesguns', 1, 420);
 			if (pid == undefined) {
 				ns.tprint('INFO: Starting manager.js with params [joesguns, 1]');
+				LogMessage(ns, 'INFO: Starting manager.js with params [joesguns, 1]');
 				let pid = ns.run('manager.js', 1, 'joesguns', 1, 420);
 				if (pid == undefined) {
 					ns.tprint('FAIL: Failed to start manager.js with params [joesguns, 1]');
@@ -220,6 +223,7 @@ export async function main(ns) {
 			let pid = ns.getRunningScript('manager.js', 'home', 'joesguns', 1, 420);
 			if (pid != undefined) {
 				ns.tprint('INFO: We now have all 5 port crackers available and enough ram to start controller mode. Killing manager.js on joesguns');
+				LogMessage(ns, 'WARN: Killing manager.js with params [joesguns, 1]');
 				ns.kill(pid.pid);
 				pid = undefined;
 			}
@@ -237,9 +241,11 @@ export async function main(ns) {
 			if (processInfo == null || parametersChanged) {
 				if (processInfo != null) {
 					ns.tprint('WARN: Killing controller.js ' + processInfo.args);
+					LogMessage(ns, 'WARN: Killing controller.js ' + processInfo.args);
 					ns.kill(processInfo.pid);
 				}
 				ns.tprint('INFO: Starting controller.js with params ' + overrides);
+				LogMessage(ns, 'INFO: Starting controller.js with params ' + overrides);
 				pid = ns.run('controller.js', 1, ...overrides);
 				if (pid == undefined) {
 					ns.tprint('FAIL: Failed to start controller.js ' + overrides);

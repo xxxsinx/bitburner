@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
@@ -9,15 +11,21 @@ export async function main(ns) {
 	// Generate coding contracts until we bust
 	while (ns.hacknet.numHashes() > ns.hacknet.hashCost('Generate Coding Contract')) {
 		ns.tprint('INFO: Generating a codding contract from hashes.');
+		LogMessage(ns, 'INFO: Generating a codding contract from hashes.');
 		ns.hacknet.spendHashes('Generate Coding Contract');
 	}
 
 	// If we're done with coding contracts given our current hashCapacity, buy money
 	if (ns.hacknet.hashCost('Generate Coding Contract') > ns.hacknet.hashCapacity()) {
+		let spent = 0;
 		// Spend all our hashes on money
 		while (ns.hacknet.numHashes() > ns.hacknet.hashCost('Sell for Money')) {
-			ns.tprint('INFO: Spending 4 hashes for 1m');
+			spent++;
 			ns.hacknet.spendHashes('Sell for Money');
+		}
+		if (spent > 0) {
+			ns.tprint('INFO: Spent ' + (spent * 4) + '  hashes for ' + spent + 'm');
+			LogMessage(ns, 'INFO: Spent ' + (spent * 4) + '  hashes for ' + spent + 'm');
 		}
 	}
 

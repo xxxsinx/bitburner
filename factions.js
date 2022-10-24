@@ -1,5 +1,6 @@
 import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 import { GetSitRep } from 'sitrep.js'
+import { LogMessage } from 'utils.js'
 
 const FactionNames = {
 	CyberSec: "CyberSec",
@@ -47,8 +48,18 @@ const MilestoneFactions = [
 	"Tian Di Hui"
 ]
 
-function PlanedAugsFilter(ns, aug) {
+
+function DaemonMode(ns) {
+	const sitrep = GetSitRep(ns);
+	return sitrep.hackSkill != undefined && sitrep.daemonSkill != undefined && sitrep.hackSkill >= sitrep.daemonSkill;
+}
+
+function PlanedAugsFilter(ns, aug, sitRep) {
 	const factions = [...MilestoneFactions];
+
+	if (DaemonMode(ns)) {
+		ns.getPlayer().factions.forEach(f => { if (!factions.includes(f)) factions.push(f) });
+	}
 
 	// Add gang to the milestones factions if we got one
 	if (sitRep.hasGang)
@@ -75,6 +86,9 @@ function GotAllUniques(ns, faction, balance) {
 }
 
 function PrioritizeFactions(ns, fullbalance, suggested) {
+	const factions= MilestoneFactions;
+	if (DaemonMode(ns)) ns.getPlayer().factions.forEach(f => { if (!factions.includes(f)) factions.push(f) });
+
 	const balance = fullbalance;//.filter(s=> s.rep < BestRep(ns, s));
 	const targetFactions = new Set(); // Best faction order to get what we need
 	for (let i = balance.length - 1; i >= 0; i--) {
@@ -82,7 +96,7 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 		if (aug.name.startsWith('NeuroFlux')) continue;
 		//if (aug.rep >= BestRep(ns, aug)) continue;
 
-		let choices = MilestoneFactions.filter(s => aug.factions.includes(s) && !GotAllUniques(ns, s, balance)).map(s => {
+		let choices = factions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance) || DaemonMode(ns))).map(s => {
 			return {
 				name: s,
 				rep: ns.singularity.getFactionRep(s),
@@ -90,7 +104,7 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 			}
 		});
 		if (choices.length == 0) {
-			choices = MilestoneFactions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance)) || aug.factions.some(a => ns.getPlayer().factions.includes(a))).map(s => {
+			choices = factions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance) || DaemonMode(ns)) || aug.factions.some(a => ns.getPlayer().factions.includes(a))).map(s => {
 				return {
 					name: s,
 					rep: ns.singularity.getFactionRep(s),
@@ -189,7 +203,7 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 	// This will happen at the end once we've got the Red Pill. This bit of code
 	// simply adds the milestone factions, ordered by favor, so we can grind them for NFGs.
 	const nfgFactions = [];
-	let candidates = [...MilestoneFactions];
+	let candidates = [...factions];
 	if (candidates.length > 0) {
 		candidates.sort((a, b) => ns.singularity.getFactionFavor(b) - ns.singularity.getFactionFavor(a));
 		nfgFactions.push(...candidates);
@@ -219,7 +233,7 @@ export async function main(ns) {
 		const ownedAugs = ns.singularity.getOwnedAugmentations(true);
 
 		if (ns.args.includes('plan')) {
-			masterlist = masterlist.filter(s => PlanedAugsFilter(ns, s));
+			masterlist = masterlist.filter(s => PlanedAugsFilter(ns, s, sitRep));
 		}
 
 		const columns = [
@@ -254,7 +268,7 @@ export async function main(ns) {
 
 			return;
 		}
-		if (ns.args[0] != 'all') {
+		if (ns.args[0] != 'all' && !DaemonMode(ns)) {
 			// Remove some stuff we don't want to see unless special run
 			masterlist = masterlist.filter(s => s.type != 'Physical');
 			masterlist = masterlist.filter(s => s.type != 'Charisma');
@@ -268,7 +282,7 @@ export async function main(ns) {
 			masterlist = masterlist.filter(s => !s.factions[0].startsWith('Bladeburner'));
 		}
 
-		let desired = masterlist.filter(s => FilterDesiredAugs(ns, s));
+		let desired = masterlist.filter(s => FilterDesiredAugs(ns, s, sitRep));
 		FixOrderForPreReqs(ns, desired);
 		let suggested = SuggestedAugs(ns, desired);
 		let owned = masterlist.filter(s => ownedAugs.includes(s.name) && !s.name.startsWith('NeuroFlux'));
@@ -383,6 +397,7 @@ export async function main(ns) {
 				let faction = MeetsRepRequirement(ns, aug);
 				if (faction && ns.singularity.purchaseAugmentation(faction, aug.name)) {
 					ns.tprint('SUCCES: Bought ' + aug.name + ' from ' + faction);
+					LogMessage(ns, 'SUCCES: Bought ' + aug.name + ' from ' + faction);
 					break;
 				}
 				else {
@@ -547,10 +562,12 @@ function FilterDesiredAugs(ns, s) {
 	if (s.factions.length == 1 && s.factions.includes('Bladeburners')) { return false; }
 
 	// Remove Physical, charisma, company, shit
-	if (s.type == 'Physical') { return false; }
-	if (s.type == 'Charisma') { return false; }
-	if (s.type == 'Company') { return false; }
-	if (s.type == 'Shit') { return false; }
+	if (!DaemonMode(ns)) {
+		if (s.type == 'Physical') { return false; }
+		if (s.type == 'Charisma') { return false; }
+		if (s.type == 'Company') { return false; }
+		if (s.type == 'Shit') { return false; }
+	}
 
 	// Remove stuff we can't afford
 	if (s.price > ns.getServerMoneyAvailable('home')) { return false; }

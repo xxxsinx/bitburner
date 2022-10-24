@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 export async function main(ns) {
 	ns.disableLog('ALL');
 
@@ -18,8 +20,10 @@ export async function main(ns) {
 		}
 
 	}
-	if (newlyRooted > 0)
+	if (newlyRooted > 0) {
 		ns.tprint('SUCCESS: Successfully breached ' + newlyRooted + ' new servers (before: ' + rooted + ' after: ' + (rooted + newlyRooted) + ')');
+		LogMessage(ns, 'SUCCESS: Successfully breached ' + newlyRooted + ' new servers (before: ' + rooted + ' after: ' + (rooted + newlyRooted) + ')');
+	}
 	else if (!silent)
 		ns.tprint('FAIL: No new servers rooted.');
 }

@@ -1,3 +1,5 @@
+import { LogMessage } from 'utils.js'
+
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
@@ -62,8 +64,10 @@ export async function main(ns) {
 			if (!silent)
 				ns.tprint('ERROR: Failed to install backdoor on ' + server.name);
 		}
-		else
+		else {
 			ns.tprint('SUCCESS: Installed backdoor on ' + server.name);
+			LogMessage(ns, 'SUCCESS: Installed backdoor on ' + server.name);
+		}
 		count++;
 	}
 

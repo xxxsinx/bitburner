@@ -30,7 +30,7 @@ function TravelToVolhaven(ns) {
 
 	if (ns.getPlayer().money < BIG_COURSE_MIN_MONEY) {
 		if (!ns.args.includes('silent'))
-			ns.tprint('WARN: Aborting travel to Volhaven because we don\t have 500k');
+			ns.tprint('WARN: Aborting travel to Volhaven because we don\'t have 500k');
 		return false;
 	}
 

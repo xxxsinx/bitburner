@@ -18,7 +18,7 @@ export async function main(ns) {
 			}
 		});
 
-	graftable = graftable.filter(s => s.cost < 1_000_000_000).sort((a, b) => a.time - b.time);
+	graftable = graftable./*filter(s => s.cost < 1_000_000_000).*/sort((a, b) => a.time - b.time);
 
 	//graftable.forEach(s => s.ratio = s.time * s.cost);
 	//graftable.sort((a, b) => a.ratio - b.ratio);

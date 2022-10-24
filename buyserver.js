@@ -1,4 +1,4 @@
-import { GetAllServers, FormatMoney, FormatRam } from "utils.js";
+import { GetAllServers, FormatMoney, FormatRam, LogMessage } from "utils.js";
 
 let MAX_SERVERS = 25;
 
@@ -181,6 +181,7 @@ export async function AutoBuyPersonalServers(ns, once) {
 					if (toUpgrade != undefined) {
 						ns.tprint('Upgrading ' + toUpgrade.server + ' from ' + FormatRam(ns, toUpgrade.currentRam) + ' to ' + FormatRam(ns, toUpgrade.newRam) + ' for ' + FormatMoney(ns, toUpgrade.cost));
 						ns.upgradePurchasedServer(toUpgrade.server, toUpgrade.newRam);
+						LogMessage(ns, 'Upgrading ' + toUpgrade.server + ' from ' + FormatRam(ns, toUpgrade.currentRam) + ' to ' + FormatRam(ns, toUpgrade.newRam) + ' for ' + FormatMoney(ns, toUpgrade.cost));
 					}
 					else {
 						if (!once)
@@ -232,6 +233,7 @@ export async function AutoBuyPersonalServers(ns, once) {
 
 				ns.tprint('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
 				ns.print('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
+				LogMessage(ns, 'Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
 				ns.purchaseServer(serverName, serverRam);
 
 				boughtAnything = true;

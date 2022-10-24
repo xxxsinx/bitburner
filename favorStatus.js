@@ -1,4 +1,5 @@
 import { GetSitRep } from 'sitrep.js'
+import { LogMessage } from 'utils.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -14,10 +15,14 @@ export async function main(ns) {
 
 		//ns.tprint('INFO: ' + faction + ' favor is ' + current + ' gain is ' + gain + ' total after install would be ' + (current + gain));
 
-		if (current < 75 && current + gain >= 75)
+		if (current < 75 && current + gain >= 75) {
+			LogMessage(ns, 'INFO: Ready to trigger an install for favor on ' + faction + ' current: ' + current + ' after install: ' + (current + gain));
 			favorInstall = true;
-		if (current < 150 && current + gain >= 150)
+		}
+		if (current < 150 && current + gain >= 150) {
+			LogMessage(ns, 'INFO: Ready to trigger an install for favor on ' + faction + ' current: ' + current + ' after install: ' + (current + gain));
 			favorInstall = true;
+		}
 	}
 
 	const sitrep = GetSitRep(ns);

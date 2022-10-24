@@ -11,7 +11,16 @@ export async function main(ns) {
 		const ram = new MemoryMap(ns, true);
 		if (ram.total < 5000)
 			return;
-		pct = 0.2;
+		else if (ram.total < 5000)
+			pct = 0.15;
+		else if (ram.total < 10000)
+			pct = 0.2;
+		else if (ram.total < 15000)
+			pct = 0.25;
+		else if (ram.total < 25000)
+			pct = 0.30;
+		else
+			pct = 0.35
 	}
 
 	if (ns.args.includes('stop')) {

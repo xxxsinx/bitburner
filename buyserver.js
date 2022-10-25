@@ -61,7 +61,17 @@ export async function main(ns) {
 	}
 
 	if (ns.args[0] == 'upgrade') {
-		SpendBudgetOnServers(ns, ns.getPlayer().money / 2);
+		let income = 0;
+		for (const [key, value] of Object.entries(ns.getMoneySources().sinceInstall)) if (value > 0) income += value;
+		let spentOnServers = Math.abs(ns.getMoneySources().sinceInstall.servers);
+		let budget = income * 0.5 - spentOnServers;
+		let adjustedBudget = Math.min(budget, ns.getPlayer().money * 0.75);
+		//ns.tprint('INFO: Budget is ' + FormatMoney(ns, budget) + '  Adjusted budget is: ' + FormatMoney(ns, adjustedBudget));
+		if (adjustedBudget > 0) {
+			SpendBudgetOnServers(ns, adjustedBudget);
+		}
+		//else
+		//ns.tprint('FAIL: We\'re still in the red... budget is ' + FormatMoney(ns, budget));
 		return;
 	}
 
@@ -163,7 +173,7 @@ export async function main(ns) {
 		}
 	}
 	else {
-		var resp = await ns.prompt('Confirm purchase of server named ' + ns.args[0] + ' with ' + ns.nFormat(gb * 1000000000, '0.00b') + ' RAM for ' + ns.nFormat(ns.getPurchasedServerCost(2 ** pow), '0.00a'));
+		var resp = await ns.prompt('Confirm purchase of server named ' + ns.args[0] + ' with ' + FormatRam(ns, gb) + ' RAM for ' + FormatMoney(ns, ns.getPurchasedServerCost(2 ** pow)));
 		if (resp == false) {
 			ns.tprint("Transaction aborted.");
 			return;
@@ -186,11 +196,14 @@ function PowerFromRam(ns, ram) {
 }
 
 function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
+	let beforeRam = ns.getPurchasedServers().reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
+	let totalUpgradeCost = 0;
+
 	while (true) {
 		const options = GetAvailableOptions(ns, budget);
 		if (options.length == 0) {
 			//ns.tprint('INFO: No valid buy/upgrade options currently available!');
-			return;
+			break;
 		}
 		//ns.tprint(JSON.stringify(options, null, 2));
 		const option = options.pop();
@@ -207,9 +220,10 @@ function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 			case 'upgrade': {
 				const serverName = option.server;
 				ns.upgradePurchasedServer(serverName, option.size);
-				ns.tprint('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
-				ns.print('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				// ns.tprint('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				// ns.print('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
 				LogMessage(ns, 'Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				totalUpgradeCost += option.cost;
 				break;
 			}
 			case 'home': {
@@ -229,7 +243,13 @@ function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 			}
 		}
 		budget -= option.cost;
-		break;
+	}
+
+	let afterRam = ns.getPurchasedServers().reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
+
+	if (afterRam > beforeRam) {
+		ns.tprint('Upgraded server(s) (from ' + FormatRam(ns, beforeRam) + ' to ' + FormatRam(ns, afterRam) + ' for ' + FormatMoney(ns, totalUpgradeCost) + ')');
+		ns.print('Upgraded server(s) (from ' + FormatRam(ns, beforeRam) + ' to ' + FormatRam(ns, afterRam) + ' for ' + FormatMoney(ns, totalUpgradeCost) + ')');
 	}
 }
 
@@ -305,7 +325,7 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 		if (a.costPerGb != b.costPerGb) return b.costPerGb - a.costPerGb;
 		if (a.action == 'home') return 1;
 		if (b.action == 'home') return -1;
-		return a.index - b.index;
+		return b.index - a.index;
 	});
 	//ns.tprint(JSON.stringify(options, null, 2));
 	return options;

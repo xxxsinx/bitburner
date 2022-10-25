@@ -128,6 +128,7 @@ export async function main(ns) {
 		ns.print(cso);
 
 		let chance = GetHackChance(ns, cso, player);
+		if (cso.requiredHackingSkill > player.skills.hacking) chance = 0;
 		let weakTime = GetWeakenTime(ns, cso, player);
 
 		let hackReqColor = 'lime';

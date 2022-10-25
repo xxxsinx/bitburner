@@ -65,6 +65,23 @@ export async function main(ns) {
 		return;
 	}
 
+
+	if (ns.args[0] == 'delete' && ns.args[1] == 'all') {
+		var resp = await ns.prompt('?! Confirm DELETE of ALL servers ?!');
+		if (resp == false) {
+			ns.tprint("Transaction aborted.");
+			ns.exit();
+		}
+
+		ns.getPurchasedServers().forEach((s) => {
+			ns.killall(s);
+			ns.deleteServer(s);
+			ns.tprint("Server deleted.");
+		})
+
+		return;
+	}
+
 	// User wants to delete a server
 	if (ns.args[0] == 'delete') {
 		var resp = await ns.prompt('Confirm DELETE of server named ' + ns.args[1]);
@@ -175,23 +192,44 @@ function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 			//ns.tprint('INFO: No valid buy/upgrade options currently available!');
 			return;
 		}
+		//ns.tprint(JSON.stringify(options, null, 2));
 		const option = options.pop();
-		if (option.action == 'buy') {
-			const serverName = GetNewServerName(ns);
-			if (serverName == undefined) continue;
-			ns.purchaseServer(serverName, option.size);
-			ns.tprint('Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
-			ns.print('Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
-			LogMessage(ns, 'Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
-		}
-		else {
-			const serverName= option.server;
-			ns.upgradePurchasedServer(serverName, option.size);
-			ns.tprint('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
-			ns.print('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
-			LogMessage(ns, 'Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+		switch (option.action) {
+			case 'buy': {
+				const serverName = GetNewServerName(ns);
+				if (serverName == undefined) continue;
+				ns.purchaseServer(serverName, option.size);
+				ns.tprint('Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				ns.print('Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				LogMessage(ns, 'Buying server ' + serverName + ' (' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				break;
+			}
+			case 'upgrade': {
+				const serverName = option.server;
+				ns.upgradePurchasedServer(serverName, option.size);
+				ns.tprint('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				ns.print('Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				LogMessage(ns, 'Upgrading server ' + serverName + ' (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				break;
+			}
+			case 'home': {
+				if (ns.singularity.upgradeHomeRam()) {
+					ns.tprint('Upgrading home RAM (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+					ns.print('Upgrading home RAM (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+					LogMessage(ns, 'Upgrading home RAM (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
+				}
+				else {
+					ns.tprint('FAIL: ?! Could not upgrade home ram ?!');
+				}
+				break;
+			}
+			default: {
+				ns.tprint('FAIL: ?! Invalid buyserver option ?!');
+				break;
+			}
 		}
 		budget -= option.cost;
+		break;
 	}
 }
 
@@ -205,7 +243,7 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 		const server = servers[i];
 		const currentSize = !server ? 0 : ns.getServerMaxRam(servers[i]);
 		if (currentSize == ns.getPurchasedServerMaxRam()) continue;
-		const softcapSize = softcap > 1 ? 2 ** 6 : PowerFromRam(ns.getPurchasedServerLimit());
+		const softcapSize = softcap > 1 ? 6 : PowerFromRam(ns.getPurchasedServerMaxRam());
 		if (currentSize < 2 ** softcapSize) {
 			// favor upgrade or buy to softcap
 			if (currentSize == 0) {
@@ -232,14 +270,13 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 						size: 2 ** affordable,
 						oldSize: currentSize,
 						cost: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable),
-						costPerGb: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable) / (2 ** affordable)
+						costPerGb: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable) / (2 ** affordable - currentSize)
 					});
 				}
 			}
 		}
 		else {
-			const gainRatio = currentSize * 2 / networkRam;
-			if (gainRatio > 0.24) {
+			if (ns.getPurchasedServerUpgradeCost(server, currentSize * 2) <= budget) {
 				options.push({
 					index: i,
 					server: server,
@@ -252,7 +289,24 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 			}
 		}
 	}
-	options.sort((a, b) => a.costPerGb - b.costPerGb);
+
+	if (ns.singularity.getUpgradeHomeRamCost() <= budget) {
+		options.push({
+			index: -1,
+			action: 'home',
+			size: ns.getServerMaxRam('home') * 2,
+			oldSize: ns.getServerMaxRam('home'),
+			cost: ns.singularity.getUpgradeHomeRamCost(),
+			costPerGb: ns.singularity.getUpgradeHomeRamCost() / ns.getServerMaxRam('home')
+		});
+	}
+
+	options.sort(function (a, b) {
+		if (a.costPerGb != b.costPerGb) return b.costPerGb - a.costPerGb;
+		if (a.action == 'home') return 1;
+		if (b.action == 'home') return -1;
+		return a.index - b.index;
+	});
 	//ns.tprint(JSON.stringify(options, null, 2));
 	return options;
 }

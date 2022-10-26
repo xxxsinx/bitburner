@@ -8,6 +8,10 @@ export async function main(ns) {
 		{ city: 'Volhaven', uni: 'ZB Institute of Technology' }
 	];
 
+	const currentWork= ns.singularity.getCurrentWork();
+	//ns.tprint(currentWork);
+	if (currentWork != undefined) return;
+
 	let canStudy = UNIS.map(s => s.city).includes(ns.getPlayer().city);
 	if (!canStudy && !TravelToVolhaven(ns)) return;
 
@@ -22,8 +26,10 @@ export async function main(ns) {
 }
 
 function TravelToVolhaven(ns) {
+	const current = ns.getPlayer().city;
+
 	// Go to Volhaven if we aren't already there
-	if (ns.getPlayer().city == 'Volhaven') {
+	if (current == 'Volhaven') {
 		ns.tprint('WARN: We\'re already in Volhaven.');
 		return true;
 	}
@@ -39,6 +45,6 @@ function TravelToVolhaven(ns) {
 		return false;
 	}
 
-	ns.tprint('INFO: Traveled to Volhaven for university studies.');
+	ns.tprint('INFO: Traveled from ' + current + ' to Volhaven for university studies.');
 	return true;
 }

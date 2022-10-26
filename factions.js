@@ -96,13 +96,18 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 		if (aug.name.startsWith('NeuroFlux')) continue;
 		//if (aug.rep >= BestRep(ns, aug)) continue;
 
-		let choices = factions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance) || DaemonMode(ns))).map(s => {
+		//let choices = factions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance) || DaemonMode(ns))).map(s => {
+		let choices = factions.filter(s => aug.factions.includes(s) || DaemonMode(ns)).map(s => {
 			return {
 				name: s,
 				rep: ns.singularity.getFactionRep(s),
 				joined: ns.getPlayer().factions.includes(s)
 			}
 		});
+
+		// if (aug.name == 'Cranial Signal Processors - Gen II') {
+		// 	ns.tprint('choices: ' + JSON.stringify(choices));
+		// }
 		if (choices.length == 0) {
 			choices = factions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance) || DaemonMode(ns)) || aug.factions.some(a => ns.getPlayer().factions.includes(a))).map(s => {
 				return {
@@ -112,6 +117,9 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 				}
 			});
 		}
+		// if (aug.name == 'Cranial Signal Processors - Gen II') {
+		// 	ns.tprint('choices: ' + JSON.stringify(choices));
+		// }
 
 		choices.sort(function (a, b) {
 			if (a.joined && !b.joined) return -1;

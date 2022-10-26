@@ -4,23 +4,26 @@ import { FormatMoney, LogMessage } from 'utils.js'
 /** @param {NS} ns */
 export async function main(ns) {
 	const sitrep = GetSitRep(ns);
-	if (sitrep.targetFactions == undefined || sitrep.targetFactions.length == 0) return;
+	//if (sitrep.targetFactions == undefined || sitrep.targetFactions.length == 0) return;
 
 	const allowed = ['Daedalus', 'BitRunners'];
 
-	for (const faction of sitrep.targetFactions) {
+	for (const faction of allowed) {
+		//ns.tprint(faction);
+
 		if (!allowed.includes(faction)) continue;
 		if (!ns.getPlayer().factions.includes(faction)) continue;
 		if (ns.singularity.getFactionFavor(faction) < 150) continue;
 
 		//ns.tprint('INFO: Maybe we should donate to ' + faction + '?');
 
-		if (sitrep.suggestedAugs == null) {
-			ns.tprint('FAIL: sitrep.suggestedAugs is null?');
+		if (sitrep.futureAugs == null) {
+			ns.tprint('FAIL: sitrep.futureAugs is null?');
 			continue;
 		}
 
 		const factionAugs = sitrep.futureAugs.filter(s => s.factions.includes(faction));
+		//ns.tprint(JSON.stringify(factionAugs));
 		const factionRep = ns.singularity.getFactionRep(faction);
 
 		let tobuy = 0;

@@ -24,7 +24,8 @@ const SERVER_STATES = {
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog('ALL');
-	//ns.tail();
+
+	ns.resizeTail(1020,620);
 	//await ns.sleep(0);
 	//ns.resizeTail(1080, 600);
 	const qm = new QuarterMaster(ns, QmConfig.EvalDelay); // re-eval every 2 min

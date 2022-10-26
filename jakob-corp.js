@@ -93,8 +93,12 @@ export async function main(ns) {
 			switch (true) {
 				case this.Fraud && this.funds == 150e9: return { mode: "fraud", division_goal: 1, m_division: "Software", prodMat: "AI Cores", prodMatSize: 1, employee_goal: 3, storage_goal: 8, speech_goal: 0, factory_goal: 0, dream_goal: 0, smart_goal: 7, stat_goal: 0, project_goal: 0, abc_goal: 0, adv_goal: 3, wilson_goal: 0 };
 				case this.funds >= 6.5e18: return { mode: "product", productMin: 20000, division_goal: 14, m_division: "Tobacco", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 0, storage_goal: 50, speech_goal: 300, factory_goal: 300, dream_goal: 10, smart_goal: 150, stat_goal: 300, project_goal: 250, abc_goal: 250, adv_goal: 60, wilson_goal: 40 };
+				case this.funds >= 1e18: return { mode: "product", productMin: 20000, division_goal: 14, m_division: "Tobacco", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 0, storage_goal: 50, speech_goal: 200, factory_goal: 150, dream_goal: 10, smart_goal: 100, stat_goal: 200, project_goal: 150, abc_goal: 150, adv_goal: 50, wilson_goal: 25 };
 				case this.Fraud && this.funds >= 30e15: return { mode: "fraud", division_goal: 14, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 60, storage_goal: 135, speech_goal: 160, factory_goal: 0, dream_goal: 10, smart_goal: 150, stat_goal: 160, project_goal: 180, abc_goal: 120, adv_goal: 60, wilson_goal: 30 };
+				case this.Fraud && this.funds >= 1e15: return { mode: "fraud", division_goal: 14, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 15, storage_goal: 75, speech_goal: 150, factory_goal: 0, dream_goal: 0, smart_goal: 80, stat_goal: 150, project_goal: 100, abc_goal: 150, adv_goal: 40, wilson_goal: 15 };
 				case this.Fraud && this.funds >= 2.7e12: return { mode: "fraud", division_goal: 6, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 9, storage_goal: 18, speech_goal: 20, factory_goal: 0, dream_goal: 0, smart_goal: 30, stat_goal: 10, project_goal: 10, abc_goal: 20, adv_goal: 21, wilson_goal: 6 };
+				case this.Fraud && this.funds >= 1e12: return { mode: "fraud", division_goal: 4, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 6, storage_goal: 12, speech_goal: 10, factory_goal: 0, dream_goal: 0, smart_goal: 10, stat_goal: 0, project_goal: 0, abc_goal: 10, adv_goal: 3, wilson_goal: 0 };
+				default : return { mode: "fraud", division_goal: 1, m_division: "Software", prodMat: "AI Cores", prodMatSize: 1, employee_goal: 3, storage_goal: 8, speech_goal: 0, factory_goal: 0, dream_goal: 0, smart_goal: 7, stat_goal: 0, project_goal: 0, abc_goal: 0, adv_goal: 3, wilson_goal: 0 };
 			}
 			//} catch (err) { this.ExitError("GetData Error " + err) }
 		}
@@ -557,4 +561,5 @@ export async function main(ns) {
 	}
 	let corp = new Corp(ns);
 	await corp.Initialize(ns)
+
 }

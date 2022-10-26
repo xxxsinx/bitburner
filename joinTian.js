@@ -4,6 +4,9 @@ import { LogMessage } from 'utils.js'
 /** @param {NS} ns */
 export async function main(ns) {
 	const sitrep = GetSitRep(ns);
+
+	//ns.tprint(ns.singularity.getCurrentWork());
+
 	if (sitrep.targetFactions == undefined || sitrep.targetFactions.length == 0) {
 		if (!ns.args.includes('silent'))
 			ns.tprint('FAIL: sitrep.targetFactions problem?');
@@ -20,14 +23,16 @@ export async function main(ns) {
 		return;
 	}
 	if (!ns.singularity.checkFactionInvitations().includes('Tian Di Hui')) {
-		if (ns.getPlayer().city != 'Chongqing') {
+		const current = ns.getPlayer().city;
+
+		if (current != 'Chongqing') {
 			if (ns.getPlayer().money < 200_000) {
 				if (!ns.args.includes('silent'))
 					ns.tprint('WARN: Not enough money to travel to Chongqing');
 				return;
 			}
-			if (!ns.args.includes('silent'))
-				ns.tprint('WARN: Moved to Chongqing to get an invitation from Tian Di Hui');
+			//if (!ns.args.includes('silent'))
+			ns.tprint('INFO: Traveled from ' + current + ' to Chongqing to get an invitation from Tian Di Hui');
 			ns.singularity.travelToCity('Chongqing');
 		}
 		return;

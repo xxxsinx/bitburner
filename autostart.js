@@ -127,6 +127,11 @@ export async function main(ns) {
 		await TryRunScript(ns, 'donate.js');
 
 		// Buy personal server(s)
+		await TryRunScript(ns, 'budget.js', ['silent']);
+		sitrep = JSON.parse(ns.read('sitrep.txt'));
+		let budget = sitrep.ramBudget ?? 0;
+		//ns.tprint('INFO: Ram budget is ' + ns.nFormat(budget, '0.000a'));
+		ns.print('INFO: Ram budget is ' + ns.nFormat(budget, '0.000a'));
 		await TryRunScript(ns, 'buyserver.js', ['upgrade', 'silent']);
 
 		// Save work reputation to it's faction
@@ -166,10 +171,11 @@ export async function main(ns) {
 			if (sitrep.hasGang) {
 				await TryRunScript(ns, '/gang/members.js');
 				await TryRunScript(ns, '/gang/canClash.js');
+				await TryRunScript(ns, 'budget.js', ['silent']);
+				sitrep = JSON.parse(ns.read('sitrep.txt'));
 
-				const budget = sitrep.money; //Math.min(sitrep.balance.install.gang /*+ EXTERNAL_FUNDING*/, sitrep.money);
-				// ns.print('INFO: Gang balance is ' + sitrep.balance.install.gang);
-				// ns.print('INFO: Money is ' + sitrep.money);
+				let budget = sitrep.gangBudget ?? 0;
+				//ns.tprint('INFO: Gang equipment budget is ' + ns.nFormat(budget, '0.000a'));
 				ns.print('INFO: Gang equipment budget is ' + ns.nFormat(budget, '0.000a'));
 				if (budget > 0) {
 					await TryRunScript(ns, '/gang/equipment.js');

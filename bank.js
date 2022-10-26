@@ -1,16 +1,18 @@
 import { COLORS, pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 import { FormatMoney, WaitPids } from 'utils.js'
+import { RamBudget, GangBudget } from 'budget.js'
 //import { GetSitRep } from 'sitrep.js'
 
 /** @param {NS} ns */
 export async function main(ns) {
     const money = ns.getMoneySources();
 
-    
+
     const columns = [
         { header: ' Source', width: 20 },
         { header: ' $ install', width: 11 },
-        { header: ' $ overall', width: 11 }
+        { header: ' $ overall', width: 11 },
+        { header: ' $ budget', width: 11 },
     ];
 
     const data = [];
@@ -19,30 +21,39 @@ export async function main(ns) {
         const start = money.sinceStart[key];
         if (install == 0 && start == 0) continue;
         if (key == 'total') continue;
-        data.push([' ' + key, FormatMoney(ns, install, 1).padStart(10), FormatMoney(ns, start, 1).padStart(10)]);
+
+        let budget = '';
+        if (key == 'servers') {
+            budget = FormatMoney(ns, RamBudget(ns));
+        }
+        if (key == 'gang') {
+            budget = FormatMoney(ns, GangBudget(ns));
+        }
+
+        data.push([' ' + key, FormatMoney(ns, install, 1).padStart(10), FormatMoney(ns, start, 1).padStart(10), budget.padStart(10)]);
     }
 
     data.push(null);
-    data.push([' Total', FormatMoney(ns, money.sinceInstall['total'], 1).padStart(10), FormatMoney(ns, money.sinceStart['total'], 1).padStart(10)]);
+    data.push([' Total', FormatMoney(ns, money.sinceInstall['total'], 1).padStart(10), FormatMoney(ns, money.sinceStart['total'], 1).padStart(10), '']);
 
     PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
 
-	// const status = {
-	// 	augs: ns.singularity.getOwnedAugmentations(false).length,
-	// 	augsNeeded: ns.getBitNodeMultipliers().DaedalusAugsRequirement,
-	// 	money: ns.getServerMoneyAvailable('home'),
-	// 	level: ns.getHackingLevel()
-	// }
+    // const status = {
+    // 	augs: ns.singularity.getOwnedAugmentations(false).length,
+    // 	augsNeeded: ns.getBitNodeMultipliers().DaedalusAugsRequirement,
+    // 	money: ns.getServerMoneyAvailable('home'),
+    // 	level: ns.getHackingLevel()
+    // }
 
     await WaitPids(ns, ns.run('flightStatus.js'));
-	const sitrep = JSON.parse(ns.read('sitrep.txt'));
+    const sitrep = JSON.parse(ns.read('sitrep.txt'));
 
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since install : ' + ns.tFormat(ns.getTimeSinceLastAug()));
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since start   : ' + ns.tFormat(ns.getPlayer().playtimeSinceLastBitnode));
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Karma              : ' + ns.heart.break().toFixed(0));
     if (sitrep?.flightStatus?.augs != undefined) {
         ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Augmentations      : ' + sitrep.flightStatus.augs + ' / ' + sitrep.flightStatus.augsNeeded);
-        ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Money              : ' + FormatMoney(ns,sitrep.flightStatus.money) + ' / ' + FormatMoney(ns, 100_000_000_000));
+        ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Money              : ' + FormatMoney(ns, sitrep.flightStatus.money) + ' / ' + FormatMoney(ns, 100_000_000_000));
     }
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Hacking skill      : ' + ns.getHackingLevel() + ' / 2500');
     ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'World daemon       : ' + ns.getHackingLevel() + ' / ' + (ns.getBitNodeMultipliers().WorldDaemonDifficulty * 3000));

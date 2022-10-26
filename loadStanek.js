@@ -2,7 +2,10 @@ import { LogMessage } from 'utils.js'
 
 //load.js
 export async function main(ns) {
-	const file = "/stanek/" + ns.stanek.giftWidth() + "x" + ns.stanek.giftHeight() + ".txt";
+	let file = "/stanek/" + ns.stanek.giftWidth() + "x" + ns.stanek.giftHeight() + ".txt";
+	if (ns.args[0])
+		file = ns.args[0];
+
 	if (!ns.fileExists(file)) {
 		ns.tprint("WARN: No Stanek profile found at " + file);
 		return;

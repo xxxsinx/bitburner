@@ -1,5 +1,6 @@
 import { GetAllServers, FormatMoney, FormatRam, LogMessage } from "utils.js";
 import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { GetSitRep } from 'sitrep.js'
 
 let MAX_SERVERS = 25;
 
@@ -61,20 +62,14 @@ export async function main(ns) {
 	}
 
 	if (ns.args[0] == 'upgrade') {
-		let income = 0;
-		for (const [key, value] of Object.entries(ns.getMoneySources().sinceInstall)) if (value > 0) income += value;
-		let spentOnServers = Math.abs(ns.getMoneySources().sinceInstall.servers);
-		let budget = income * 0.5 - spentOnServers;
-		let adjustedBudget = Math.min(budget, ns.getPlayer().money * 0.75);
-		//ns.tprint('INFO: Budget is ' + FormatMoney(ns, budget) + '  Adjusted budget is: ' + FormatMoney(ns, adjustedBudget));
-		if (adjustedBudget > 0) {
-			SpendBudgetOnServers(ns, adjustedBudget);
+		let sitrep = GetSitRep(ns);
+		let budget = sitrep.ramBudget ?? 0;
+		//ns.tprint('budget: ' + FormatMoney(ns, budget));
+		if (budget > 0) {
+			SpendBudgetOnServers(ns, budget);
 		}
-		//else
-		//ns.tprint('FAIL: We\'re still in the red... budget is ' + FormatMoney(ns, budget));
 		return;
 	}
-
 
 	if (ns.args[0] == 'delete' && ns.args[1] == 'all') {
 		var resp = await ns.prompt('?! Confirm DELETE of ALL servers ?!');
@@ -191,7 +186,7 @@ function GetSoftcap(ns) {
 	return ratio;
 }
 
-function PowerFromRam(ns, ram) {
+function PowerFromRam(ram) {
 	return Math.log(ram) / Math.log(2);
 }
 
@@ -264,38 +259,39 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 		const currentSize = !server ? 0 : ns.getServerMaxRam(servers[i]);
 		if (currentSize == ns.getPurchasedServerMaxRam()) continue;
 		const softcapSize = softcap > 1 ? 6 : PowerFromRam(ns.getPurchasedServerMaxRam());
-		if (currentSize < 2 ** softcapSize) {
-			// favor upgrade or buy to softcap
-			if (currentSize == 0) {
-				const affordable = _.range(softcapSize, 1, -1).find(s => ns.getPurchasedServerCost(2 ** s) <= budget);
-				if (affordable > 0) {
-					options.push({
-						index: i,
-						server: 'N/A',
-						action: 'buy',
-						size: 2 ** affordable,
-						oldSize: 0,
-						cost: ns.getPurchasedServerCost(2 ** affordable),
-						costPerGb: ns.getPurchasedServerCost(2 ** affordable) / (2 ** affordable)
-					});
-				}
+		if (currentSize == 0) {
+			//ns.tprint('WARN: New server? softcapSize='+softcapSize);
+			const affordable = _.range(softcapSize, 1, -1).find(s => ns.getPurchasedServerCost(2 ** s) <= budget);
+			if (affordable > 0) {
+				options.push({
+					index: i,
+					server: 'N/A',
+					action: 'buy',
+					size: 2 ** affordable,
+					oldSize: 0,
+					cost: ns.getPurchasedServerCost(2 ** affordable),
+					costPerGb: ns.getPurchasedServerCost(2 ** affordable) / (2 ** affordable)
+				});
 			}
-			else {
-				const affordable = _.range(softcapSize, 1, -1).find(s => ns.getPurchasedServerUpgradeCost(server, 2 ** s) <= budget);
-				if (affordable > PowerFromRam(ns, currentSize)) {
-					options.push({
-						index: i,
-						server: server,
-						action: 'upgrade',
-						size: 2 ** affordable,
-						oldSize: currentSize,
-						cost: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable),
-						costPerGb: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable) / (2 ** affordable - currentSize)
-					});
-				}
+		}
+		else if (currentSize < 2 ** softcapSize) {
+			//ns.tprint('WARN: Upgrade small one?')
+			// favor upgrade or buy to softcap
+			const affordable = _.range(softcapSize, 1, -1).find(s => ns.getPurchasedServerUpgradeCost(server, 2 ** s) <= budget);
+			if (affordable > PowerFromRam(currentSize)) {
+				options.push({
+					index: i,
+					server: server,
+					action: 'upgrade',
+					size: 2 ** affordable,
+					oldSize: currentSize,
+					cost: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable),
+					costPerGb: ns.getPurchasedServerUpgradeCost(server, 2 ** affordable) / (2 ** affordable - currentSize)
+				});
 			}
 		}
 		else {
+			//ns.tprint('WARN: Upgrade big one?')
 			if (ns.getPurchasedServerUpgradeCost(server, currentSize * 2) <= budget) {
 				options.push({
 					index: i,

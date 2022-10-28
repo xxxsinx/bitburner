@@ -80,31 +80,6 @@ export async function main(ns) {
 		// 	return;
 		// }
 
-		// Check if we're ready to install
-		if ((sitrep.favorInstall || sitrep.shouldInstall) && ns.getPlayer().hasCorporation && eval('ns.corportation').getCorporation().public == 1 && eval('ns.corportation').getCorporation().funds > 1e30) {
-			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
-			await TryRunScript(ns, 'dumpMoney.js');
-
-			LogMessage(ns, 'INFO: autostart.js: killing all other scripts on home ');
-			ns.killall('home', true);
-
-			ns.tprint('WARN: About to install/soft reset! You got 10 seconds...');
-			await ns.sleep(5000);
-			ns.tprint('WARN: About to install/soft reset! You got 5 seconds...');
-			await ns.sleep(1000);
-			ns.tprint('WARN: About to install/soft reset! You got 4 seconds...');
-			await ns.sleep(1000);
-			ns.tprint('WARN: About to install/soft reset! You got 3 seconds...');
-			await ns.sleep(1000);
-			ns.tprint('WARN: About to install/soft reset! You got 2 seconds...');
-			await ns.sleep(1000);
-			ns.tprint('WARN: About to install/soft reset! You got 1 seconds...');
-			await ns.sleep(1000);
-
-			ns.spawn('install.js');
-			return;
-		}
-
 		// Check if we need to buy more port crackers
 		if (sitrep.portCrackers < 5) {
 			// Buy programs, run programs, nuke
@@ -271,27 +246,35 @@ export async function main(ns) {
 
 		await TryRunScript(ns, 'demon.js', ['silent']);
 
-		// buy personal servers?
-		// upgrade home ram?
-		// start/stop basic hacking script
-		// start/stop manager
-		// start/stop controller
-		// start/stop stocks?
+		let waitingOnDaedalus = sitrep.flightStatus != undefined && sitrep.flightStatus.augs >= sitrep.flightStatus.augsNeeded
+			&& sitrep.money >= 100e9 && sitrep.level > 2500 && !ns.getPlayer().factions.includes('Daedalus');
 
-		// Leave 1m for travels
-		// Auto join Tian
-		// Auto join CSEC
-		// Auto join NiteRunners
-		// Auto join The Black Hand
-		// Auto join BitRunners
-		// Auto join Daedelus
-		// Farm rep
-		// if required > 300k
-		// Reset at 100k for favor
-		// If required > 750k
-		// Reset at 365k for favor
-		// Farm the rest by donations
-		// Run share when ram allows
+		// Check if we're ready to install
+		if ((sitrep.favorInstall || sitrep.shouldInstall) && !waitingOnDaedalus && ns.getPlayer().hasCorporation && eval('ns.corporation').getCorporation().public == 1 && eval('ns.corporation').getCorporation().funds > 1e33) {
+			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
+			await TryRunScript(ns, 'dumpMoney.js');
+
+			LogMessage(ns, 'INFO: autostart.js: killing all other scripts on home ');
+			ns.killall('home', true);
+
+			ns.tprint('WARN: About to install/soft reset! You got 10 seconds...');
+			await ns.sleep(5000);
+			ns.tprint('WARN: About to install/soft reset! You got 5 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 4 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 3 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 2 seconds...');
+			await ns.sleep(1000);
+			ns.tprint('WARN: About to install/soft reset! You got 1 seconds...');
+			await ns.sleep(1000);
+
+			ns.spawn('install.js');
+			return;
+		}
+
+		// start/stop stocks?
 
 		goals.CheckGoals();
 

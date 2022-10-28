@@ -29,17 +29,17 @@ export const CorpBudget = (ns) => GenericBudget(ns, 'Corporation', 'corporation'
 
 function GenericBudget(ns, desc, spentProp, balancePct, moneyPct) {
 	let balance = GetBalance(ns, spentProp);
-	if (!ns.args.includes('silent'))
-		ns.tprint('INFO: balance is ' + FormatMoney(ns, balance));
+	// if (!ns.args.includes('silent'))
+	// 	ns.tprint('INFO: balance is ' + FormatMoney(ns, balance));
 	let spent = ns.getMoneySources().sinceInstall[spentProp];
-	if (!ns.args.includes('silent'))
-		ns.tprint('INFO: Spent on ' + desc + ' is ' + FormatMoney(ns, spent));
+	// if (!ns.args.includes('silent'))
+	// 	ns.tprint('INFO: Spent on ' + desc + ' is ' + FormatMoney(ns, spent));
 	let budget = balance * balancePct + spent;
-	if (!ns.args.includes('silent'))
-		ns.tprint('INFO: Overall budget for ' + desc + ' is ' + FormatMoney(ns, budget));
+	// if (!ns.args.includes('silent'))
+	// 	ns.tprint('INFO: Overall budget for ' + desc + ' is ' + FormatMoney(ns, budget));
 	let adjustedBudget = Math.min(budget, ns.getPlayer().money * moneyPct);
-	if (!ns.args.includes('silent'))
-		ns.tprint('INFO: Adjusted ' + desc + ' budget is ' + FormatMoney(ns, adjustedBudget));
+	// if (!ns.args.includes('silent'))
+	// 	ns.tprint('INFO: Adjusted ' + desc + ' budget is ' + FormatMoney(ns, adjustedBudget));
 
 	return adjustedBudget;
 }

@@ -23,34 +23,98 @@ export async function main(ns) {
 	let details = [];
 	let totalProcs = 0;
 
-	for (const server of servers) {
-		if (ns.getServer(server).maxRam < 1.6) continue;
+	if (ns.args.length == 0) {
+		for (const server of servers) {
+			if (ns.getServer(server).maxRam < 1.6) continue;
 
-		let total = ns.getServer(server).maxRam;
-		let used = ns.getServer(server).ramUsed;
-		let free = total - used;
-		let usedPct = Math.round(used / total * 100);
-		let freePct = Math.round(free / total * 100);
+			let total = ns.getServer(server).maxRam;
+			let used = ns.getServer(server).ramUsed;
+			let free = total - used;
+			let usedPct = Math.round(used / total * 100);
+			let freePct = Math.round(free / total * 100);
 
-		let entry = [
-			{ color: 'white', text: ' ' + server },
-			{ color: 'white', text: ns.nFormat(total * 1e9, '0.00b').padStart(9) },
-			{ color: pctColor(1 - (usedPct / 100)), text: ns.nFormat(used * 1e9, '0.00b').padStart(9) + (usedPct.toFixed(0) + '%').padStart(5) },
-			{ color: pctColor(freePct / 100), text: ns.nFormat(free * 1e9, '0.00b').padStart(9) + (freePct.toFixed(0) + '%').padStart(5) }
+			let entry = [
+				{ color: 'white', text: ' ' + server },
+				{ color: 'white', text: ns.nFormat(total * 1e9, '0.00b').padStart(9) },
+				{ color: pctColor(1 - (usedPct / 100)), text: ns.nFormat(used * 1e9, '0.00b').padStart(9) + (usedPct.toFixed(0) + '%').padStart(5) },
+				{ color: pctColor(freePct / 100), text: ns.nFormat(free * 1e9, '0.00b').padStart(9) + (freePct.toFixed(0) + '%').padStart(5) }
+			];
+
+			let [procs, nbProcs] = GetProcessDetails(ns, server);
+			details.push(procs);
+			procs.forEach(function (s) {
+				entry.push(
+					{ color: pctColor(1 - (s.percent / 100)), text: s.percent > 0 ? (s.percent.toFixed(0) + '%').padStart(7) : '' }
+				)
+			});
+
+			totalProcs += nbProcs;
+			entry.push({ color: 'white', text: nbProcs.toString().padStart(8) });
+
+			data.push(entry);
+		}
+	}
+	else {
+		let home = servers.filter(s => s == 'home');
+		let personals = ns.getPurchasedServers();
+		let network = servers.filter(s => s != 'home' && !personals.includes(s));
+
+		const cats = [
+			{ desc: 'Home', servers: home },
+			{ desc: 'Personals', servers: personals },
+			{ desc: 'Network', servers: network }
 		];
 
-		let [procs, nbProcs] = GetProcessDetails(ns, server);
-		details.push(procs);
-		procs.forEach(function (s) {
-			entry.push(
-				{ color: pctColor(1 - (s.percent / 100)), text: s.percent > 0 ? (s.percent.toFixed(0) + '%').padStart(7) : '' }
-			)
-		});
+		for (const cat of cats) {
+			let total = cat.servers.reduce((a, s) => a += ns.getServer(s).maxRam, 0);
+			let used = cat.servers.reduce((a, s) => a += ns.getServer(s).ramUsed, 0);
+			let free = total - used;
+			let usedPct = Math.round(used / total * 100);
+			let freePct = Math.round(free / total * 100);
 
-		totalProcs += nbProcs;
-		entry.push({ color: 'white', text: nbProcs.toString().padStart(8) });
+			let procs = [];
+			let nbProcs = 0;
 
-		data.push(entry);
+			for (const server of cat.servers) {
+				let [serverProcs, nbServerProcs] = GetProcessDetails(ns, server);
+
+				//ns.tprint(JSON.stringify(serverProcs));
+
+				for (let proc of serverProcs) {
+					let match = procs.find(s => s.category == proc.category);
+					if (match == undefined)
+						procs.push(proc);
+					else {
+						match.ram += proc.ram;
+						match.percent = Math.round(match.ram / total * 100);
+					}
+				}
+				//procs.push(...serverProcs);
+
+				nbProcs += nbServerProcs;
+			}
+
+			//ns.tprint('procs.length: ' + procs.length);
+
+			let entry = [
+				{ color: 'white', text: cat.desc },
+				{ color: 'white', text: ns.nFormat(total * 1e9, '0.00b').padStart(9) },
+				{ color: pctColor(1 - (usedPct / 100)), text: ns.nFormat(used * 1e9, '0.00b').padStart(9) + (usedPct.toFixed(0) + '%').padStart(5) },
+				{ color: pctColor(freePct / 100), text: ns.nFormat(free * 1e9, '0.00b').padStart(9) + (freePct.toFixed(0) + '%').padStart(5) }
+			];
+
+			details.push(procs);
+			procs.forEach(function (s) {
+				entry.push(
+					{ color: pctColor(1 - (s.percent / 100)), text: s.percent > 0 ? (s.percent.toFixed(0) + '%').padStart(7) : '' }
+				)
+			});
+			totalProcs += nbProcs;
+			entry.push({ color: 'white', text: nbProcs.toString().padStart(8) });
+
+			data.push(entry);
+		}
+
 	}
 	data.push(null);
 
@@ -98,7 +162,7 @@ function GetProcessDetails(ns, server) {
 		let matches = procs.filter(p => p.filename.startsWith(cat.script));
 		let ram = matches.reduce((a, s) => a += s.threads * ns.getScriptRam(s.filename, server), 0);
 		let pct = Math.round(ram / serverRam * 100);
-		return { category: cat, percent: pct, ram: ram };
+		return { category: cat.header, percent: pct, ram: ram };
 	});
 
 	// Other category
@@ -121,7 +185,7 @@ export class MemoryMap {
 		this.purchased = 0;
 		this.home = 0;
 		this.other = 0;
-		this.reserved= 0;
+		this.reserved = 0;
 
 		for (var server of servers) {
 			var so = ns.getServer(server);

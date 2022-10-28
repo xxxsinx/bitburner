@@ -13,20 +13,12 @@ export let HGW_MODE = false;
 
 const DEPTH = 10;
 
-let HACK_RAM = undefined;
-let GROW_RAM = undefined;
-let WEAKEN_RAM = undefined;
-
 let LEECH = [];
 
 /** @param {NS} ns **/
 export async function main(ns) {
 	LEECH = [];
 	for (let i = 0.05; i < 1; i += 0.05) LEECH.push(i);
-
-	HACK_RAM = ns.getScriptRam('hack-once.js');
-	GROW_RAM = ns.getScriptRam('grow-once.js');
-	WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
 
 	let start = performance.now();
 
@@ -400,11 +392,9 @@ export class Metrics {
 		this.batchTime = Math.ceil(this.delays[W2] + this.times[W2]);
 
 		// Calculate batch ram requirement
-		if (HACK_RAM == undefined) {
-			HACK_RAM = ns.getScriptRam('hack-once.js');
-			GROW_RAM = ns.getScriptRam('grow-once.js');
-			WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
-		}
+		const HACK_RAM = ns.getScriptRam('hack-once.js');
+		const GROW_RAM = ns.getScriptRam('grow-once.js');
+		const WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
 		this.batchRam = this.threads[G] * GROW_RAM;
 		this.batchRam += this.threads[W1] * WEAKEN_RAM;
 		this.batchRam += this.threads[W2] * WEAKEN_RAM;
@@ -575,11 +565,9 @@ export class SequentialMetrics {
 		this.cycleTime = Math.ceil(this.times[H] + this.times[W2] + this.times[G] + this.times[W2]);
 
 		// Calculate batch ram requirement
-		if (HACK_RAM == undefined) {
-			HACK_RAM = ns.getScriptRam('hack-once.js');
-			GROW_RAM = ns.getScriptRam('grow-once.js');
-			WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
-		}
+		const HACK_RAM = ns.getScriptRam('hack-once.js');
+		const GROW_RAM = ns.getScriptRam('grow-once.js');
+		const WEAKEN_RAM = ns.getScriptRam('weaken-once.js');
 		this.maxRam = Math.max(this.threads[G] * GROW_RAM, this.threads[W1] * WEAKEN_RAM, this.threads[W2] * WEAKEN_RAM, this.threads[H] * HACK_RAM);
 
 		// Calculate hackChance

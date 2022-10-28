@@ -81,7 +81,7 @@ export async function main(ns) {
 		// }
 
 		// Check if we're ready to install
-		if ((sitrep.favorInstall || sitrep.shouldInstall) && (!ns.getPlayer().hasCorporation || (eval('ns.corportation').getCorporation().public == 1 && eval('ns.corportation').getCorporation().funds > 1e30) )) {
+		if ((sitrep.favorInstall || sitrep.shouldInstall) && ns.getPlayer().hasCorporation && eval('ns.corportation').getCorporation().public == 1 && eval('ns.corportation').getCorporation().funds > 1e30) {
 			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
 			await TryRunScript(ns, 'dumpMoney.js');
 

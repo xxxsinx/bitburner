@@ -10,8 +10,8 @@ export async function main(ns) {
 
 	// Generate coding contracts until we bust
 	while (ns.hacknet.numHashes() > ns.hacknet.hashCost('Generate Coding Contract')) {
-		ns.tprint('INFO: Generating a codding contract from hashes.');
-		LogMessage(ns, 'INFO: Generating a codding contract from hashes.');
+		ns.tprint('INFO: Generating a coding contract from hashes.');
+		LogMessage(ns, 'INFO: Generating a coding contract from hashes.');
 		ns.hacknet.spendHashes('Generate Coding Contract');
 	}
 

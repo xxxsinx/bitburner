@@ -81,7 +81,7 @@ export async function main(ns) {
 		// }
 
 		// Check if we're ready to install
-		if (sitrep.favorInstall || sitrep.shouldInstall) {
+		if ((sitrep.favorInstall || sitrep.shouldInstall) && (!ns.getPlayer().hasCorporation || (eval('ns.corportation').getCorporation().public == 1 && eval('ns.corportation').getCorporation().funds > 1e30) )) {
 			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
 			await TryRunScript(ns, 'dumpMoney.js');
 
@@ -124,6 +124,15 @@ export async function main(ns) {
 		}
 
 		// Donate money
+		if (ns.getPlayer().hasCorporation || ns.getPlayer().money > 150e9) {
+			//if (ns.getServerMaxRam('home') >= Math.pow(2, 1))
+			ns.run('jakob-corp.js');
+			await TryRunScript(ns, 'corpDonate.js');
+			//let corp= eval('ns.corporation');
+		}
+		else {
+
+		}
 		await TryRunScript(ns, 'donate.js');
 
 		// Buy personal server(s)
@@ -293,13 +302,13 @@ export async function main(ns) {
 
 function GetControllerOverrides(ns, sitrep) {
 	if (sitrep.ram.total < Math.pow(2, 18) || sitrep.ram.home <= 128) {
-		return [1, 1, 1];
+		return [2, 1, 2];
 	}
 	else if (sitrep.ram.total < Math.pow(2, 21) || sitrep.ram.home <= 256) {
-		return [2, 2, 3];
+		return [3, 2, 3];
 	}
 	else if (sitrep.ram.total < Math.pow(2, 22)) {
-		return [3, 3, 5];
+		return [4, 3, 4];
 	}
 	else if (sitrep.ram.total < Math.pow(2, 23)) {
 		return [6, 5, 8];
@@ -313,7 +322,6 @@ function GetControllerOverrides(ns, sitrep) {
 }
 
 async function SleeveManagement(ns, karma) {
-	let stats = ns.sleeve.getSleeveStats(0);
 
 	// // If shock > 95% we force shock recovery
 	// if (stats.shock > 95) {
@@ -334,11 +342,12 @@ async function SleeveManagement(ns, karma) {
 		return;
 	}
 
-	// Default action set to homicide for money
-	await TryRunScript(ns, 'sleevecrime.js', ['Homicide', stats.shock > 0 ? 1 : 0, 8]);
-	// Always have one sleeve on shock duty unless we're grinding gangs
-	if (stats.shock > 0) {
-		await TryRunScript(ns, 'shock.js', [0, 1]);
+	for (let i = 0; i < 8; i++) {
+		let stats = ns.sleeve.getSleeveStats(i);
+		if (stats.shock > 0)
+			await TryRunScript(ns, 'shock.js', [i, 1]);
+		else
+			await TryRunScript(ns, 'sleevecrime.js', ['Homicide', i, 1]);
 	}
 }
 

@@ -116,7 +116,7 @@ export class QuarterMaster {
 
 			// Opportunistic prep: if the server is almost prepped, we dedicate a bit of resources to prepping it opportunistically
 			const so = this.ns.getServer(metrics.server);
-			const opportunisticPrep = so.hackDifficulty - so.minDifficulty < 5 && so.moneyAvailable / so.moneyMax >= 0.8;
+			const opportunisticPrep = so.hackDifficulty - so.minDifficulty < 5 || so.moneyAvailable / so.moneyMax >= 0.5;
 
 			if (!opportunisticPrep) {
 				if (nbPrepping >= QmConfig.MaxPreppingServers) continue;

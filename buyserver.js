@@ -26,7 +26,8 @@ export async function main(ns) {
 	if (ns.args[0] == null && ns.args[1] == null) {
 		const data = [];
 		const columns = [
-			{ header: '   RAM', width: 10 },
+			{ header: '  Power', width: 10 },
+			{ header: '   RAM', width: 20 },
 			{ header: '  Price', width: 10 },
 			{ header: '   $/GB', width: 10 }
 		];
@@ -34,6 +35,7 @@ export async function main(ns) {
 		const softcap = GetSoftcap(ns);
 		if (softcap != 1) {
 			data.push([
+				{ color: '', text: 'N/A'.padStart(9) },
 				{ color: 'yellow', text: ' Softcap' },
 				{ color: 'yellow', text: softcap.toString().padStart(9) },
 				{ color: '', text: 'N/A'.padStart(9) }
@@ -48,7 +50,8 @@ export async function main(ns) {
 
 			const color = softcap > 1 && i > 6 ? 'yellow' : 'white'
 			data.push([
-				{ color: color, text: FormatRam(ns, ram, 0).padStart(9) },
+				{ color: color, text: i.toString().padStart(9) },
+				{ color: color, text: FormatRam(ns, ram, 0).padStart(19) },
 				{ color: color, text: FormatMoney(ns, cost, 1).padStart(9) },
 				{ color: color, text: FormatMoney(ns, cost / ram, 0).padStart(9) },
 			]);
@@ -56,6 +59,21 @@ export async function main(ns) {
 			if (i == 6 && softcap > 1)
 				data.push(null);
 		}
+
+		if (ns.getServerMaxRam('home') < Math.pow(2,30)) {
+			const ram= ns.getServerMaxRam('home');
+			const cost= ns.singularity.getUpgradeHomeRamCost();
+
+			data.push(null);
+
+			data.push([
+				{ color: 'white', text: 'Home'.padStart(9) },
+				{ color: 'white', text: `${FormatRam(ns, ram, 0)} => ${FormatRam(ns, ram*2, 0)}`.padStart(19) },
+				{ color: 'white', text: FormatMoney(ns, cost, 1).padStart(9) },
+				{ color: 'white', text: FormatMoney(ns, cost / ram, 0).padStart(9) },
+			]);
+		}
+
 		PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
 
 		return;
@@ -66,7 +84,7 @@ export async function main(ns) {
 		let budget = sitrep.ramBudget ?? 0;
 		//ns.tprint('budget: ' + FormatMoney(ns, budget));
 		if (budget > 0) {
-			SpendBudgetOnServers(ns, budget);
+			await SpendBudgetOnServers(ns, budget);
 		}
 		return;
 	}
@@ -186,11 +204,9 @@ function GetSoftcap(ns) {
 	return ratio;
 }
 
-function PowerFromRam(ram) {
-	return Math.log(ram) / Math.log(2);
-}
+const PowerFromRam = (ram) => Math.log2(ram);
 
-function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
+async function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 	let beforeRam = ns.getPurchasedServers().reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
 	let totalUpgradeCost = 0;
 
@@ -238,6 +254,8 @@ function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 			}
 		}
 		budget -= option.cost;
+		//ns.tprint('WARN: Waiting 1s');
+		//await ns.sleep(0);
 	}
 
 	let afterRam = ns.getPurchasedServers().reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
@@ -306,7 +324,8 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 		}
 	}
 
-	if (ns.singularity.getUpgradeHomeRamCost() <= budget) {
+	if (ns.singularity.getUpgradeHomeRamCost() <= budget && ns.getServerMaxRam('home') < Math.pow(2, 30)) {
+		//ns.tprint('home upg cost is ' + FormatMoney(ns, ns.singularity.getUpgradeHomeRamCost()))
 		options.push({
 			index: -1,
 			action: 'home',

@@ -1,6 +1,6 @@
 import { ServerReport, WaitPids } from "utils.js";
 import { RunScript, MemoryMap } from 'ram.js';
-import { calculateGrowThreads } from 'metrics.js'
+import { solveGrow } from 'metrics.js'
 
 /** @param {NS} ns **/
 export async function main(ns) {
@@ -68,7 +68,7 @@ async function BatchPrep(ns, server) {
 
 	let security = so.hackDifficulty - so.minDifficulty;
 
-	let gthreads = calculateGrowThreads(ns, so, ns.getPlayer(), 1);
+	let gthreads = solveGrow(ns.formulas.hacking.growPercent(so, 1, ns.getPlayer(), 1), so.moneyAvailable, so.moneyMax);
 	const gtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
 
 	//security += gthreads * 0.004;

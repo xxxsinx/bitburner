@@ -75,6 +75,15 @@ export async function main(ns) {
 				this.PartyTime > performance.now() || this.hired ? await this.Party() : null;
 				this.Round == 3 && this.products.length >= 2 && this.products[LOW_VAL <= 0.5 ? 1 : 0].prog >= 100 ? this.counter > 11 ? await this.TakeOffer() : this.counter++ : null;
 
+				if (this.Round >= 4 && this.CorpApi.getCorporation().public != 1) {
+					this.ns.tprint('INFO: Going public! ' + this.CorpApi.getCorporation().public);
+					this.CorpApi.goPublic(0);
+				}
+				if (this.CorpApi.getCorporation().public == 1)
+					this.CorpApi.issueDividends(0.1);
+				// else {
+				// 	ns.tprint('WARN: this.Round = ' + this.Round + ' ' + + this.CorpApi.getCorporation().public);
+				// }
 
 				await this.WaitState("START", 1, true);
 				if (this.products.length > 0 && !this.firstproduct) { if (this.products[0].prog >= 100) { this.Analyze(2); this.firstproduct = true; } }
@@ -98,7 +107,7 @@ export async function main(ns) {
 				case this.Fraud && this.funds >= 1e15: return { mode: "fraud", division_goal: 14, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 15, storage_goal: 75, speech_goal: 150, factory_goal: 0, dream_goal: 0, smart_goal: 80, stat_goal: 150, project_goal: 100, abc_goal: 150, adv_goal: 40, wilson_goal: 15 };
 				case this.Fraud && this.funds >= 2.7e12: return { mode: "fraud", division_goal: 6, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 9, storage_goal: 18, speech_goal: 20, factory_goal: 0, dream_goal: 0, smart_goal: 30, stat_goal: 10, project_goal: 10, abc_goal: 20, adv_goal: 21, wilson_goal: 6 };
 				case this.Fraud && this.funds >= 1e12: return { mode: "fraud", division_goal: 4, m_division: "RealEstate", prodMat: "RealEstate", prodMatSize: 20, employee_goal: 6, storage_goal: 12, speech_goal: 10, factory_goal: 0, dream_goal: 0, smart_goal: 10, stat_goal: 0, project_goal: 0, abc_goal: 10, adv_goal: 3, wilson_goal: 0 };
-				default : return { mode: "fraud", division_goal: 1, m_division: "Software", prodMat: "AI Cores", prodMatSize: 1, employee_goal: 3, storage_goal: 8, speech_goal: 0, factory_goal: 0, dream_goal: 0, smart_goal: 7, stat_goal: 0, project_goal: 0, abc_goal: 0, adv_goal: 3, wilson_goal: 0 };
+				default: return { mode: "fraud", division_goal: 1, m_division: "Software", prodMat: "AI Cores", prodMatSize: 1, employee_goal: 3, storage_goal: 8, speech_goal: 0, factory_goal: 0, dream_goal: 0, smart_goal: 7, stat_goal: 0, project_goal: 0, abc_goal: 0, adv_goal: 3, wilson_goal: 0 };
 			}
 			//} catch (err) { this.ExitError("GetData Error " + err) }
 		}
@@ -208,7 +217,7 @@ export async function main(ns) {
 				}
 
 				for (let i = 1; i < cities.length; i++) {
-					while (this.CorpApi.getCorporation().funds / 2 > this.CorpApi.getOfficeSizeUpgradeCost(this.data.m_division, cities[i], 3) && this.CorpApi.getOffice(this.data.m_division, cities[i]).size < this.CorpApi.getOffice(this.data.m_division, cities[0]).size - Math.min(Math.floor(this.CorpApi.getOffice(this.data.m_division, cities[i]).size*0.7),60)) { await this.CorpApi.upgradeOfficeSize(this.data.m_division, cities[i], 3) }
+					while (this.CorpApi.getCorporation().funds / 2 > this.CorpApi.getOfficeSizeUpgradeCost(this.data.m_division, cities[i], 3) && this.CorpApi.getOffice(this.data.m_division, cities[i]).size < this.CorpApi.getOffice(this.data.m_division, cities[0]).size - Math.min(Math.floor(this.CorpApi.getOffice(this.data.m_division, cities[i]).size * 0.7), 60)) { await this.CorpApi.upgradeOfficeSize(this.data.m_division, cities[i], 3) }
 					// eslint-disable-next-line no-empty
 					while (this.CorpApi.getOffice(this.data.m_division, cities[i]).employees.length < this.CorpApi.getOffice(this.data.m_division, cities[i]).size) { try { await this.CorpApi.hireEmployee(this.data.m_division, cities[i]); this.hired = true } catch { } }
 				}

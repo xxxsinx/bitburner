@@ -7,16 +7,16 @@ export async function main(ns) {
 
 	//ns.tprint(ns.singularity.getCurrentWork());
 
-	if (sitrep.targetFactions == undefined || sitrep.targetFactions.length == 0) {
-		if (!ns.args.includes('silent'))
-			ns.tprint('FAIL: sitrep.targetFactions problem?');
-		return;
-	}
-	if (!sitrep.targetFactions.includes('Tian Di Hui')) {
-		if (!ns.args.includes('silent'))
-			ns.tprint('WARN: Tian Di Hui is not part of our targets.');
-		return;
-	}
+	// if (sitrep.targetFactions == undefined || sitrep.targetFactions.length == 0) {
+	// 	if (!ns.args.includes('silent'))
+	// 		ns.tprint('FAIL: sitrep.targetFactions problem?');
+	// 	return;
+	// }
+	// if (!sitrep.targetFactions.includes('Tian Di Hui')) {
+	// 	if (!ns.args.includes('silent'))
+	// 		ns.tprint('WARN: Tian Di Hui is not part of our targets.');
+	// 	return;
+	// }
 	if (ns.getPlayer().factions.includes('Tian Di Hui')) {
 		if (!ns.args.includes('silent'))
 			ns.tprint('WARN: Already part of Tian Di Hui');

@@ -347,7 +347,8 @@ export class Metrics {
 		if (isNaN(so.moneyAvailable)) {
 			return;
 		}
-		this.threads[G] = calculateGrowThreads(ns, so, player, this.cores);
+		//this.threads[G] = calculateGrowThreads(ns, so, player, this.cores);
+		this.threads[G] = solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
 
 		// Figure grow time and threads
 		// const growFactor = 1 / (1 - ((so.moneyMax - 0.01) / so.moneyMax));
@@ -552,7 +553,8 @@ export class SequentialMetrics {
 		if (isNaN(so.moneyAvailable)) {
 			return;
 		}
-		this.threads[G] = calculateGrowThreads(ns, so, player, this.cores);
+		//this.threads[G] = calculateGrowThreads(ns, so, player, this.cores);
+		this.threads[G] = solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyAvailable, so.moneyMax);
 
 		if (so.moneyAvailable == 0) so.moneyAvailable = 1;
 
@@ -598,46 +600,64 @@ export class SequentialMetrics {
 	}
 }
 
-export function calculateGrowThreads(ns, serverObject, playerObject, cores) {
-	if (serverObject.moneyAvailable >= serverObject.moneyMax) return 0;
-	let min = 1;
+// export function calculateGrowThreads(ns, serverObject, playerObject, cores) {
+// 	if (serverObject.moneyAvailable >= serverObject.moneyMax) return 0;
+// 	let min = 1;
 
-	// Use the flawed API to find a maximum value
-	const growFactor = 1 / (1 - ((serverObject.moneyMax - 1) / serverObject.moneyMax));
-	let max = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(serverObject, 1, playerObject, cores)));
+// 	// Use the flawed API to find a maximum value
+// 	const growFactor = 1 / (1 - ((serverObject.moneyMax - 1) / serverObject.moneyMax));
+// 	let max = Math.ceil(Math.log(growFactor) / Math.log(ns.formulas.hacking.growPercent(serverObject, 1, playerObject, cores)));
 
-	let threads = binarySearchGrow(ns, min, max, serverObject, playerObject, cores);
+// 	let threads = binarySearchGrow(ns, min, max, serverObject, playerObject, cores);
 
-	let newMoney = CalcGrowth(ns, serverObject, playerObject, threads, cores);
-	let diff = (newMoney - serverObject.moneyMax);
-	if (diff < 0)
-		ns.tprint('FAIL: undershot by ' + diff);
+// 	let newMoney = CalcGrowth(ns, serverObject, playerObject, threads, cores);
+// 	let diff = (newMoney - serverObject.moneyMax);
+// 	if (diff < 0)
+// 		ns.tprint('FAIL: undershot by ' + diff);
 
-	return threads;
+// 	return threads;
+// }
+
+// function binarySearchGrow(ns, min, max, so, po, cores) {
+// 	if (min == max) return max;
+// 	let threads = Math.ceil(min + (max - min) / 2);
+
+// 	let newMoney = CalcGrowth(ns, so, po, threads, cores);
+// 	if (newMoney > so.moneyMax) {
+// 		if (CalcGrowth(ns, so, po, threads - 1, cores) < so.moneyMax)
+// 			return threads;
+// 		return binarySearchGrow(ns, min, threads - 1, so, po, cores);
+// 	}
+// 	else if (newMoney < so.moneyMax) {
+// 		return binarySearchGrow(ns, threads + 1, max, so, po, cores);
+// 	}
+// 	else {
+// 		return threads;
+// 	}
+// }
+
+// function CalcGrowth(ns, so, po, threads, cores) {
+// 	let serverGrowth = ns.formulas.hacking.growPercent(so, threads, po, cores);
+// 	return (so.moneyAvailable + threads) * serverGrowth;
+// }
+
+// Solve for number of growth threads required to get from money_lo to money_hi
+// base is ns.formulas.hacking.growPercent(serverObject, 1, playerObject, cores)
+export function solveGrow(base, money_lo, money_hi) {
+	if (money_lo >= money_hi) { return 0; }
+
+	let threads = 1000;
+	let prev = threads;
+	for (let i = 0; i < 30; ++i) {
+		let factor = money_hi / Math.min(money_lo + threads, money_hi - 1);
+		threads = Math.log(factor) / Math.log(base);
+		if (Math.ceil(threads) == Math.ceil(prev)) { break; }
+		prev = threads;
+	}
+
+	return Math.ceil(Math.max(threads, prev, 0));
 }
 
-function binarySearchGrow(ns, min, max, so, po, cores) {
-	if (min == max) return max;
-	let threads = Math.ceil(min + (max - min) / 2);
-
-	let newMoney = CalcGrowth(ns, so, po, threads, cores);
-	if (newMoney > so.moneyMax) {
-		if (CalcGrowth(ns, so, po, threads - 1, cores) < so.moneyMax)
-			return threads;
-		return binarySearchGrow(ns, min, threads - 1, so, po, cores);
-	}
-	else if (newMoney < so.moneyMax) {
-		return binarySearchGrow(ns, threads + 1, max, so, po, cores);
-	}
-	else {
-		return threads;
-	}
-}
-
-function CalcGrowth(ns, so, po, threads, cores) {
-	let serverGrowth = ns.formulas.hacking.growPercent(so, threads, po, cores);
-	return (so.moneyAvailable + threads) * serverGrowth;
-}
 
 export function MaxHackForServer(ns, server) {
 	let so = ns.getServer(server);

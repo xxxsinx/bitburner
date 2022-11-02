@@ -2,19 +2,25 @@
 export async function main(ns) {
 	if (false) ns.grow(); // bogus call to tell the static ram checker to allocate 150MB
 
-	let [operation, target]= ns.args;
+	let [operation, target] = ns.args;
+	if (operation == undefined || target == undefined) {
+		ns.tprint('Usage: run all-in-one X target');
+		ns.tprint('Where X is either H, G, or W for hack, grow, weaken respectively');
+		return;
+	}
+
 	switch (operation) {
 		case "H":
-			eval('await ns.hack(' + target + ')');
+			await ns['hack'](target);
 			break;
 		case "G":
-			eval('await ns.grow(' + target + ')');
+			await ns['grow'](target);
 			break;
 		case "W":
-			eval('await ns.weaken(' + target + ')');
+			await ns['weaken'](target);
 			break;
 		default:
-			ns.tprint('You fucked up and provided an invalid operation type');
+			ns.tprint('You provided an invalid operation type');
 			break;
 	}
 }

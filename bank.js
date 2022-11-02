@@ -8,14 +8,14 @@ export async function main(ns) {
     const money = ns.getMoneySources();
 
 
-    const columns = [
+    let columns = [
         { header: ' Source', width: 20 },
         { header: ' $ install', width: 11 },
         { header: ' $ overall', width: 11 },
         { header: ' $ budget', width: 11 },
     ];
 
-    const data = [];
+    let data = [];
     for (const key of Object.keys(money.sinceInstall)) {
         const install = money.sinceInstall[key];
         const start = money.sinceStart[key];
@@ -48,15 +48,21 @@ export async function main(ns) {
     await WaitPids(ns, ns.run('flightStatus.js'));
     const sitrep = JSON.parse(ns.read('sitrep.txt'));
 
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since install : ' + ns.tFormat(ns.getTimeSinceLastAug()));
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Time since start   : ' + ns.tFormat(ns.getPlayer().playtimeSinceLastBitnode));
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Karma              : ' + ns.heart.break().toFixed(0));
-    if (sitrep?.flightStatus?.augs != undefined) {
-        ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Augmentations      : ' + sitrep.flightStatus.augs + ' / ' + sitrep.flightStatus.augsNeeded);
-        ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Money              : ' + FormatMoney(ns, sitrep.flightStatus.money) + ' / ' + FormatMoney(ns, 100_000_000_000));
-    }
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'Hacking skill      : ' + ns.getHackingLevel() + ' / 2500');
-    ns.tprintf('\x1b[38;5;' + COLORS.find(s => s.desc == 'White').ansi + 'm' + 'World daemon       : ' + ns.getHackingLevel() + ' / ' + (ns.getBitNodeMultipliers().WorldDaemonDifficulty * 3000));
+    columns = [
+        { header: ' Information', width: 20 },
+        { header: ' Value', width: 30 }
+    ];
+
+    data = [];
+    data.push([' Time since install', ' ' + ns.tFormat(ns.getTimeSinceLastAug())]);
+    data.push([' Time since start', ' ' + ns.tFormat(ns.getPlayer().playtimeSinceLastBitnode)]);
+    data.push([' Karma', ' ' + ns.heart.break().toFixed(0) + ' / ' + '-54000']);
+    data.push([' Augmentations', ' ' + sitrep.flightStatus.augs.toString() + ' / ' + sitrep.flightStatus.augsNeeded.toString()]);
+    data.push([' Money', ' ' + FormatMoney(ns, sitrep.flightStatus.money) + ' / ' + FormatMoney(ns, 100_000_000_000)]);
+    data.push([' Hacking skill', ' ' + ns.getHackingLevel().toString() + ' / ' + '2500']);
+    data.push([' World daemon', ' ' + ns.getHackingLevel().toString() + ' / ' + (ns.getBitNodeMultipliers().WorldDaemonDifficulty * 3000).toString()]);
+
+    PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
 }
 
 // export function GetBank(ns) {

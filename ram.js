@@ -19,7 +19,7 @@ export async function main(ns) {
 	];
 
 	let data = [];
-	let servers = GetAllServers(ns).filter(s => ns.getServer(s).hasAdminRights).sort((a, b) => ns.getServer(b).maxRam - ns.getServer(a).maxRam);
+	let servers = GetAllServers(ns).filter(s => ns.getServer(s).hasAdminRights && !s.startsWith('hacknet-node-')).sort((a, b) => ns.getServer(b).maxRam - ns.getServer(a).maxRam);
 	let details = [];
 	let totalProcs = 0;
 
@@ -57,15 +57,19 @@ export async function main(ns) {
 	else {
 		let home = servers.filter(s => s == 'home');
 		let personals = ns.getPurchasedServers();
-		let network = servers.filter(s => s != 'home' && !personals.includes(s));
+		//let hashnet = servers.filter(s => s.startsWith('hacknet-node-'));
+		let network = servers.filter(s => s != 'home' && !personals.includes(s) /*&& !hashnet.includes(s)*/);
 
 		const cats = [
-			{ desc: 'Home', servers: home },
-			{ desc: 'Personals', servers: personals },
-			{ desc: 'Network', servers: network }
+			{ desc: ' Home', servers: home },
+			{ desc: ' Personals', servers: personals },
+			//{ desc: ' Hacknet', servers: hashnet },
+			{ desc: ' Network', servers: network }
 		];
 
 		for (const cat of cats) {
+			if (cat.servers.length == 0) continue;
+
 			let total = cat.servers.reduce((a, s) => a += ns.getServer(s).maxRam, 0);
 			let used = cat.servers.reduce((a, s) => a += ns.getServer(s).ramUsed, 0);
 			let free = total - used;
@@ -125,7 +129,7 @@ export async function main(ns) {
 	let freePct = Math.round(free / total * 100);
 
 	let entry = [
-		{ color: 'white', text: 'Total' },
+		{ color: 'white', text: ' Total' },
 		{ color: 'white', text: ns.nFormat(total * 1e9, '0.00b').padStart(9) },
 		{ color: pctColor(1 - (usedPct / 100)), text: ns.nFormat(used * 1e9, '0.00b').padStart(9) + (usedPct.toFixed(0) + '%').padStart(5) },
 		{ color: pctColor(freePct / 100), text: ns.nFormat(free * 1e9, '0.00b').padStart(9) + (freePct.toFixed(0) + '%').padStart(5) }

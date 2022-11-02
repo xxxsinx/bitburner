@@ -23,9 +23,9 @@ function GetBalance(ns, spentProp) {
 	return balance;
 }
 
-export const RamBudget = (ns) => GenericBudget(ns, 'RAM', 'servers', ns.getPlayer().hasCorporation ? 0.7 : 0.4, ns.getPlayer().hasCorporation ? 0.75 : 0.2);
-export const GangBudget = (ns) => GenericBudget(ns, 'Gang', 'gang', 0.25, 0.2);
-export const CorpBudget = (ns) => GenericBudget(ns, 'Corporation', 'corporation', ns.getPlayer().hasCorporation ? 1 : 0.25, ns.getPlayer().hasCorporation ? 1 : 0.2);
+export const RamBudget = (ns) => GenericBudget(ns, 'RAM', 'servers', ns.getPlayer().hasCorporation ? 0.4 : 0.4, ns.getPlayer().hasCorporation ? 0.5 : 0.5);
+export const GangBudget = (ns) => GenericBudget(ns, 'Gang', 'gang', 0.4, 0.5);
+//export const CorpBudget = (ns) => GenericBudget(ns, 'Corporation', 'corporation', ns.getPlayer().hasCorporation ? 1 : 0.25, ns.getPlayer().hasCorporation ? 1 : 0.2);
 
 function GenericBudget(ns, desc, spentProp, balancePct, moneyPct) {
 	let balance = GetBalance(ns, spentProp);

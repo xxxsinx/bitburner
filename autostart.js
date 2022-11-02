@@ -99,15 +99,15 @@ export async function main(ns) {
 		}
 
 		// Donate money
-		if (ns.getPlayer().hasCorporation || ns.getPlayer().money > 150e9) {
-			//if (ns.getServerMaxRam('home') >= Math.pow(2, 1))
-			ns.run('jakob-corp.js');
-			await TryRunScript(ns, 'corpDonate.js');
-			//let corp= eval('ns.corporation');
-		}
-		else {
+		// if (ns.getPlayer().hasCorporation || ns.getPlayer().money > 150e9) {
+		// 	//if (ns.getServerMaxRam('home') >= Math.pow(2, 1))
+		// 	ns.run('jakob-corp.js');
+		// 	await TryRunScript(ns, 'corpDonate.js');
+		// 	//let corp= eval('ns.corporation');
+		// }
+		// else {
 
-		}
+		// }
 		await TryRunScript(ns, 'donate.js');
 
 		// Buy personal server(s)
@@ -250,7 +250,7 @@ export async function main(ns) {
 			&& sitrep.money >= 100e9 && sitrep.level > 2500 && !ns.getPlayer().factions.includes('Daedalus');
 
 		// Check if we're ready to install
-		if ((sitrep.favorInstall || sitrep.shouldInstall) && !waitingOnDaedalus && ns.getPlayer().hasCorporation && eval('ns.corporation').getCorporation().public == 1 && eval('ns.corporation').getCorporation().funds > 1e33) {
+		if ((sitrep.favorInstall || sitrep.shouldInstall) && !waitingOnDaedalus /*&& ns.getPlayer().hasCorporation && eval('ns.corporation').getCorporation().public == 1 && eval('ns.corporation').getCorporation().funds > 1e33*/) {
 			await TryRunScript(ns, 'factions.js', ['buy', 'silent']);
 			await TryRunScript(ns, 'dumpMoney.js');
 

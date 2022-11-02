@@ -4,9 +4,9 @@ import { IsPrepped } from 'prep.js'
 import { PrintTable, DefaultStyle } from 'tables.js'
 
 const QmConfig = {
-	MaxPreppingServers: 3,		// how many servers can be in prep simultaneously
-	MaxBatchingServers: 2,		// how many servers can be batching at the same time
-	MaxServers: 4,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
+	MaxPreppingServers: 2,		// how many servers can be in prep simultaneously
+	MaxBatchingServers: 1,		// how many servers can be batching at the same time
+	MaxServers: 1,				// how many servers can be active at all times (if this is smaller than the two previous values, they will alternate as needed)
 	ListMaxServers: 30,			// how many servers are analyzed. More trivial servers are dropped from the list.
 	EvalDelay: 10 * 60 * 1000,	// frequency in ms that we re-evaluate the metrics on the server list
 	LoopDelay: 5000,			// delay in the main loop
@@ -25,16 +25,18 @@ const SERVER_STATES = {
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	ns.resizeTail(1020,620);
+	ns.resizeTail(1020, 620);
 	//await ns.sleep(0);
 	//ns.resizeTail(1080, 600);
 	const qm = new QuarterMaster(ns, QmConfig.EvalDelay); // re-eval every 2 min
 
 	// Config overrides
 	const [prep, batch, max] = ns.args;
-	QmConfig.MaxPreppingServers = prep;
-	QmConfig.MaxBatchingServers = batch;
-	QmConfig.MaxServers = max;
+	if (prep && batch && max) {
+		QmConfig.MaxPreppingServers = prep;
+		QmConfig.MaxBatchingServers = batch;
+		QmConfig.MaxServers = max;
+	}
 
 	while (true) {
 		await qm.Dispatch();

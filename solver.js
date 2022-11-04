@@ -3,6 +3,11 @@ import { LogMessage } from 'utils.js'
 export async function main(ns) {
 	const [silent = false] = ns.args;
 
+	if (ns.args[0] == 'test') {
+		ns.tprint(generateIps(25318113230));
+		return;
+	}
+
 	let prep = undefined;
 	try {
 		prep = JSON.parse(ns.read('contractPrep.txt'));

@@ -116,8 +116,8 @@ export async function main(ns) {
 
 async function TrainCombatStats(ns, player) {
 	let stats = new Array(
-		{ 'stat': 'strength', 'value': player.strength },
 		{ 'stat': 'defense', 'value': player.defense },
+		{ 'stat': 'strength', 'value': player.strength },
 		{ 'stat': 'dexterity', 'value': player.dexterity },
 		{ 'stat': 'agility', 'value': player.agility });
 
@@ -127,7 +127,7 @@ async function TrainCombatStats(ns, player) {
 	ns.print('Our lowest combat stat is ' + stats[0].stat);
 
 	if (player.className != 'training your ' + stats[0].stat + ' at a gym') {
-		ns.gymWorkout('Powerhouse Gym', stats[0].stat, false);
+		ns.singularity.gymWorkout('Powerhouse Gym', stats[0].stat, false);
 		for (let i = 0; i < ns.sleeve.getNumSleeves(); i++) {
 			ns.sleeve.setToGymWorkout(i, 'Powerhouse Gym', 'Train ' + stats[0].stat.charAt(0).toUpperCase() + stats[0].stat.slice(1));
 		}

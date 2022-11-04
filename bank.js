@@ -9,18 +9,25 @@ export async function main(ns) {
 
 
     let columns = [
-        { header: ' Source', width: 20 },
+        { header: ' Source', width: 22 },
         { header: ' $ install', width: 11 },
         { header: ' $ overall', width: 11 },
         { header: ' $ budget', width: 11 },
     ];
 
     let data = [];
+    let spent= [0, 0];
+    let gained= [0, 0];
     for (const key of Object.keys(money.sinceInstall)) {
         const install = money.sinceInstall[key];
         const start = money.sinceStart[key];
         if (install == 0 && start == 0) continue;
         if (key == 'total') continue;
+
+        if (install > 0) gained[0] += install;
+        if (install < 0) spent[0] += install;
+        if (start > 0) gained[1] += start;
+        if (start < 0) spent[1] += start;
 
         let budget = '';
         if (key == 'servers') {
@@ -33,6 +40,9 @@ export async function main(ns) {
         data.push([' ' + key, FormatMoney(ns, install, 1).padStart(10), FormatMoney(ns, start, 1).padStart(10), budget.padStart(10)]);
     }
 
+    data.push(null);
+    data.push([' Gained', FormatMoney(ns, gained[0], 1).padStart(10), FormatMoney(ns, gained[1], 1).padStart(10), '']);
+    data.push([' Spent', FormatMoney(ns, spent[0], 1).padStart(10), FormatMoney(ns, spent[1], 1).padStart(10), '']);
     data.push(null);
     data.push([' Total', FormatMoney(ns, money.sinceInstall['total'], 1).padStart(10), FormatMoney(ns, money.sinceStart['total'], 1).padStart(10), '']);
 
@@ -50,7 +60,7 @@ export async function main(ns) {
 
     columns = [
         { header: ' Information', width: 20 },
-        { header: ' Value', width: 30 }
+        { header: ' Value', width: 37 }
     ];
 
     data = [];

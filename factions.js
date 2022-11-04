@@ -58,7 +58,7 @@ function PlanedAugsFilter(ns, aug, sitRep) {
 	const factions = [...MilestoneFactions];
 
 	if (DaemonMode(ns)) {
-		ns.getPlayer().factions.forEach(f => { if (!factions.includes(f)) factions.push(f) });
+		ns.getPlayer().factions.forEach(f => { if (f != FactionNames.ChurchOfTheMachineGod && !factions.includes(f)) factions.push(f) });
 	}
 
 	// Add gang to the milestones factions if we got one
@@ -87,7 +87,7 @@ function GotAllUniques(ns, faction, balance) {
 
 function PrioritizeFactions(ns, fullbalance, suggested) {
 	const factions = MilestoneFactions;
-	if (DaemonMode(ns)) ns.getPlayer().factions.forEach(f => { if (!factions.includes(f)) factions.push(f) });
+	if (DaemonMode(ns)) ns.getPlayer().factions.forEach(f => { if (f != FactionNames.ChurchOfTheMachineGod && !factions.includes(f)) factions.push(f) });
 
 	const balance = fullbalance;//.filter(s=> s.rep < BestRep(ns, s));
 	const targetFactions = new Set(); // Best faction order to get what we need
@@ -122,10 +122,14 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 		// }
 
 		choices.sort(function (a, b) {
+			if (a.name == 'Daedalus') return -1;
+			if (b.name == 'Daedalus') return 1;
 			if (a.joined && !b.joined) return -1;
 			if (!a.joined && b.joined) return 1;
 			return b.rep - a.rep;
 		});
+
+		//ns.tprint('WARN: choices: ' + choices.map(s=>s.name));
 
 		//ns.tprint(choices);
 
@@ -256,6 +260,8 @@ export async function main(ns) {
 		];
 
 		if (ns.args[0] != undefined && ns.args[0].startsWith('mil')) {
+			masterlist.sort((a, b) => b.rep - a.rep);
+
 			for (let i = 0; i < 5; i++) {
 				let faction = Object.values(FactionNames)[i];
 				let list = masterlist.filter(s => s.factions.includes(faction));

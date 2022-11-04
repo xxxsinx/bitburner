@@ -7,7 +7,7 @@ export const W1 = 1;	// Index of first WEAKEN data
 export const G = 2;		// Index of GROW data
 export const W2 = 3;	// Index of second WEAKEN data
 
-export const BATCH_SPACER = 20; // Spacer between jobs (and batches) in milliseconds
+export const BATCH_SPACER = 30; // Spacer between jobs (and batches) in milliseconds
 
 export let HGW_MODE = false;
 

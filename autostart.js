@@ -197,7 +197,7 @@ export async function main(ns) {
 		// 	}
 
 		// Run manager on joesguns until we have all ports open
-		if ((sitrep.servers.some(s => s.ports.nuked == false) || sitrep.ram.total < 5000) && sitrep.canHackJoe) {
+		if ((sitrep.servers.some(s => s.ports.nuked == false) /*|| sitrep.ram.total < 5000*/) && sitrep.canHackJoe) {
 			let pid = ns.getRunningScript('manager.js', 'home', 'joesguns', 1, 420);
 			if (pid == undefined) {
 				ns.tprint('INFO: Starting manager.js with params [joesguns, 1]');

@@ -65,8 +65,9 @@ export async function main(ns) {
 	if (HasFormulas(ns)) {
 		columns.push(
 			{ header: ' Chance', width: 8 },
-			{ header: ' Weaken Time', width: 24 },
-			{ header: ' XP', width: 12 }
+			{ header: ' WT minSec', width: 11 },
+			{ header: ' WT curSec', width: 11 },
+			{ header: '  XP', width: 6 }
 		);
 	}
 
@@ -163,8 +164,9 @@ export async function main(ns) {
 
 			values.push(
 				hackable ? { color: pctColor(chance), text: ' ' + (Math.round(chance * 100) + '%').padStart(5) } : '',
-				hackable ? { color: 'white', text: ' ' + formatTime(weakTime).padStart(22) } : '',
-				' ' + xp.toFixed(5)
+				hackable ? { color: 'white', text: ' ' + formatTime(weakTime).replace(' minutes', 'm').replace(' seconds', 's').replace('  ', ' 0').padStart(9) } : '',
+				hackable ? { color: 'white', text: ' ' + formatTime(ns.getWeakenTime(server.name)).replace(' minutes', 'm').replace(' seconds', 's').replace('  ', ' 0').padStart(9) } : '',
+				' ' + xp.toFixed(2)
 			);
 		}
 

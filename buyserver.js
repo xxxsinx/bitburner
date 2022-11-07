@@ -4,6 +4,24 @@ import { GetSitRep } from 'sitrep.js'
 
 let MAX_SERVERS = 25;
 
+// *************************************************************************
+// **** IMPORTANT NOTES ON THIS SCRIPT'S RAM USAGE AND POSSIBLE CRASH ******
+// *************************************************************************
+//
+// This script uses Singularity, which is a subset of the API you only get
+// access to in endgame (after finishing the game for the first time).
+// Before getting acces to this, the RAM cost of those functions is severely
+// inflated and will make running this script as-is almost impossible for
+// most users unless they have some significant home ram upgrades, AND will
+// also crash even if they manage to do so.
+// Please search for the term "Singulariy" within this script and comment
+// out all the identified blocks if you are experiencing a singularity
+// related crash, or if the ram usage of this script is over 17.85GB.
+//
+// *************************************************************************
+// *************************************************************************
+// *************************************************************************
+
 /*
 USAGES:
 
@@ -11,8 +29,8 @@ buyserver (no paramters)	: Shows a price list and RAM amount, up to a power of 3
 buyserver list				: Shows a list of all purchased servers
 buyserver <name> <power>	: Buys a server of the specified name and size (size here is a power of 2, from 1-20), a confirmation will be shown
 buyserver * <power>			: Buys servers of the specified size until we either hit the MAX_SERVERS limit, or run out of cash. NO CONFIRMATION.
-buyserver loop				: Will buy servers in increasing sizes, only upgrading when said server will increase total network ram by 24% or more.
-							  Once we hit the limit, it will replace smaller servers with maximum sized servers until all servers are maxed.
+buyserver loop				: Will buy and/or upgrade servers in increasing sizes, using the most cost effective path as possible.
+buyserver upgrade			: Same as loop, but only does one loop. Will spend up to budget and die.
 buyserver delete <name>		: Delete the specified server, a confirmation will be shown.
 */
 
@@ -60,33 +78,41 @@ export async function main(ns) {
 				data.push(null);
 		}
 
-		if (ns.getServerMaxRam('home') < Math.pow(2,30)) {
-			const ram= ns.getServerMaxRam('home');
-			const cost= ns.singularity.getUpgradeHomeRamCost();
+		// *************************************************************************
+		// ****** COMMENT THE FOLLOWING BLOCK IF YOU DO NOT HAVE SINGULARITY *******
+		// *************************************************************************
+		if (ns.getServerMaxRam('home') < Math.pow(2, 30)) {
+			const ram = ns.getServerMaxRam('home');
+			const cost = ns.singularity.getUpgradeHomeRamCost();
 
 			data.push(null);
 
 			data.push([
 				{ color: 'white', text: 'Home'.padStart(9) },
-				{ color: 'white', text: `${FormatRam(ns, ram, 0)} => ${FormatRam(ns, ram*2, 0)}`.padStart(19) },
+				{ color: 'white', text: `${FormatRam(ns, ram, 0)} => ${FormatRam(ns, ram * 2, 0)}`.padStart(19) },
 				{ color: 'white', text: FormatMoney(ns, cost, 1).padStart(9) },
 				{ color: 'white', text: FormatMoney(ns, cost / ram, 0).padStart(9) },
 			]);
 		}
+		// *************************************************************************
+		// *************************************************************************
+		// *************************************************************************
 
 		PrintTable(ns, data, columns, DefaultStyle(), ColorPrint);
 
 		return;
 	}
 
-	if (ns.args[0] == 'upgrade') {
-		let sitrep = GetSitRep(ns);
-		let budget = sitrep.ramBudget ?? 0;
-		//ns.tprint('budget: ' + FormatMoney(ns, budget));
-		if (budget > 0) {
-			await SpendBudgetOnServers(ns, budget);
+	if (ns.args[0] == 'upgrade' || ns.args[0] == 'loop') {
+		while (true) {
+			let budget = GetBudget(ns);
+			//ns.tprint('budget: ' + FormatMoney(ns, budget));
+			if (budget > 0) {
+				await SpendBudgetOnServers(ns, budget);
+			}
+			if (ns.args[0] != 'loop') return;
+			await ns.sleep(10000);
 		}
-		return;
 	}
 
 	if (ns.args[0] == 'delete' && ns.args[1] == 'all') {
@@ -142,13 +168,6 @@ export async function main(ns) {
 		return;
 	}
 
-	// Auto buy servers based on gain ratio
-	if (ns.args[0] == 'loop') {
-		const once = ns.args[1] ?? false;
-		await AutoBuyPersonalServers(ns, once);
-		return;
-	}
-
 	// User wants to buy a server
 	var pow = ns.args[1];
 	var gb = Math.pow(2, pow);
@@ -158,7 +177,6 @@ export async function main(ns) {
 	if (ns.args[0] == '*') {
 		while (true) {
 			ns.tprint('Buying multiple servers (player money= ' + ns.nFormat(ns.getPlayer().money, '0.00a') + ' server cost= ' + ns.nFormat(ns.getPurchasedServerCost(gb), '0.00a') + ')');
-			var nbServers = existing.length;
 			while (ns.getPurchasedServerCost(gb) < ns.getPlayer().money && nbServers < 25) {
 				var found = false;
 				var serverName = undefined;
@@ -181,7 +199,6 @@ export async function main(ns) {
 				existing.push(serverName);
 			}
 
-			if (ns.args[2] != 'loop') break;
 			await ns.sleep(1000);
 		}
 	}
@@ -195,6 +212,11 @@ export async function main(ns) {
 		ns.tprint('Confirming transaction');
 		ns.purchaseServer(ns.args[0], gb);
 	}
+}
+
+function GetBudget(ns) {
+	let sitrep = GetSitRep(ns);
+	return sitrep.ramBudget ?? getPlayer().money;
 }
 
 function GetSoftcap(ns) {
@@ -237,6 +259,9 @@ async function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 				totalUpgradeCost += option.cost;
 				break;
 			}
+			// *************************************************************************
+			// ****** COMMENT THE FOLLOWING BLOCK IF YOU DO NOT HAVE SINGULARITY *******
+			// *************************************************************************
 			case 'home': {
 				if (ns.singularity.upgradeHomeRam()) {
 					ns.tprint('Upgrading home RAM (from ' + FormatRam(ns, option.oldSize) + ' to ' + FormatRam(ns, option.size) + ' for ' + FormatMoney(ns, option.cost) + ')');
@@ -248,6 +273,9 @@ async function SpendBudgetOnServers(ns, budget = ns.getPlayer().money) {
 				}
 				break;
 			}
+			// *************************************************************************
+			// *************************************************************************
+			// *************************************************************************
 			default: {
 				ns.tprint('FAIL: ?! Invalid buyserver option ?!');
 				break;
@@ -324,6 +352,9 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 		}
 	}
 
+	// *************************************************************************
+	// ****** COMMENT THE FOLLOWING BLOCK IF YOU DO NOT HAVE SINGULARITY *******
+	// *************************************************************************
 	if (ns.singularity.getUpgradeHomeRamCost() <= budget && ns.getServerMaxRam('home') < Math.pow(2, 30)) {
 		//ns.tprint('home upg cost is ' + FormatMoney(ns, ns.singularity.getUpgradeHomeRamCost()))
 		options.push({
@@ -335,6 +366,9 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 			costPerGb: ns.singularity.getUpgradeHomeRamCost() / ns.getServerMaxRam('home')
 		});
 	}
+	// *************************************************************************
+	// *************************************************************************
+	// *************************************************************************
 
 	options.sort(function (a, b) {
 		if (a.costPerGb != b.costPerGb) return b.costPerGb - a.costPerGb;
@@ -344,122 +378,6 @@ function GetAvailableOptions(ns, budget = ns.getPlayer().money) {
 	});
 	//ns.tprint(JSON.stringify(options, null, 2));
 	return options;
-}
-
-function GetBestUpgrade(ns) {
-	//const networkRam = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxRam(s) > 0).reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
-	const budget = ns.getServerMoneyAvailable('home');
-	const existingServers = ns.getPurchasedServers();
-	const MAX_POW = Math.log(ns.getPurchasedServerMaxRam()) / Math.log(2);
-
-	let best = undefined;
-
-	for (const server of existingServers) {
-		const currentRam = ns.getServerMaxRam(server);
-		const currentPow = Math.log(currentRam) / Math.log(2);
-
-		for (let i = MAX_POW; i > currentPow; i--) {
-			const newRam = Math.pow(2, i);
-			const upgradeCost = ns.getPurchasedServerUpgradeCost(server, newRam);
-			if (upgradeCost > budget) continue;
-			const amount = newRam - currentRam;
-
-			if (best == null || amount > best.amount) {
-				best = { server: server, amount: amount, currentRam: currentRam, newRam: newRam, cost: upgradeCost };
-			}
-		}
-	}
-
-	return best;
-}
-
-export async function AutoBuyPersonalServers(ns, once) {
-	let MAX_SERVER_POW = 20;
-	const MIN_GAIN_PCT = 0.24;
-
-	while (true) {
-		let networkRam = GetAllServers(ns).filter(s => ns.hasRootAccess(s) && ns.getServerMaxRam(s) > 0).reduce((sum, s) => sum + ns.getServerMaxRam(s), 0);
-		let money = ns.getServerMoneyAvailable('home');
-
-		let existingServers = ns.getPurchasedServers();
-
-		let boughtAnything = false;
-
-		for (let pow = MAX_SERVER_POW; pow > 2; pow--) {
-			const serverRam = Math.pow(2, pow);
-			const serverCost = ns.getPurchasedServerCost(serverRam);
-			if (serverCost == Infinity) continue;
-			if (serverCost > money) {
-				continue;
-			}
-			const gainRatio = serverRam / networkRam;
-			ns.print('INFO: Best personal server we can buy with our money right now is ' +
-				ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ' at a gain ratio of ' + Math.round(gainRatio * 100) + '%');
-
-			if (gainRatio >= MIN_GAIN_PCT || pow == MAX_SERVER_POW) {
-				// ns.tprint('Buying a new personal server...');
-				// ns.print('Buying a new personal server...');
-
-				// Upgrade smallest server if we have cash for a bigger one
-				if (existingServers.length >= MAX_SERVERS) {
-					const toUpgrade = GetBestUpgrade(ns);
-					if (toUpgrade != undefined) {
-						ns.tprint('Upgrading ' + toUpgrade.server + ' from ' + FormatRam(ns, toUpgrade.currentRam) + ' to ' + FormatRam(ns, toUpgrade.newRam) + ' for ' + FormatMoney(ns, toUpgrade.cost));
-						ns.upgradePurchasedServer(toUpgrade.server, toUpgrade.newRam);
-						LogMessage(ns, 'Upgrading ' + toUpgrade.server + ' from ' + FormatRam(ns, toUpgrade.currentRam) + ' to ' + FormatRam(ns, toUpgrade.newRam) + ' for ' + FormatMoney(ns, toUpgrade.cost));
-					}
-					else {
-						if (!once)
-							ns.tprint('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
-						ns.print('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
-						return;
-					}
-					continue;
-					// existingServers = existingServers.sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
-					// let toDelete = existingServers.pop();
-					// let smallestSize = ns.getServerMaxRam(toDelete);
-
-					// if (smallestSize < serverRam) {
-					// 	if (!once)
-					// 		ns.tprint('WARN: Server limit of ' + MAX_SERVERS + ' has been reached, deleting ' + toDelete + ' (smallest server with ' + ns.nFormat(smallestSize * 1000000000, '0.00b') + ')');
-					// 	ns.print('WARN: Server limit of ' + MAX_SERVERS + ' has been reached, deleting ' + toDelete + ' (smallest server with ' + ns.nFormat(smallestSize * 1000000000, '0.00b') + ')');
-
-					// 	ns.killall(toDelete);
-					// 	await ns.sleep(10);
-					// 	ns.deleteServer(toDelete);
-					// 	await ns.sleep(10);
-					// 	existingServers = ns.getPurchasedServers();
-					// 	await ns.sleep(10);
-					// }
-					// else {
-					// 	if (!once)
-					// 		ns.tprint('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
-					// 	ns.print('INFO: Server limit of ' + MAX_SERVERS + ' has been reached and all servers are maxed out! Job\'s done!');
-					// 	return;
-					// }
-				}
-
-				// Find a name				
-				var serverName = GetNewServerName(ns);
-				if (!serverName) break;
-
-				ns.tprint('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
-				ns.print('Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
-				LogMessage(ns, 'Buying server ' + serverName + ' (' + ns.nFormat(serverRam * 1000000000, '0.00b') + ' for ' + ns.nFormat(serverCost, '0.00a') + ')');
-				ns.purchaseServer(serverName, serverRam);
-
-				boughtAnything = true;
-				break;
-			}
-
-			break;
-		}
-
-		if (!boughtAnything && once)
-			return;
-
-		await ns.sleep(50);
-	}
 }
 
 function GetNewServerName(ns) {

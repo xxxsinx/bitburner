@@ -67,7 +67,7 @@ export async function main(ns) {
 			{ header: ' Chance', width: 8 },
 			{ header: ' WT minSec', width: 11 },
 			{ header: ' WT curSec', width: 11 },
-			{ header: '  XP', width: 6 }
+			{ header: '  XP', width: 8 }
 		);
 	}
 

@@ -216,7 +216,7 @@ export async function main(ns) {
 
 function GetBudget(ns) {
 	let sitrep = GetSitRep(ns);
-	return sitrep.ramBudget ?? getPlayer().money;
+	return sitrep.ramBudget ?? ns.getPlayer().money;
 }
 
 function GetSoftcap(ns) {

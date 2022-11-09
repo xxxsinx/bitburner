@@ -27,6 +27,22 @@ export async function main(ns) {
 		ns.exit();
 	}
 
+	if (ns.args[0] == 'test') {
+		let servers = GetAllServers(ns).filter(s => ns.getServerMaxMoney(s) > 0);
+		let player= ns.getPlayer();
+
+		for (let server of servers) {
+			let so = ns.getServer(server);
+			so.hackDifficulty = so.minDifficulty;
+			player.skills.hacking = 3000;
+			solveGrow(ns.formulas.hacking.growPercent(so, 1, player, 1), so.moneyMax / 2, so.moneyMax);
+		}
+
+		ns.tprint('WARN: Solving grow on ' + servers.length + ' servers took ' + (performance.now() - start).toFixed(0) + 'ms');
+
+		return;
+	}
+
 	// args[0] : max total network ram percentage
 	// args[1] : server name to analyze (if empty, do a full server list report)
 	let [server, maxNetworkRamPct = 1, HGW] = ns.args;

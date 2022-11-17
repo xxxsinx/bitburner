@@ -1,6 +1,6 @@
 import { Prep, IsPrepped } from "prep.js";
-import { MemoryMap } from "ram.js";
-import { RunScript, WaitPids, ServerReport } from "utils.js";
+import { RunScript, MemoryMap } from "ram.js";
+import { WaitPids, ServerReport } from "utils.js";
 
 // ns.args[0] = ram percent to allow (0.001 to 1)
 export async function main(ns) {

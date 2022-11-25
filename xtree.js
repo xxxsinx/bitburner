@@ -1,5 +1,7 @@
 import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 
+const FORCED_HACK_LEVEL= undefined;
+
 // Returns a weight that can be used to sort servers by hack desirability
 function Weight(ns, server) {
 	if (!server) return 0;
@@ -9,6 +11,7 @@ function Weight(ns, server) {
 
 	// Get the player information
 	let player = ns.getPlayer();
+	if (FORCED_HACK_LEVEL != undefined) player.skills.hacking= FORCED_HACK_LEVEL;
 
 	// Get the server information
 	let so = ns.getServer(server);
@@ -122,9 +125,10 @@ export async function main(ns) {
 		let secColor = pctColor(1 - secPct);
 
 		let cso = ns.getServer(server.name);
+		let prepped = so.hackDifficulty == so.minDifficulty && so.moneyAvailable == so.moneyMax && so.moneyMax > 0;
 		cso.hackDifficulty = cso.minDifficulty;
 		let player = ns.getPlayer();
-		let prepped = so.hackDifficulty == so.minDifficulty && so.moneyAvailable == so.moneyMax && so.moneyMax > 0;
+		if (FORCED_HACK_LEVEL != undefined) player.skills.hacking= FORCED_HACK_LEVEL;
 
 		ns.print(cso);
 

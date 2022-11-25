@@ -4,7 +4,7 @@ export async function main(ns) {
 	const [silent = false] = ns.args;
 
 	if (ns.args[0] == 'test') {
-		ns.tprint(generateIps(25318113230));
+		ns.tprint(factor3(5793264));
 		return;
 	}
 

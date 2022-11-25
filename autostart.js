@@ -142,7 +142,7 @@ export async function main(ns) {
 		await SleeveManagement(ns, karma);
 
 		// Start gangs if we have the karma for it
-		if (karma <= -54000) {
+		if (karma <= -54000 || ns.getPlayer().bitNodeN == 2) {
 			if (!sitrep.hasGang) {
 				LogMessage(ns, 'INFO: Creating gang');
 				await TryRunScript(ns, '/gang/create.js');

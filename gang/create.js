@@ -8,7 +8,7 @@ export async function main(ns) {
 	}
 
 	let karma = ns.heart.break();
-	if (karma > -54000) {
+	if (karma > -54000 && ns.getPlayer().bitNodeN != 2) {
 		ns.tprint('FAIL: We don\'t have the karma to create a gang yet! Current karma: ' + karma.toFixed(0));
 		return;
 	}

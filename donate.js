@@ -17,21 +17,42 @@ export async function main(ns) {
 
 		//ns.tprint('INFO: Maybe we should donate to ' + faction + '?');
 
-		if (sitrep.futureAugs == null) {
-			ns.tprint('FAIL: sitrep.futureAugs is null?');
-			continue;
+		// if (sitrep.futureAugs == null) {
+		// 	ns.tprint('FAIL: sitrep.futureAugs is null?');
+		// 	continue;
+		// }
+
+		let factionAugs = sitrep.futureAugs?.filter(s => s.factions.includes(faction)) ?? [];
+		if (factionAugs.length == 0) {
+			let neuro = 'NeuroFlux Governor';
+			let mult = 1.9 * [1, .96, .94, .93][ns.singularity.getOwnedSourceFiles().filter(obj => { return obj.n === 11 })[0].lvl];
+			for (let i = 0; i < 100; i++) {
+				let entry = {
+					name: neuro,
+					factions: [faction],
+					price: ns.singularity.getAugmentationPrice(neuro) * (i * 1.14 * mult),
+					rep: ns.singularity.getAugmentationRepReq(neuro) * (i * 1.14),
+					prereq: [],
+					type: 'NeuroFlux'
+				};
+
+				factionAugs.push(entry);
+			}
 		}
 
-		const factionAugs = sitrep.futureAugs.filter(s => s.factions.includes(faction));
 		//ns.tprint(JSON.stringify(factionAugs));
 		const factionRep = ns.singularity.getFactionRep(faction);
 
 		let tobuy = 0;
 		for (const aug of factionAugs) {
 			let missing = aug.rep - factionRep;
+			//ns.tprint(missing);
+			if (missing <= 0) continue;
 			if (missing < tobuy || tobuy == 0)
 				tobuy = missing;
 		}
+
+		ns.tprint(tobuy);
 
 		if (tobuy > 0) {
 			let cost = (tobuy * (10 ** 6)) / ns.getPlayer().mults.faction_rep;

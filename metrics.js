@@ -256,57 +256,57 @@ export class Metrics {
 		this.UpdateMetrics(ns);
 	}
 
-	Report(ns, printfunc = ns.print, minimalist = false) {
+	Report(ns, minimalist = false) {
 		if (minimalist) {
 			let pct = Math.round(this.pct * 100).toString() + '%';
 			let threads = this.threads.toString();
 			let cps = FormatMoney(ns, Math.ceil(this.batchMoney * this.maxRunnableBatches / (this.batchTime / 1000)));
 			let ram = ns.nFormat(Math.ceil(this.maxRunnableBatches * this.batchRam) * 1000000000, '0.00b');
 			let batchRam = ns.nFormat(Math.ceil(this.batchRam) * 1000000000, '0.00b');
-			printfunc(pct.padEnd(6) + threads.padEnd(20) + cps.padEnd(12) + ram.padEnd(12) + batchRam.padEnd(12));
+			ns.print(pct.padEnd(6) + threads.padEnd(20) + cps.padEnd(12) + ram.padEnd(12) + batchRam.padEnd(12));
 			return;
 		}
 
-		printfunc('┌─────────────────────────────────────────────────────┐');
+		ns.print('┌─────────────────────────────────────────────────────┐');
 		let line = 'Metrics for ' + this.server + ' skimming ' + Math.round(this.pct * 100) + '%';
-		printfunc('│ ' + line.padStart(52 / 2 + line.length / 2).padEnd(52) + '│');
-		printfunc('├─────────────────────────────────────────────────────┤');
+		ns.print('│ ' + line.padStart(52 / 2 + line.length / 2).padEnd(52) + '│');
+		ns.print('├─────────────────────────────────────────────────────┤');
 		line = 'RAM                     :  ' + ns.nFormat(Math.ceil(this.batchRam) * 1000000000, '0.00b');
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = '$                       :  ' + FormatMoney(ns, this.batchMoney);
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = 'Time                    :  ' + ns.tFormat(this.batchTime);
-		printfunc('├─────────────────────────────────────────────────────┤');
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('├─────────────────────────────────────────────────────┤');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = 'Max Count               :  ' + this.maxBatches;
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = '$/RAM                   :  ' + FormatMoney(ns, this.moneyPerRam);
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = 'Max in allowed ram      :  ' + this.maxRunnableBatches;
-		printfunc('│ ' + line.padEnd(52) + '│');
-		printfunc('├─────────────────────────────────────────────────────┤');
+		ns.print('│ ' + line.padEnd(52) + '│');
+		ns.print('├─────────────────────────────────────────────────────┤');
 		line = 'Cycle profit            :  ' + FormatMoney(ns, this.batchMoney * this.maxRunnableBatches);
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = 'Cycle RAM               :  ' + ns.nFormat(Math.ceil(this.maxRunnableBatches * this.batchRam) * 1000000000, '0.00b');
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = '$/s                     :  ' + FormatMoney(ns, Math.ceil(this.batchMoney * this.maxRunnableBatches / (this.batchTime / 1000)));
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 
-		printfunc('├─────────────────────────────────────────────────────┤');
+		ns.print('├─────────────────────────────────────────────────────┤');
 		if (HGW_MODE) {
-			printfunc('│ ' + ('HGW threads : ' + this.threads).padEnd(52) + '│');
-			printfunc('│ ' + ('HGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
-			printfunc('│ ' + ('HGW delays  : ' + this.delays).padEnd(52) + '│');
-			printfunc('│ ' + ('HGW ends    : ' + this.ends).padEnd(52) + '│');
+			ns.print('│ ' + ('HGW threads : ' + this.threads).padEnd(52) + '│');
+			ns.print('│ ' + ('HGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
+			ns.print('│ ' + ('HGW delays  : ' + this.delays).padEnd(52) + '│');
+			ns.print('│ ' + ('HGW ends    : ' + this.ends).padEnd(52) + '│');
 		}
 		else {
-			printfunc('│ ' + ('HWGW threads : ' + this.threads).padEnd(52) + '│');
-			printfunc('│ ' + ('HWGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
-			printfunc('│ ' + ('HWGW delays  : ' + this.delays).padEnd(52) + '│');
-			printfunc('│ ' + ('HWGW ends    : ' + this.ends).padEnd(52) + '│');
+			ns.print('│ ' + ('HWGW threads : ' + this.threads).padEnd(52) + '│');
+			ns.print('│ ' + ('HWGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
+			ns.print('│ ' + ('HWGW delays  : ' + this.delays).padEnd(52) + '│');
+			ns.print('│ ' + ('HWGW ends    : ' + this.ends).padEnd(52) + '│');
 		}
 
-		printfunc('└─────────────────────────────────────────────────────┘');
+		ns.print('└─────────────────────────────────────────────────────┘');
 	}
 
 	UpdateMetrics(ns) {
@@ -486,33 +486,33 @@ export class SequentialMetrics {
 		this.UpdateMetrics(ns);
 	}
 
-	Report(ns, printfunc = ns.print, minimalist = false) {
+	Report(ns, minimalist = false) {
 		if (minimalist) {
 			let pct = Math.round(this.pct * 100).toString() + '%';
 			let threads = this.threads.toString();
 			let cps = FormatMoney(ns, Math.ceil(this.cycleMoney / (this.cycleTime / 1000)));
 			let ram = ns.nFormat(this.maxRam * 1000000000, '0.00b');
-			printfunc(pct.padEnd(6) + threads.padEnd(20) + cps.padEnd(12) + ram.padEnd(12));
+			ns.print(pct.padEnd(6) + threads.padEnd(20) + cps.padEnd(12) + ram.padEnd(12));
 			return;
 		}
 
-		printfunc('┌─────────────────────────────────────────────────────┐');
+		ns.print('┌─────────────────────────────────────────────────────┐');
 		let line = 'Sequential Metrics for ' + this.server + ' skimming ' + Math.round(this.pct * 100) + '%';
-		printfunc('│ ' + line.padStart(52 / 2 + line.length / 2).padEnd(52) + '│');
-		printfunc('├─────────────────────────────────────────────────────┤');
+		ns.print('│ ' + line.padStart(52 / 2 + line.length / 2).padEnd(52) + '│');
+		ns.print('├─────────────────────────────────────────────────────┤');
 		line = 'RAM                     :  ' + ns.nFormat(Math.ceil(this.maxRam) * 1000000000, '0.00b');
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = '$                       :  ' + FormatMoney(ns, this.cycleMoney);
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 		line = 'Time                    :  ' + ns.tFormat(this.cycleTime);
-		printfunc('├─────────────────────────────────────────────────────┤');
+		ns.print('├─────────────────────────────────────────────────────┤');
 		line = '$/s                     :  ' + FormatMoney(ns, Math.ceil(this.cycleMoney / (this.cycleTime / 1000)));
-		printfunc('│ ' + line.padEnd(52) + '│');
+		ns.print('│ ' + line.padEnd(52) + '│');
 
-		printfunc('├─────────────────────────────────────────────────────┤');
-		printfunc('│ ' + ('HWGW threads : ' + this.threads).padEnd(52) + '│');
-		printfunc('│ ' + ('HWGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
-		printfunc('└─────────────────────────────────────────────────────┘');
+		ns.print('├─────────────────────────────────────────────────────┤');
+		ns.print('│ ' + ('HWGW threads : ' + this.threads).padEnd(52) + '│');
+		ns.print('│ ' + ('HWGW times   : ' + this.times.map(p => Math.ceil(p))).padEnd(52) + '│');
+		ns.print('└─────────────────────────────────────────────────────┘');
 	}
 
 	UpdateMetrics(ns) {

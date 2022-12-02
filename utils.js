@@ -55,7 +55,7 @@ export function GetServerPath(ns, server) {
 	return path;
 }
 
-export function ServerReport(ns, server, metrics = undefined, printfunc = ns.print) {
+export function ServerReport(ns, server, metrics = undefined) {
 	// Get server object for this server
 	var so = ns.getServer(server);
 
@@ -66,19 +66,19 @@ export function ServerReport(ns, server, metrics = undefined, printfunc = ns.pri
 	// hack threads
 	const thack = Math.ceil(ns.hackAnalyzeThreads(server, so.moneyAvailable));
 
-	printfunc('┌─────────────────────────────────────────────────────┐');
-	printfunc('│ ' + server.padStart(52 / 2 + server.length / 2).padEnd(52) + '│');
-	printfunc('├─────────────────────────────────────────────────────┤');
-	printfunc('│ ' + ('Money        : ' + ns.nFormat(so.moneyAvailable, "$0.000a") + ' / ' + ns.nFormat(so.moneyMax, "$0.000a") + ' (' + (so.moneyAvailable / so.moneyMax * 100).toFixed(2) + '%)').padEnd(52) + '│');
-	printfunc('│ ' + ('Security     : ' + (so.hackDifficulty - so.minDifficulty).toFixed(2) + ' min= ' + so.minDifficulty.toFixed(2) + ' current= ' + so.hackDifficulty.toFixed(2)).padEnd(52) + '│');
-	printfunc('├─────────────────────────────────────────────────────┤');
-	printfunc('│ ' + ('Weaken time  : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4) + ' (t=' + tweaken + ')').padEnd(52) + '│');
-	printfunc('│ ' + ('Grow         : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2) + ' (t=' + tgrow + ')').padEnd(52) + '│');
-	printfunc('│ ' + ('Hack         : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer())) + ' (t=' + thack + ')').padEnd(52) + '│');
-	printfunc('└─────────────────────────────────────────────────────┘');
+	ns.print('┌─────────────────────────────────────────────────────┐');
+	ns.print('│ ' + server.padStart(52 / 2 + server.length / 2).padEnd(52) + '│');
+	ns.print('├─────────────────────────────────────────────────────┤');
+	ns.print('│ ' + ('Money        : ' + ns.nFormat(so.moneyAvailable, "$0.000a") + ' / ' + ns.nFormat(so.moneyMax, "$0.000a") + ' (' + (so.moneyAvailable / so.moneyMax * 100).toFixed(2) + '%)').padEnd(52) + '│');
+	ns.print('│ ' + ('Security     : ' + (so.hackDifficulty - so.minDifficulty).toFixed(2) + ' min= ' + so.minDifficulty.toFixed(2) + ' current= ' + so.hackDifficulty.toFixed(2)).padEnd(52) + '│');
+	ns.print('├─────────────────────────────────────────────────────┤');
+	ns.print('│ ' + ('Weaken time  : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4) + ' (t=' + tweaken + ')').padEnd(52) + '│');
+	ns.print('│ ' + ('Grow         : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2) + ' (t=' + tgrow + ')').padEnd(52) + '│');
+	ns.print('│ ' + ('Hack         : ' + ns.tFormat(ns.formulas.hacking.hackTime(so, ns.getPlayer())) + ' (t=' + thack + ')').padEnd(52) + '│');
+	ns.print('└─────────────────────────────────────────────────────┘');
 
 	if (metrics != undefined) {
-		metrics.Report(ns, printfunc);
+		metrics.Report(ns);
 	}
 }
 

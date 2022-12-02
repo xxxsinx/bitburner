@@ -177,6 +177,7 @@ export async function main(ns) {
 	if (ns.args[0] == '*') {
 		while (true) {
 			ns.tprint('Buying multiple servers (player money= ' + ns.nFormat(ns.getPlayer().money, '0.00a') + ' server cost= ' + ns.nFormat(ns.getPurchasedServerCost(gb), '0.00a') + ')');
+			let nbServers= ns.getPurchasedServers().length;
 			while (ns.getPurchasedServerCost(gb) < ns.getPlayer().money && nbServers < 25) {
 				var found = false;
 				var serverName = undefined;

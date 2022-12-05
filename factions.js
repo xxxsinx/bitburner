@@ -74,6 +74,8 @@ function PlanedAugsFilter(ns, aug, sitRep) {
 		return false;
 	}
 
+	if (aug.name.startsWith('NeuroFlux')) return false;
+
 	return true;
 }
 
@@ -106,7 +108,7 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 		});
 
 		// if (aug.name == 'Cranial Signal Processors - Gen II') {
-		// 	ns.tprint('choices: ' + JSON.stringify(choices));
+		//ns.tprint('choices: ' + JSON.stringify(choices));
 		// }
 		if (choices.length == 0) {
 			choices = factions.filter(s => aug.factions.includes(s) && (!GotAllUniques(ns, s, balance) || DaemonMode(ns)) || aug.factions.some(a => ns.getPlayer().factions.includes(a))).map(s => {
@@ -118,7 +120,7 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 			});
 		}
 		// if (aug.name == 'Cranial Signal Processors - Gen II') {
-		// 	ns.tprint('choices: ' + JSON.stringify(choices));
+		//ns.tprint('choices: ' + choices.map(s => s.name));
 		// }
 
 		choices.sort(function (a, b) {
@@ -129,7 +131,7 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 			return b.rep - a.rep;
 		});
 
-		//ns.tprint('WARN: choices: ' + choices.map(s=>s.name));
+		ns.tprint('WARN: choices: ' + choices.map(s => s.name));
 
 		//ns.tprint(choices);
 
@@ -142,12 +144,13 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 		}
 		else {
 			for (let j = 0; j < choices.length; j++) {
-				//ns.tprint(choices[j].name);
+				//ns.tprint(ns.getPlayer().factions);
 				if (ns.getPlayer().factions.includes(choices[j].name) || ns.singularity.checkFactionInvitations().includes(choices[j].name) || choices[j].name == 'Tian Di Hui') {
 					targetFactions.add(choices[j].name);
-					break;
+					//break;
 				}
 			}
+			ns.tprint('FAIL: targets: ' + [...targetFactions]);
 			if (targetFactions.length == 0)
 				targetFactions.add(choices[0].name);
 		}
@@ -158,6 +161,8 @@ function PrioritizeFactions(ns, fullbalance, suggested) {
 		// 	}
 		// }
 	}
+
+	ns.tprint('WARN: targets: ' + [...targetFactions]);
 
 	// let nextUnique = undefined;
 	// for (let i = balance.length - 1; i >= 0; i--) {

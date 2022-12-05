@@ -19,6 +19,7 @@ let LEECH = [];
 export async function main(ns) {
 	LEECH = [];
 	for (let i = 0.05; i < 1; i += 0.05) LEECH.push(i);
+	LEECH.push(1);
 
 	let start = performance.now();
 

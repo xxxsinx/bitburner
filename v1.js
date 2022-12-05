@@ -61,7 +61,7 @@ async function Exploit(ns, server, pct, xpMode) {
 		let growThreads = Math.ceil(ns.growthAnalyze(server, maxMoney / money));
 
 		// Hacking (limited by pct)
-		let hackThreads = Math.floor(ns.hackAnalyzeThreads(server, money) * pct);
+		let hackThreads = Math.floor(ns.hackAnalyzeThreads(server, money * pct));
 
 		if (xpMode) {
 			if (weakenThreads > 0) weakenThreads = Infinity;
@@ -85,7 +85,7 @@ async function Exploit(ns, server, pct, xpMode) {
 		if ((xpMode || (sec > minSec + MAX_SECURITY_DRIFT)) && weakenThreads > 0) {
 			// We need to lower security
 			ns.print('WARN: ***WEAKENING*** Security is over threshold, we need ' + weakenThreads + ' threads to floor it');
-			let pids = await RunScript(ns, 'weaken-once.script', server, weakenThreads, hackedOnce);
+			let pids = await RunScript(ns, 'v1weaken.js', server, weakenThreads, hackedOnce);
 
 			if (pids.length > 0 && pids.find(s => s != 0))
 				startedAnything = true;
@@ -96,7 +96,7 @@ async function Exploit(ns, server, pct, xpMode) {
 		else if ((money < maxMoney - maxMoney * MAX_MONEY_DRIFT_PCT && growThreads > 0) || xpMode) {
 			// We need to grow the server
 			ns.print('WARN: ***GROWING*** Money is getting low, we need ' + growThreads + ' threads to max it');
-			let pids = await RunScript(ns, 'grow-once.script', server, growThreads, hackedOnce);
+			let pids = await RunScript(ns, 'v1grow.js', server, growThreads, hackedOnce);
 
 			if (pids.length > 0 && pids.find(s => s != 0))
 				startedAnything = true;
@@ -110,7 +110,7 @@ async function Exploit(ns, server, pct, xpMode) {
 		else if (hackThreads > 0) {
 			// Server is ripe for hacking
 			ns.print('WARN: ***HACKING*** Server is ripe for hacking, hitting our target would require ' + hackThreads + ' threads');
-			let pids = await RunScript(ns, 'hack-once.script', server, hackThreads, hackedOnce);
+			let pids = await RunScript(ns, 'v1hack.js', server, hackThreads, hackedOnce);
 
 			if (pids.length > 0 && pids.find(s => s != 0))
 				startedAnything = true;
@@ -223,7 +223,7 @@ async function RunScript(ns, scriptName, target, threads, hackedOnce) {
 }
 
 async function CreateScript(ns, command) {
-	await ns.write(command + '-once.script', command + '(args[0])', 'w');
+	await ns.write('v1' + command + '.js', 'export async function main(ns) { await ns.' + command + '(ns.args[0]) }', 'w');
 }
 
 function RecursiveScan(ns, root = 'home', found = []) {

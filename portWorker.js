@@ -16,7 +16,7 @@ export async function main(ns) {
 	await ns.sleep(delay);
 
 	// We make sure security and hacking level are where we want them to be
-	const portData = JSON.parse(ns.readPort(port));
+	const portData = JSON.parse(ns.peek(port));
 	if (portData.security != expectedSecurity) {
 		ns.tprint('FAIL: Security is ' + portData.security + ' expected ' + expectedSecurity + ' aborting!');
 		return;

@@ -1,5 +1,7 @@
 /** @param {NS} ns */
 export async function main(ns) {
+	ns.disableLog('ALL');
+
 	const triggerPort = ns.getPortHandle(10);
 	const pullPort = ns.getPortHandle(20);
 
@@ -14,25 +16,25 @@ export async function main(ns) {
 		else
 			await ns.sleep(0);
 		const command = triggerPort.read();
-		ns.tprint('INFO: Command: ' + command);
+		//ns.tprint('INFO: Command: ' + command);
 
-		let reply = '';
-		if (command == 'weaken') {
-			let promise = ns.weaken('joesguns');
-			let started = performance.now();
-			await promise.then(function () {
-				let elapsed = performance.now() - started;
-				reply = command + ' finished in ' + elapsed.toFixed(2) + 'ms';
-			}, function () {
-				reply = 'Could not run ' + command;
-			});
-		}
-		else {
-			reply = 'Invalid request ' + command;
-		}
+		let reply = command;
+		// if (command == 'weaken') {
+		// 	//let promise = ns.weaken('joesguns');
+		// 	let started = performance.now();
+		// 	//await promise.then(function () {
+		// 		let elapsed = performance.now() - started;
+		// 		reply = command; //command + ' finished in ' + elapsed.toFixed(2) + 'ms';
+		// 	//}, function () {
+		// 	// 	reply = 'Could not run ' + command;
+		// 	// });
+		// }
+		// else {
+		// 	reply = 'Invalid request ' + command;
+		// }
 
 		// Reply to the puller
-		ns.tprint('INFO: Sending: ' + reply);
+		//ns.tprint('INFO: Sending: ' + reply);
 		pullPort.write(reply);
 	}
 }

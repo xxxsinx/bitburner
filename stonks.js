@@ -352,7 +352,7 @@ function UpdateHud(ns, totalWorth) {
 		}
 
 		headers.push('Total worth: ');
-		values.push(ns.nFormat(totalWorth, "$0.000a"));
+		values.push(FormatMoney(ns, totalWorth));
 
 		hook0.innerText = headers.join(" \n");
 		hook1.innerText = values.join("\n");

@@ -1,6 +1,7 @@
 import { pctColor, PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
+import { GetSymbolFromServer } from 'utils.js'
 
-const FORCED_HACK_LEVEL= undefined;
+const FORCED_HACK_LEVEL = undefined;
 
 // Returns a weight that can be used to sort servers by hack desirability
 function Weight(ns, server) {
@@ -11,7 +12,7 @@ function Weight(ns, server) {
 
 	// Get the player information
 	let player = ns.getPlayer();
-	if (FORCED_HACK_LEVEL != undefined) player.skills.hacking= FORCED_HACK_LEVEL;
+	if (FORCED_HACK_LEVEL != undefined) player.skills.hacking = FORCED_HACK_LEVEL;
 
 	// Get the server information
 	let so = ns.getServer(server);
@@ -51,7 +52,6 @@ export async function main(ns) {
 	}
 
 	const spacer = 1;
-	await GetSymbolAssociations(ns, servers);
 
 	const columns = [
 		{ header: ' Servers', width: hackingOnly ? Math.max(...servers.map(s => s.name.length)) + 2 : 48 },
@@ -128,7 +128,7 @@ export async function main(ns) {
 		let prepped = so.hackDifficulty == so.minDifficulty && so.moneyAvailable == so.moneyMax && so.moneyMax > 0;
 		cso.hackDifficulty = cso.minDifficulty;
 		let player = ns.getPlayer();
-		if (FORCED_HACK_LEVEL != undefined) player.skills.hacking= FORCED_HACK_LEVEL;
+		if (FORCED_HACK_LEVEL != undefined) player.skills.hacking = FORCED_HACK_LEVEL;
 
 		ns.print(cso);
 
@@ -148,9 +148,11 @@ export async function main(ns) {
 
 		let weight = shortlist.length > 0 ? Weight(ns, server.name) / Weight(ns, shortlist[shortlist.length - 1].name) : 0;
 
+		let sym = GetSymbolFromServer(ns, server.name);
+
 		let values = [
 			{ color: 'white', text: ' ' + (hackingOnly ? '' : prefix) + server.name },
-			{ color: 'white', text: server.sym ? ' ' + server.sym.padEnd(5) : ''.padStart(5) },
+			{ color: 'white', text: ' ' + sym.padEnd(5) },
 			{ color: maxRam > 0 ? freeRamColor : 'Grey', text: ' ' + freeRamString.padStart(7) + (maxRam == 0 ? ' ' : '/') + ramString.padStart(7) + ' ' + ramPct.padStart(4) },
 			{ color: moneyMax > 0 ? moneyColor : 'Grey', text: moneyString + (moneyMax > 0 ? '/' : ' ') + maxMoneyString + moneyPct.padStart(5) },
 			hackable ? { color: secColor, text: moneyMax > 0 ? (sec - minSec).toFixed(2).padStart(6) : ''.padEnd(6) } : '',
@@ -238,86 +240,6 @@ export function GetAllServers(ns, root = 'home', found = new Array(), route = ne
 	}
 
 	return [...found];
-}
-
-export async function GetSymbolAssociations(ns, servers) {
-	let data = [];
-
-	// Load symbols if we already have them
-	const filename = 'symbol-servers.txt';
-	if (ns.fileExists(filename)) {
-		data = JSON.parse(await ns.read(filename));
-	}
-
-	if (data.length == 0) {
-		// Get source code enum data
-		await ns.wget('https://raw.githubusercontent.com/danielyxie/bitburner/master/src/Locations/data/LocationNames.ts', 'locations.txt');;
-		await ns.wget('https://raw.githubusercontent.com/danielyxie/bitburner/master/src/StockMarket/data/StockSymbols.ts', 'stocksymbols.txt');
-
-		let location = "";
-		let company = "";
-		let locations = ns.read('locations.txt');
-		let locationMap = {};
-		for (let line of locations.split("\n")) {
-			if (line.includes('=')) {
-				location = line.split(" = ")[0];
-				company = line.split(" = ")[1];
-				while (company.includes('"')) { company = company.replace('"', '').replace(",", ""); }
-				while (location.includes(' ')) { location = location.replace(' ', ''); }
-			}
-			locationMap[location] = company;
-		}
-
-		let companies = ns.read('stocksymbols.txt');
-		for (let line of companies.split("\n")) {
-			let location;
-			let sym;
-			let serverName;
-
-			if (line.includes("LocationName")) {
-				for (let line2 of Object.keys(locationMap)) {
-					if (line2.length > 3 && line.includes(line2)) {
-						location = locationMap[line2];
-						sym = line.split("=")[1].replace(";", "").replace('\"', '').replace('\"', '').replace(' ', '');
-					}
-				}
-			} else {
-				if (line.includes("StockSymbols") && !line.includes("LocationName") && !line.includes("export")) {
-					location = line.substring(14, line.indexOf(']') - 1);
-					sym = line.substring(line.indexOf('=') + 3, line.length - 2);
-				}
-			}
-
-			for (let server of servers) {
-				let so = ns.getServer(server.name);
-				if (so.organizationName == location)
-					serverName = server.name;
-			}
-
-			if (location != undefined && serverName != undefined) {
-				data.push({ location: location, sym: sym, server: serverName });
-			}
-		}
-
-		// Remove temporary files
-		ns.rm('locations.txt');
-		ns.rm('stocksymbols.txt');
-
-		// Save data to a file so we don't need to fetch every time
-		await ns.write(filename, JSON.stringify(data));
-	}
-
-	// Assign symbols to our server list
-	for (let server of servers) {
-		let match = data.find(s => s.server == server.name);
-		if (match != undefined)
-			server.sym = match.sym;
-		else
-			server.sym = '';
-	}
-
-	// Future use maybe?
-	return data;
 }
 
 export function HasFormulas(ns) {

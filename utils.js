@@ -131,3 +131,13 @@ export function LogMessage(ns, message) {
 	let log = '[' + date.padStart(10) + ' ' + time.padStart(11) + '] ' + message + '\n';
 	ns.write('nodelog.txt', log, 'a');
 }
+
+export function GetServerFromSymbol(ns, sym) {
+	const org = ns.stock.getOrganization(sym);
+	return GetAllServers(ns).find(s => ns.getServer(s).organizationName == org) ?? '';
+}
+
+export function GetSymbolFromServer(ns, server) {
+	const org = ns.getServer(server).organizationName;
+	return ns.stock.getSymbols().find(s => ns.stock.getOrganization(s) == org) ?? '';
+}

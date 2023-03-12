@@ -17,14 +17,12 @@ export async function main(ns) {
     for (const obj of objects) {
         if (!player && typeof obj.whoAmI === "function" && obj.whoAmI() === "Player") {
             player = obj;
-        } else if (!router && typeof obj.toDevMenu === "function") {
+        } else if (!router && typeof obj.toPage === "function") {
             router = obj;
         }
         if (player && router) { break; }
     }
 
-    // ns.tprint('Player: ' + player);
-    // ns.tprint('Router: ' + router);
-
-    if (router) router.toDevMenu();
+    
+    if (router) router.toPage("Dev");
 }

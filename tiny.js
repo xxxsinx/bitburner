@@ -124,40 +124,42 @@ async function BatchPrep(ns, server) {
 	ns.print('WARN: Security is ' + ns.getServerSecurityLevel(server) + ' min: ' + ns.getServerMinSecurityLevel(server));
 	ns.print('WARN: Money is ' + ns.getServerMoneyAvailable(server) + ' max: ' + ns.getServerMaxMoney(server));
 
-	const so = ns.getServer(server);
-	const player = ns.getPlayer();
+	while (!IsPrepped(ns, server)) {
+		const so = ns.getServer(server);
+		const player = ns.getPlayer();
 
-	let security = so.hackDifficulty - so.minDifficulty;
+		let security = so.hackDifficulty - so.minDifficulty;
 
-	let gthreads = ns.formulas.hacking.growThreads(so, player, so.moneyMax);
-	const gtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
+		let gthreads = ns.formulas.hacking.growThreads(so, player, so.moneyMax);
+		const gtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
 
-	let w1threads = Math.ceil(security / 0.05);
-	const wtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4;
+		let w1threads = Math.ceil(security / 0.05);
+		const wtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4;
 
-	let w2threads = Math.ceil((gthreads * 0.004) / 0.05);
+		let w2threads = Math.ceil((gthreads * 0.004) / 0.05);
 
-	const allPids = [];
+		const allPids = [];
 
-	if (w1threads > 0) {
-		ns.print('INFO: Security is over minimum, starting ' + w1threads + ' threads to floor it');
-		const pids = RunScript(ns, 'tinyweaken.js', server, 0, w1threads);
-		allPids.push(...pids);
+		if (w1threads > 0) {
+			ns.print('INFO: Security is over minimum, starting ' + w1threads + ' threads to floor it');
+			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w1threads);
+			allPids.push(...pids);
+		}
+
+		if (gthreads > 0) {
+			ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
+			const pids = RunScript(ns, 'tinygrow.js', server, ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 0.8, gthreads);
+			allPids.push(...pids);
+		}
+
+		if (w2threads > 0) {
+			ns.print('INFO: We launched grow threads, starting ' + w2threads + ' weaken threads to cancel them it');
+			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w2threads);
+			allPids.push(...pids);
+		}
+
+		await WaitPids(ns, allPids);
 	}
-
-	if (gthreads > 0) {
-		ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
-		const pids = RunScript(ns, 'tinygrow.js', server, ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 0.8, gthreads);
-		allPids.push(...pids);
-	}
-
-	if (w2threads > 0) {
-		ns.print('INFO: We launched grow threads, starting ' + w2threads + ' weaken threads to cancel them it');
-		const pids = RunScript(ns, 'tinyweaken.js', server, 0, w2threads);
-		allPids.push(...pids);
-	}
-
-	await WaitPids(ns, allPids);
 }
 
 async function WaitPids(ns, pids) {
@@ -165,7 +167,7 @@ async function WaitPids(ns, pids) {
 	while (pids.some(p => ns.getRunningScript(p) != undefined)) { await ns.sleep(5); }
 }
 
-function RunScript(ns, scriptName, target, delay, threads, allowPartial= false) {
+function RunScript(ns, scriptName, target, delay, threads, allowPartial = false) {
 	// Find all servers
 	const snap = RamSnapshot(ns);
 

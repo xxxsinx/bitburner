@@ -1,6 +1,6 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-	ns.tprint(GetServerPath(ns, 'run4theh111z'));
+	//ns.tprint(GetServerPath(ns, 'run4theh111z'));
 
 	//ns.tprint(HasFormulas(ns));
 
@@ -32,7 +32,48 @@ export async function main(ns) {
 	// ns.tprint(FormatMoney(ns, 1e60));
 	// ns.tprint(FormatMoney(ns, 1e63));
 	// ns.tprint(FormatMoney(ns, 1e66));
+
+	// let servers= discoverServers(ns);
+	// ns.tprint(servers.length + ' ' + servers);
+
+
+	//const s= t=>[t,...ns.scan(t).flatMap(z=>t !=='home' && s)]
+	//const z=t=>[t,...ns.scan(t).slice(t!='home').flatMap(z)]
+	// let servers= z('home')
+	// ns.tprint(servers.length + ' ' + servers);
+
+
+	// let servers = z('home');
+	// ns.tprint(servers.length + ' ' + servers);
+
+	// let servers2 = GetAllServers(ns);
+	// ns.tprint(servers2.length + ' ' + servers);
+
+
+	// ns.tprint(servers2.map(s=>servers.includes(s) ? `${s} is on both lists` : `${s} is MISSING`).join("\n"))
+
+	const path= GetServerPath(ns, 'rho-construction');
+	ns.tprint(path.join(';connect '));
+
+
 }
+
+
+export const discoverServers2 = (ns, servers = ["home"]) => servers.forEach(s => servers.push(...ns.scan(s).slice(s === "home" ? 0 : 1))) && servers;
+
+// Function to discover available servers on the network
+export function discoverServers(ns) {
+	const discoveredServers = ["home"]; // Initialize with "home" as the first entry
+
+	// Loop through discovered servers to discover child servers
+	for (const server of discoveredServers) {
+		discoveredServers.push(...ns.scan(server).slice(server === "home" ? 0 : 1));
+	}
+
+	// Return the list of discovered servers
+	return discoveredServers;
+}
+
 
 // Iterative network scan
 export function GetAllServers(ns) {

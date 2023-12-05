@@ -97,14 +97,14 @@ async function BatchPrep(ns, server) {
 	}
 
 	if (gthreads > 0) {
-		await ns.sleep(30);
+		//await ns.sleep(30);
 		ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
 		const pids = await RunScript(ns, 'grow-once.js', gthreads, [server, 0, gtime, performance.now(), 0], true, true);
 		allPids.push(...pids);
 	}
 
 	if (w2threads > 0) {
-		await ns.sleep(30);
+		//await ns.sleep(30);
 		ns.print('INFO: We launched grow threads, starting ' + w2threads + ' weaken threads to cancel them it');
 		const pids = await RunScript(ns, 'weaken-once.js', w2threads, [server, 0, wtime, performance.now(), 0], true, true);
 		allPids.push(...pids);

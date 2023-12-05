@@ -86,7 +86,7 @@ export async function main(ns) {
 			await TryRunScript(ns, 'programs.js', [true]);
 		}
 
-		if (sitrep.servers.some(s => s.ports.open < s.ports.open.required) || // Check if we have servers who need cracking
+		if (sitrep.servers.some(s => s.ports.open < s.ports.needed) || // Check if we have servers who need cracking
 			sitrep.servers.some(s => s.ports.nuked == false)) { // Check if we have servers that need nuking
 			// Buy programs, run programs, nuke
 			await TryRunScript(ns, 'breach.js', [true]);

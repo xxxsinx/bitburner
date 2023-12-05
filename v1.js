@@ -133,7 +133,7 @@ function MemoryReport(ns) {
 	let free = 0;
 	let used = 0;
 	let total = 0;
-	for (const server of servers) {
+	for (const server of servers.filter(s => server.hasRootAccess)) {
 		total += ns.getServerMaxRam(server);
 		used += ns.getServerUsedRam(server);
 		free = total - used;

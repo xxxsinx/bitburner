@@ -150,6 +150,10 @@ export async function main(ns) {
 
 		let sym = GetSymbolFromServer(ns, server.name);
 
+		//ns.tprint(so.requiredHackingSkill ?? 0);
+
+		let req= so.requiredHackingSkill ?? 0;
+
 		let values = [
 			{ color: 'white', text: ' ' + (hackingOnly ? '' : prefix) + server.name },
 			{ color: 'white', text: ' ' + sym.padEnd(5) },
@@ -157,7 +161,7 @@ export async function main(ns) {
 			{ color: moneyMax > 0 ? moneyColor : 'Grey', text: moneyString + (moneyMax > 0 ? '/' : ' ') + maxMoneyString + moneyPct.padStart(5) },
 			hackable ? { color: secColor, text: moneyMax > 0 ? (sec - minSec).toFixed(2).padStart(6) : ''.padEnd(6) } : '',
 			hackable ? { color: 'white', text: ' ' + Math.round(so.minDifficulty).toString().padStart(4) } : '',
-			{ color: hackReqColor, text: ' ' + so.requiredHackingSkill.toString().padStart(5) },
+			{ color: hackReqColor, text: ' ' + req.toString().padStart(5) },
 			hackable ? { color: prepped ? 'lime' : 'Grey', text: prepped ? '   Yes' : '    -' } : '',
 			weight ? { color: 'white', text: ' ' + (weight).toFixed(0) } : ''
 		];

@@ -4,24 +4,19 @@ export async function main(ns) {
 	const [target = 'n00dles', pct = 0.05] = ns.args;
 
 	// Create the worker scripts on the current server
-	if (!ns.fileExists('tinyhack.js', 'home') || target == 'reset')
-		CreateScript(ns, 'hack');
-	if (!ns.fileExists('tinygrow.js', 'home') || target == 'reset')
-		CreateScript(ns, 'grow');
-	if (!ns.fileExists('tinyweaken.js', 'home') || target == 'reset')
-		CreateScript(ns, 'weaken');
+	if (!ns.fileExists('tinyhack.js', 'home') || target == 'reset') CreateScript(ns, 'hack');
+	if (!ns.fileExists('tinygrow.js', 'home') || target == 'reset')	CreateScript(ns, 'grow');
+	if (!ns.fileExists('tinyweaken.js', 'home') || target == 'reset') CreateScript(ns, 'weaken');
 
 	// Copy worker scripts to all the servers
 	for (const server of GetAllServers(ns)) {
 		if (server == 'home') continue; // we skip home since it's the source
-		if (!ns.fileExists('tinyhack.js', server) || target == 'reset')
-			ns.scp('tinyhack.js', server);
-		if (!ns.fileExists('tinygrow.js', server) || target == 'reset')
-			ns.scp('tinygrow.js', server);
-		if (!ns.fileExists('tinyweaken.js', server) || target == 'reset')
-			ns.scp('tinyweaken.js', server);
+		if (!ns.fileExists('tinyhack.js', server) || target == 'reset') ns.scp('tinyhack.js', server);
+		if (!ns.fileExists('tinygrow.js', server) || target == 'reset') ns.scp('tinygrow.js', server);
+		if (!ns.fileExists('tinyweaken.js', server) || target == 'reset') ns.scp('tinyweaken.js', server);
 	}
-
+	
+	// Reset mode just replaces the files and then exits
 	if (target == 'reset') return;
 
 	// Start the main loop
@@ -57,6 +52,8 @@ export async function main(ns) {
 
 		// Report hack/grow/weaken threads to terminal
 		ns.print('INFO: Thread balance: H: ' + hThreads + ' G: ' + gThreads + ' W: ' + wThreads);
+
+		// Reset the server since we changed it's money and security for thread calculations
 		so = ns.getServer(target);
 
 		const pids = [];
@@ -90,87 +87,79 @@ export async function main(ns) {
 	}
 }
 
+// Returns a list of all usable servers (for running workers) and their available memory
 function RamSnapshot(ns) {
 	return GetAllServers(ns)
-		.filter(p => ns.hasRootAccess(p) && ns.getServerMaxRam(p) > 0)
+		.filter(p => ns.getServer(p).hasAdminRights && ns.getServer(p).maxRam > 0)
 		.map(s => { return { name: s, available: ns.getServer(s).maxRam - ns.getServer(s).ramUsed } })
 		.sort((a, b) => (ns.getServer(b.name).maxRam - ns.getServer(b.name).ramUsed) - (ns.getServer(a.name).maxRam - ns.getServer(a.name).ramUsed));
 }
 
-function AvailableRam(ns) {
-	return RamSnapshot(ns).reduce((sum, s) => sum + s.available, 0);
-}
+// Returns the total amount of free ram on the usable network
+function AvailableRam(ns) { return RamSnapshot(ns).reduce((sum, s) => sum + s.available, 0); }
 
-function BiggestRam(ns) {
-	return RamSnapshot(ns)[0];
-}
+// Returns the biggest free block of ram
+function BiggestRam(ns) { return RamSnapshot(ns)[0]; }
 
+// Creates one of the worker scripts
 function CreateScript(ns, command) {
 	ns.write('tiny' + command + '.js', 'export async function main(ns) { await ns.' + command + '(ns.args[0], { additionalMsec: ns.args[1] }) }', 'w');
 }
 
+// Returns all servers
 function GetAllServers(ns) {
 	const z = t => [t, ...ns.scan(t).slice(t != 'home').flatMap(z)];
 	return z('home');
 }
 
+// Determines if the server is prepped or not
 function IsPrepped(ns, target) {
-	return ns.getServerSecurityLevel(target) === ns.getServerMinSecurityLevel(target) &&
-		ns.getServerSecurityLevel(target) === ns.getServerMinSecurityLevel(target);
+	return ns.getServer(target).hackDifficulty === ns.getServer(target).minDifficulty &&
+		ns.getServer(target).moneyAvailable === ns.getServer(target).moneyMax;
 }
 
+// Preps a server using a batch (if possible, otherwise sequential)
 async function BatchPrep(ns, server) {
 	ns.print('WARN: Prepping ' + server);
-	ns.print('WARN: Security is ' + ns.getServerSecurityLevel(server) + ' min: ' + ns.getServerMinSecurityLevel(server));
-	ns.print('WARN: Money is ' + ns.getServerMoneyAvailable(server) + ' max: ' + ns.getServerMaxMoney(server));
+	ns.print('WARN: Security is ' + ns.getServer(server).hackDifficulty + ' min: ' + ns.getServer(server).minDifficulty);
+	ns.print('WARN: Money is ' + ns.getServer(server).moneyAvailable + ' max: ' + ns.getServer(server).moneyMax);
 
 	while (!IsPrepped(ns, server)) {
 		const so = ns.getServer(server);
 		const player = ns.getPlayer();
 
-		let security = so.hackDifficulty - so.minDifficulty;
+		let sec = so.hackDifficulty - so.minDifficulty;
 
+		let w1threads = Math.ceil(sec / 0.05);
 		let gthreads = ns.formulas.hacking.growThreads(so, player, so.moneyMax);
-		const gtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 3.2;
-
-		let w1threads = Math.ceil(security / 0.05);
-		const wtime = ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 4;
-
 		let w2threads = Math.ceil((gthreads * 0.004) / 0.05);
 
 		const allPids = [];
-
 		if (w1threads > 0) {
 			ns.print('INFO: Security is over minimum, starting ' + w1threads + ' threads to floor it');
 			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w1threads);
 			allPids.push(...pids);
 		}
-
 		if (gthreads > 0) {
 			ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
 			const pids = RunScript(ns, 'tinygrow.js', server, ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 0.8, gthreads);
 			allPids.push(...pids);
 		}
-
 		if (w2threads > 0) {
 			ns.print('INFO: We launched grow threads, starting ' + w2threads + ' weaken threads to cancel them it');
 			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w2threads);
 			allPids.push(...pids);
 		}
-
 		await WaitPids(ns, allPids);
 	}
 }
 
 async function WaitPids(ns, pids) {
 	if (!Array.isArray(pids)) pids = [pids];
-	while (pids.some(p => ns.getRunningScript(p) != undefined)) { await ns.sleep(5); }
+	while (pids.some(p => ns.isRunning(p))) { await ns.sleep(5); }
 }
 
 function RunScript(ns, scriptName, target, delay, threads, allowPartial = false) {
-	// Find all servers
-	const snap = RamSnapshot(ns);
-
 	// Find script RAM usage
 	const ramPerThread = ns.getScriptRam(scriptName);
 
@@ -178,9 +167,8 @@ function RunScript(ns, scriptName, target, delay, threads, allowPartial = false)
 	let fired = 0;
 	const pids = [];
 
-	for (const server of snap) {
-		let availableRam = server.available;
-		let possibleThreads = Math.floor(availableRam / ramPerThread);
+	for (const server of RamSnapshot(ns)) {
+		let possibleThreads = Math.floor(server.available / ramPerThread);
 
 		// We don't wanna break jobs
 		if (possibleThreads < threads && threads != Infinity && !allowPartial) {
@@ -190,20 +178,17 @@ function RunScript(ns, scriptName, target, delay, threads, allowPartial = false)
 		else if (possibleThreads > threads)
 			possibleThreads = threads;
 
-		if (possibleThreads == 0) {
-			continue;
-		}
+		if (possibleThreads == 0) continue;
 
 		// Fire the script with as many threads as possible
 		ns.print('INFO: Starting script ' + scriptName + ' on ' + server.name + ' with ' + possibleThreads + ' threads');
 		let pid = ns.exec(scriptName, server.name, possibleThreads, target, delay);
-		if (pid == 0)
+		if (pid == 0) 
 			ns.print('WARN: Could not start script ' + scriptName + ' on ' + server.name + ' with ' + possibleThreads + ' threads');
 		else {
 			fired += possibleThreads;
 			pids.push(pid);
 		}
-
 		if (fired >= threads) break;
 	}
 

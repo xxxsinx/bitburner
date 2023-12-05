@@ -137,20 +137,21 @@ async function BatchPrep(ns, server) {
 		const allPids = [];
 		if (w1threads > 0) {
 			ns.print('INFO: Security is over minimum, starting ' + w1threads + ' threads to floor it');
-			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w1threads);
+			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w1threads, true);
 			allPids.push(...pids);
 		}
 		if (gthreads > 0) {
 			ns.print('INFO: Funds are not maxed, starting ' + gthreads + ' threads to grow them');
-			const pids = RunScript(ns, 'tinygrow.js', server, ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 0.8, gthreads);
+			const pids = RunScript(ns, 'tinygrow.js', server, ns.formulas.hacking.hackTime(so, ns.getPlayer()) * 0.8, gthreads, true);
 			allPids.push(...pids);
 		}
 		if (w2threads > 0) {
 			ns.print('INFO: We launched grow threads, starting ' + w2threads + ' weaken threads to cancel them it');
-			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w2threads);
+			const pids = RunScript(ns, 'tinyweaken.js', server, 0, w2threads, true);
 			allPids.push(...pids);
 		}
 		await WaitPids(ns, allPids);
+		await ns.sleep(0);
 	}
 }
 
@@ -173,7 +174,7 @@ function RunScript(ns, scriptName, target, delay, threads, allowPartial = false)
 		// We don't wanna break jobs
 		if (possibleThreads < threads && threads != Infinity && !allowPartial) {
 			ns.print('WARN: Impossible to launch job without breaking it apart');
-			throw "not enough ram";
+			throw "Impossible to launch job without breaking it apart";
 		}
 		else if (possibleThreads > threads)
 			possibleThreads = threads;
@@ -194,11 +195,13 @@ function RunScript(ns, scriptName, target, delay, threads, allowPartial = false)
 
 	if (fired == 0) {
 		ns.print('FAIL: Not enough memory to launch a single thread of ' + scriptName + ' (out of memory on all servers!)');
-		throw "not enough ram";
+		if (!allowPartial)
+			throw 'Not enough memory to launch a single thread of ' + scriptName + ' (out of memory on all servers!)';
 	}
 	if (fired != threads && threads != Infinity) {
 		ns.print('FAIL: There wasn\'t enough ram to run ' + threads + ' threads of ' + scriptName + ' (fired: ' + fired + ').');
-		throw "not enough ram";
+		if (!allowPartial)
+			throw 'There wasn\'t enough ram to run ' + threads + ' threads of ' + scriptName + ' (fired: ' + fired + ').';
 	}
 
 	return pids;

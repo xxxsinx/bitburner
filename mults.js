@@ -4,7 +4,7 @@ import { PrintTable, DefaultStyle, ColorPrint } from 'tables.js'
 export async function main(ns) {
 	ns.disableLog('ALL');
 
-	const nodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+	const nodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 	const keys = Object.keys(ns.getBitNodeMultipliers()).sort((a, b) => a.localeCompare(b));
 	const mults = nodes.map(s => ns.getBitNodeMultipliers(s, ns.args[0] ?? 1));
 

@@ -59,8 +59,11 @@ export async function main(ns) {
 		const pids = [];
 		let batchCount = 0;
 		// This check could be better, it will produce one partial batch at the end often.
-		while (BiggestRam(ns).available > growRam && AvailableRam(ns) > batchRam) {
+		// 130k batches maximum, which amounts to 390k scripts. 400k is the limit before crashing the game into a black screen on most browsers.
+		while (BiggestRam(ns).available > growRam && AvailableRam(ns) > batchRam && batchCount < 130000) {
 			batchCount++;
+			// This prevents the batch spawning loop we're in from locking the interface
+			if (batchCount % 200 == 0) await ns.sleep(0);
 			ns.print('Starting batch #' + batchCount);
 			const tempPids = [];
 			try {
